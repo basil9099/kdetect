@@ -1,0 +1,25 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.vscode/
+.idea/
+
+# Live captures — contain hostnames, paths, running processes
+/captures/
+/data/baselines/*.json
+!/data/baselines/.gitkeep
+
+# Kernel build artifacts
+kmod/*.ko
+kmod/*.o
+kmod/.*.cmd
+kmod/Module.symvers
+kmod/modules.order
+
+# NEVER commit rootkit source or binaries
+/lab/targets/**
+!/lab/targets/README.md
