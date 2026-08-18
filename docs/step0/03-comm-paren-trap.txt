@@ -1,0 +1,19 @@
+# comm containing spaces AND parens breaks naive split()
+# command: cp /bin/sleep '/tmp/ev (il) proc'
+# captured: 2026-08-18T02:01:09-05:00
+
+stat line:
+6041 (ev (il) proc) S 6009 6009 6009 0 -1 4194304 110 0 0 0 0 0 0 0 20 0 1 0 368731 5603328 226 18446744073709551615 94560358600704 94560358618633 140736865265936 0 0 0 0 6 0 1 0 0 17 0 0 0 0 0 0 94560358632720 94560358633984 94560380829696 140736865271343 140736865271364 140736865271364 140736865271782 0
+
+comm: ev (il) proc
+
+--- naive split() on whitespace gives ---
+field 1   = 6041
+field 2   = (ev
+field 3   = (il)   <-- should be state
+field 4   = proc)   <-- should be ppid
+field 5   = S
+
+--- correct: split after the LAST ')' ---
+state = S
+ppid  = 6009

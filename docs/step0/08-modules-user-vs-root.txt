@@ -1,0 +1,20 @@
+# /proc/modules - address masking by kptr_restrict
+# command: head -5 /proc/modules as user vs root
+# captured: 2026-08-18T02:01:10-05:00
+
+=== as debian ===
+vsock_loopback 16384 0 - Live 0x0000000000000000
+vmw_vsock_virtio_transport_common 49152 1 vsock_loopback, Live 0x0000000000000000
+vmw_vsock_vmci_transport 36864 1 - Live 0x0000000000000000
+vsock 53248 5 vsock_loopback,vmw_vsock_virtio_transport_common,vmw_vsock_vmci_transport, Live 0x0000000000000000
+binfmt_misc 24576 1 - Live 0x0000000000000000
+
+=== as root ===
+vsock_loopback 16384 0 - Live 0xffffffffc082d000
+vmw_vsock_virtio_transport_common 49152 1 vsock_loopback, Live 0xffffffffc085d000
+vmw_vsock_vmci_transport 36864 1 - Live 0xffffffffc0853000
+vsock 53248 5 vsock_loopback,vmw_vsock_virtio_transport_common,vmw_vsock_vmci_transport, Live 0xffffffffc0832000
+binfmt_misc 24576 1 - Live 0xffffffffc0817000
+
+total modules: 70
+columns: name size refcount deps state address

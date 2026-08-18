@@ -1,0 +1,10 @@
+# Three answers to 'what is this process', three forgery difficulties
+# command: cmdline / comm / readlink exe on PID 1
+# captured: 2026-08-18T02:01:10-05:00
+
+cmdline: /lib/systemd/systemd --system --deserialize 34 
+comm:    systemd
+exe:     /usr/lib/systemd/systemd
+
+NOTE: exe must be readlink'd, never cat'd - cat follows the symlink
+      and dumps the entire executable.

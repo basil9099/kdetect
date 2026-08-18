@@ -1,0 +1,36 @@
+# stat(2) fields for the capturing shell
+# command: cat /proc/$$/stat
+# captured: 2026-08-18T02:01:08-05:00
+
+6009 (bash) S 6008 6009 6009 0 -1 4194304 736 1504 0 1 0 0 1 0 20 0 1 0 368626 7106560 869 18446744073709551615 94700239310848 94700240100253 140736503157920 0 0 0 65536 4 65538 1 0 0 17 0 0 0 0 0 0 94700240333552 94700240381796 94700261421056 140736503160388 140736503160396 140736503160396 140736503160810 0
+
+--- field-by-field (1-24) ---
+1   pid            6009
+2   comm           bash
+3   state          S
+4   ppid           6008
+5   pgrp           6009
+6   session        6009
+7   tty_nr         0
+8   tpgid          -1
+9   flags          4194304
+10  minflt         767
+11  cminflt        1594
+12  majflt         0
+13  cmajflt        1
+14  utime          0
+15  stime          0
+16  cutime         1
+17  cstime         0
+18  priority       20
+19  nice           0
+20  num_threads    1
+21  itrealvalue    0
+22  starttime      368626
+23  vsize          7106560
+24  rss            871
+
+--- starttime -> wall clock ---
+starttime_ticks: 368626   btime: 1787032782   CLK_TCK: 100
+computed_start:  2026-08-18T02:01:08-05:00
+ps lstart:       Tue Aug 18 02:01:08 2026

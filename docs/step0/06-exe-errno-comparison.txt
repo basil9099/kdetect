@@ -1,0 +1,15 @@
+# ENOENT vs EACCES - same visible outcome, different meaning
+# command: os.readlink as user vs root
+# captured: 2026-08-18T02:01:10-05:00
+
+=== as debian (uid 1000) ===
+/proc/1/exe ERRNO 13 Permission denied
+/proc/2/exe ERRNO 13 Permission denied
+
+=== as root ===
+/proc/1/exe -> /usr/lib/systemd/systemd
+/proc/2/exe ERRNO 2 No such file or directory
+
+ENOENT(2)  = genuinely has no executable (kernel thread)  -> exe: null
+EACCES(13) = exists, not permitted to see it              -> exe: null + partial:['exe']
+Collapsing both to null destroys the distinction.

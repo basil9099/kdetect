@@ -1,0 +1,12 @@
+# PF_KTHREAD (0x00200000) in stat field 9 - definitive kernel-thread test
+# command: awk field 9 & 0x200000
+# captured: 2026-08-18T02:01:10-05:00
+
+PID    COMM         FLAGS        PF_KTHREAD
+1      systemd      4194560      0
+2      kthreadd     2129984      1
+8      kworker/0:0H-events_highpri 69238880     1
+6009   bash         4194304      0
+
+Kernel-provided ground truth. Record the raw integer; derive meaning in analysis.
+SCHEMA CHANGE: add 'flags' (stat field 9) to the process entity.

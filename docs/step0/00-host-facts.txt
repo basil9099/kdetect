@@ -1,0 +1,12 @@
+# Host facts needed to interpret every other capture
+# command: uname -r; getconf CLK_TCK; btime; boot_id
+# captured: 2026-08-18T02:01:08-05:00
+
+kernel_release: 6.1.0-10-amd64
+arch:           x86_64
+clock_ticks:    100
+btime:          1787032782
+btime_human:    2026-08-18T00:59:42-05:00
+boot_id:        4fa7045a-84bd-4d90-a7d8-14980ed01bf9
+kptr_restrict:  0
+euid:           1000

@@ -1,0 +1,27 @@
+# /proc/kallsyms - kptr_restrict, tested on a real text symbol
+# command: grep commit_creds as user vs root
+# captured: 2026-08-18T02:01:10-05:00
+
+kptr_restrict = 0
+
+=== first 2 symbols (MISLEADING - type 'A' percpu syms are legitimately 0) ===
+0000000000000000 A fixed_percpu_data
+0000000000000000 A __per_cpu_start
+
+=== commit_creds - a real text symbol, and the classic rootkit target ===
+as debian: 0000000000000000 T commit_creds
+as root:      ffffffff932ce040 T commit_creds
+
+symbol count: 115916
+
+=== why zeros for non-root when kptr_restrict=0? ===
+perf_event_paranoid = 3
+kptr_restrict       = 0
+
+kallsyms_show_value() falls through case 0 to case 1 unless
+kallsyms_for_perf() is true, which requires perf_event_paranoid <= 1.
+So with perf_event_paranoid > 1, CAP_SYSLOG is required regardless
+of kptr_restrict being 0. TWO sysctls gate kernel address visibility.
+
+CONSEQUENCE: kdetect needs root (or CAP_SYSLOG) for ANY address-based
+detection - module base addresses, syscall table, symbol hooking.

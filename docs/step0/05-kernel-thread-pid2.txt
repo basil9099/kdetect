@@ -1,0 +1,10 @@
+# Kernel thread (kthreadd) - false-positive class #1
+# command: cmdline/exe/stat for PID 2
+# captured: 2026-08-18T02:01:10-05:00
+
+cmdline bytes: 0
+readlink exe:  readlink exit: 1
+stat 1-5:      2 (kthreadd) S 0 0
+
+kthreadd itself has ppid 0, NOT 2. Its children have ppid 2.
+So 'ppid == 2' is an incomplete rule - see 07 for the definitive test.
