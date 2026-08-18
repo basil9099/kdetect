@@ -75,3 +75,11 @@ and status `PARTIAL` as uid 1000, versus 154 processes, 0 partial and status `OK
 as root. Kernel-thread identity survives regardless, because `PF_KTHREAD` lives
 in world-readable `stat` field 9 - which is why that field is stored raw rather
 than derived from `exe` and `cmdline`.
+
+**L13 — Captures contain whatever processes put in their command lines.**
+`/proc/[pid]/cmdline` is recorded verbatim (P1), so any credential passed as an
+argument is in the snapshot: database passwords, API keys, bearer tokens. The
+phase 1 fixture had to have a VS Code Remote-SSH session token redacted before
+it could be committed. This is a property of `/proc`, not of kdetect, and it
+means **a snapshot must be treated as sensitive by default**. Phase 4's
+reporting will need a redaction pass before any report is shareable.

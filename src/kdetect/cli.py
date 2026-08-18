@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 import uuid
@@ -12,7 +13,12 @@ from pathlib import Path
 from kdetect import __version__, hostfacts
 from kdetect.collectors.procfs import ProcfsProcessCollector
 from kdetect.collectors.sources import LiveProcSource
-from kdetect.models import SCHEMA_VERSION, CaptureMeta, Snapshot
+from kdetect.models import (
+    SCHEMA_VERSION,
+    CaptureMeta,
+    IncompatibleSnapshot,
+    Snapshot,
+)
 
 #: Exit codes. 3 is reserved for "analysis produced findings" so that phase 2
 #: can introduce it without breaking anything scripted against phase 1.
@@ -81,7 +87,43 @@ def cmd_capture(args) -> int:
 
 
 def cmd_analyze(args) -> int:
-    return EXIT_OK  # Task 10 implements this
+    path = Path(args.snapshot)
+
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except OSError as exc:
+        print(f"error: cannot read {path}: {exc}", file=sys.stderr)
+        return EXIT_ERROR
+    except json.JSONDecodeError as exc:
+        print(f"error: {path} is not valid JSON: {exc}", file=sys.stderr)
+        return EXIT_ERROR
+
+    try:
+        snapshot = Snapshot.from_dict(raw)
+    except IncompatibleSnapshot as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_ERROR
+
+    host = snapshot.host
+    print(f"snapshot:  {path}")
+    print(f"schema:    {snapshot.schema_version}")
+    print(f"host:      {host.hostname}  {host.kernel_release}  {host.arch}")
+    print(f"captured:  {snapshot.captured_at}   boot {host.boot_id[:8]}")
+    print(f"euid:      {snapshot.capture.euid}")
+    print()
+    print("collectors:")
+    for obs in snapshot.observations:
+        print(
+            f"  {obs.collector}   trust={obs.trust_level.value}   "
+            f"status={obs.status.value}   {len(obs.entity_ids)} entities   "
+            f"{obs.duration_ms}ms"
+        )
+        stats = "  ".join(f"{k}={v}" for k, v in sorted(obs.stats.items()))
+        print(f"{' ' * 21}{stats}")
+
+    # Phase 1 performs no detection, so there are no findings and never an
+    # exit code 3. That code stays reserved for phase 2.
+    return EXIT_OK
 
 
 def main(argv=None) -> int:

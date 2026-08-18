@@ -1,0 +1,4068 @@
+{
+  "capture": {
+    "euid": 0,
+    "tool_version": "0.1.0"
+  },
+  "captured_at": "2026-08-18T11:53:29.914Z",
+  "host": {
+    "arch": "x86_64",
+    "boot_id": "4fa7045a-84bd-4d90-a7d8-14980ed01bf9",
+    "btime": 1787032782,
+    "clock_ticks_per_sec": 100,
+    "hostname": "debian",
+    "kernel_release": "6.1.0-10-amd64"
+  },
+  "observations": [
+    {
+      "collector": "procfs.processes",
+      "collector_version": "1",
+      "duration_ms": 10,
+      "entities": {
+        "1": {
+          "cmdline": [
+            "/lib/systemd/systemd",
+            "--system",
+            "--deserialize",
+            "34"
+          ],
+          "comm": "systemd",
+          "exe": "/usr/lib/systemd/systemd",
+          "flags": 4194560,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 1,
+          "ppid": 0,
+          "starttime_ticks": 72,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "10": {
+          "cmdline": [],
+          "comm": "mm_percpu_wq",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 10,
+          "ppid": 2,
+          "starttime_ticks": 73,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "100": {
+          "cmdline": [],
+          "comm": "kworker/u257:0",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 100,
+          "ppid": 2,
+          "starttime_ticks": 275,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "11": {
+          "cmdline": [],
+          "comm": "rcu_tasks_kthread",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 11,
+          "ppid": 2,
+          "starttime_ticks": 73,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "12": {
+          "cmdline": [],
+          "comm": "rcu_tasks_rude_kthread",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 12,
+          "ppid": 2,
+          "starttime_ticks": 73,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "13": {
+          "cmdline": [],
+          "comm": "rcu_tasks_trace_kthread",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 13,
+          "ppid": 2,
+          "starttime_ticks": 73,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "14": {
+          "cmdline": [],
+          "comm": "ksoftirqd/0",
+          "exe": null,
+          "flags": 69238848,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 14,
+          "ppid": 2,
+          "starttime_ticks": 73,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "15": {
+          "cmdline": [],
+          "comm": "rcu_preempt",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 15,
+          "ppid": 2,
+          "starttime_ticks": 73,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "153": {
+          "cmdline": [],
+          "comm": "kworker/1:1H-kblockd",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 153,
+          "ppid": 2,
+          "starttime_ticks": 304,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "15647": {
+          "cmdline": [],
+          "comm": "kworker/u256:0-flush-254:3",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 15647,
+          "ppid": 2,
+          "starttime_ticks": 1920272,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "15660": {
+          "cmdline": [],
+          "comm": "kworker/0:3-cgroup_destroy",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 15660,
+          "ppid": 2,
+          "starttime_ticks": 1920353,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "15975": {
+          "cmdline": [],
+          "comm": "kworker/1:2-cgroup_destroy",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 15975,
+          "ppid": 2,
+          "starttime_ticks": 1996844,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "16": {
+          "cmdline": [],
+          "comm": "migration/0",
+          "exe": null,
+          "flags": 69238848,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 16,
+          "ppid": 2,
+          "starttime_ticks": 73,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "16022": {
+          "cmdline": [],
+          "comm": "kworker/u256:1-ext4-rsv-conversion",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 16022,
+          "ppid": 2,
+          "starttime_ticks": 2033860,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "16028": {
+          "cmdline": [],
+          "comm": "kworker/u256:2-flush-254:4",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 16028,
+          "ppid": 2,
+          "starttime_ticks": 2077380,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "16207": {
+          "cmdline": [],
+          "comm": "kworker/1:1-cgroup_destroy",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 16207,
+          "ppid": 2,
+          "starttime_ticks": 2104693,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "16217": {
+          "cmdline": [],
+          "comm": "kworker/1:3-events",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 16217,
+          "ppid": 2,
+          "starttime_ticks": 2104716,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "16250": {
+          "cmdline": [
+            "sleep",
+            "180"
+          ],
+          "comm": "sleep",
+          "exe": "/usr/bin/sleep",
+          "flags": 4194304,
+          "gid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 16250,
+          "ppid": 4952,
+          "starttime_ticks": 2106343,
+          "state": "S",
+          "uid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        "16259": {
+          "cmdline": [],
+          "comm": "kworker/0:0",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 16259,
+          "ppid": 2,
+          "starttime_ticks": 2106363,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "16346": {
+          "cmdline": [
+            "sleep",
+            "180"
+          ],
+          "comm": "sleep",
+          "exe": "/usr/bin/sleep",
+          "flags": 4194304,
+          "gid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 16346,
+          "ppid": 4609,
+          "starttime_ticks": 2115677,
+          "state": "S",
+          "uid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        "16433": {
+          "cmdline": [
+            "sshd: debian [priv]"
+          ],
+          "comm": "sshd",
+          "exe": "/usr/sbin/sshd",
+          "flags": 4194560,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 16433,
+          "ppid": 603,
+          "starttime_ticks": 2122741,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "16439": {
+          "cmdline": [
+            "sshd: debian@notty"
+          ],
+          "comm": "sshd",
+          "exe": "/usr/sbin/sshd",
+          "flags": 4194624,
+          "gid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 16439,
+          "ppid": 16433,
+          "starttime_ticks": 2122755,
+          "state": "S",
+          "uid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        "16440": {
+          "cmdline": [
+            "bash",
+            "-s"
+          ],
+          "comm": "bash",
+          "exe": "/usr/bin/bash",
+          "flags": 4194304,
+          "gid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 16440,
+          "ppid": 16439,
+          "starttime_ticks": 2122759,
+          "state": "S",
+          "uid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        "16442": {
+          "cmdline": [
+            "sudo",
+            ".venv/bin/kdetect",
+            "capture",
+            "--out",
+            "tests/fixtures/snapshots/clean-vm.json",
+            "--pretty"
+          ],
+          "comm": "sudo",
+          "exe": "/usr/bin/sudo",
+          "flags": 4194560,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 16442,
+          "ppid": 16440,
+          "starttime_ticks": 2122760,
+          "state": "S",
+          "uid": [
+            1000,
+            0,
+            0,
+            0
+          ]
+        },
+        "16443": {
+          "cmdline": [
+            "/home/debian/projects/kdetect/.venv/bin/python3",
+            ".venv/bin/kdetect",
+            "capture",
+            "--out",
+            "tests/fixtures/snapshots/clean-vm.json",
+            "--pretty"
+          ],
+          "comm": "kdetect",
+          "exe": "/usr/bin/python3.11",
+          "flags": 4194560,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 16443,
+          "ppid": 16442,
+          "starttime_ticks": 2122760,
+          "state": "R",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "169": {
+          "cmdline": [],
+          "comm": "ata_sff",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 169,
+          "ppid": 2,
+          "starttime_ticks": 318,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "170": {
+          "cmdline": [],
+          "comm": "mpt_poll_0",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 170,
+          "ppid": 2,
+          "starttime_ticks": 319,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "171": {
+          "cmdline": [],
+          "comm": "mpt/0",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 171,
+          "ppid": 2,
+          "starttime_ticks": 319,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "173": {
+          "cmdline": [],
+          "comm": "scsi_eh_0",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 173,
+          "ppid": 2,
+          "starttime_ticks": 319,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "174": {
+          "cmdline": [],
+          "comm": "scsi_tmf_0",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 174,
+          "ppid": 2,
+          "starttime_ticks": 319,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "175": {
+          "cmdline": [],
+          "comm": "scsi_eh_1",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 175,
+          "ppid": 2,
+          "starttime_ticks": 320,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "176": {
+          "cmdline": [],
+          "comm": "scsi_tmf_1",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 176,
+          "ppid": 2,
+          "starttime_ticks": 320,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "178": {
+          "cmdline": [],
+          "comm": "scsi_eh_2",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 178,
+          "ppid": 2,
+          "starttime_ticks": 359,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "179": {
+          "cmdline": [],
+          "comm": "scsi_tmf_2",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 179,
+          "ppid": 2,
+          "starttime_ticks": 359,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "18": {
+          "cmdline": [],
+          "comm": "cpuhp/0",
+          "exe": null,
+          "flags": 69238848,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 18,
+          "ppid": 2,
+          "starttime_ticks": 75,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "188": {
+          "cmdline": [],
+          "comm": "kdmflush/254:0",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 188,
+          "ppid": 2,
+          "starttime_ticks": 392,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "189": {
+          "cmdline": [],
+          "comm": "kdmflush/254:1",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 189,
+          "ppid": 2,
+          "starttime_ticks": 392,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "19": {
+          "cmdline": [],
+          "comm": "cpuhp/1",
+          "exe": null,
+          "flags": 69239104,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 19,
+          "ppid": 2,
+          "starttime_ticks": 75,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "191": {
+          "cmdline": [],
+          "comm": "kdmflush/254:2",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 191,
+          "ppid": 2,
+          "starttime_ticks": 392,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "192": {
+          "cmdline": [],
+          "comm": "kdmflush/254:3",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 192,
+          "ppid": 2,
+          "starttime_ticks": 392,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "195": {
+          "cmdline": [],
+          "comm": "kdmflush/254:4",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 195,
+          "ppid": 2,
+          "starttime_ticks": 392,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "2": {
+          "cmdline": [],
+          "comm": "kthreadd",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 2,
+          "ppid": 0,
+          "starttime_ticks": 72,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "20": {
+          "cmdline": [],
+          "comm": "migration/1",
+          "exe": null,
+          "flags": 69238848,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 20,
+          "ppid": 2,
+          "starttime_ticks": 75,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "21": {
+          "cmdline": [],
+          "comm": "ksoftirqd/1",
+          "exe": null,
+          "flags": 69238848,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 21,
+          "ppid": 2,
+          "starttime_ticks": 75,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "23": {
+          "cmdline": [],
+          "comm": "kworker/1:0H-events_highpri",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 23,
+          "ppid": 2,
+          "starttime_ticks": 75,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "233": {
+          "cmdline": [],
+          "comm": "jbd2/dm-0-8",
+          "exe": null,
+          "flags": 2359360,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 233,
+          "ppid": 2,
+          "starttime_ticks": 417,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "234": {
+          "cmdline": [],
+          "comm": "ext4-rsv-conver",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 234,
+          "ppid": 2,
+          "starttime_ticks": 417,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "26": {
+          "cmdline": [],
+          "comm": "kdevtmpfs",
+          "exe": null,
+          "flags": 2130240,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 26,
+          "ppid": 2,
+          "starttime_ticks": 79,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "27": {
+          "cmdline": [],
+          "comm": "inet_frag_wq",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 27,
+          "ppid": 2,
+          "starttime_ticks": 79,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "272": {
+          "cmdline": [
+            "/lib/systemd/systemd-journald"
+          ],
+          "comm": "systemd-journal",
+          "exe": "/usr/lib/systemd/systemd-journald",
+          "flags": 4194560,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 272,
+          "ppid": 1,
+          "starttime_ticks": 446,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "28": {
+          "cmdline": [],
+          "comm": "kauditd",
+          "exe": null,
+          "flags": 2097216,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 28,
+          "ppid": 2,
+          "starttime_ticks": 81,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "298": {
+          "cmdline": [
+            "/lib/systemd/systemd-udevd"
+          ],
+          "comm": "systemd-udevd",
+          "exe": "/usr/bin/udevadm",
+          "flags": 4194560,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 298,
+          "ppid": 1,
+          "starttime_ticks": 470,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "3": {
+          "cmdline": [],
+          "comm": "rcu_gp",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 3,
+          "ppid": 2,
+          "starttime_ticks": 73,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "32": {
+          "cmdline": [],
+          "comm": "khungtaskd",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 32,
+          "ppid": 2,
+          "starttime_ticks": 82,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "33": {
+          "cmdline": [],
+          "comm": "oom_reaper",
+          "exe": null,
+          "flags": 2097216,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 33,
+          "ppid": 2,
+          "starttime_ticks": 82,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "338": {
+          "cmdline": [],
+          "comm": "irq/56-vmw_vmci",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 338,
+          "ppid": 2,
+          "starttime_ticks": 500,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "345": {
+          "cmdline": [],
+          "comm": "irq/57-vmw_vmci",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 345,
+          "ppid": 2,
+          "starttime_ticks": 502,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "346": {
+          "cmdline": [],
+          "comm": "cryptd",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 346,
+          "ppid": 2,
+          "starttime_ticks": 503,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "35": {
+          "cmdline": [],
+          "comm": "writeback",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 35,
+          "ppid": 2,
+          "starttime_ticks": 82,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "36": {
+          "cmdline": [],
+          "comm": "kcompactd0",
+          "exe": null,
+          "flags": 2097216,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 36,
+          "ppid": 2,
+          "starttime_ticks": 82,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "37": {
+          "cmdline": [],
+          "comm": "ksmd",
+          "exe": null,
+          "flags": 2097216,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 37,
+          "ppid": 2,
+          "starttime_ticks": 82,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "38": {
+          "cmdline": [],
+          "comm": "khugepaged",
+          "exe": null,
+          "flags": 2097216,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 38,
+          "ppid": 2,
+          "starttime_ticks": 82,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "39": {
+          "cmdline": [],
+          "comm": "kintegrityd",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 39,
+          "ppid": 2,
+          "starttime_ticks": 82,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "393": {
+          "cmdline": [],
+          "comm": "jbd2/dm-3-8",
+          "exe": null,
+          "flags": 2359360,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 393,
+          "ppid": 2,
+          "starttime_ticks": 515,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "395": {
+          "cmdline": [],
+          "comm": "ext4-rsv-conver",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 395,
+          "ppid": 2,
+          "starttime_ticks": 516,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "399": {
+          "cmdline": [],
+          "comm": "ext4-rsv-conver",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 399,
+          "ppid": 2,
+          "starttime_ticks": 516,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "4": {
+          "cmdline": [],
+          "comm": "rcu_par_gp",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 4,
+          "ppid": 2,
+          "starttime_ticks": 73,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "40": {
+          "cmdline": [],
+          "comm": "kblockd",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 40,
+          "ppid": 2,
+          "starttime_ticks": 82,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "407": {
+          "cmdline": [],
+          "comm": "jbd2/dm-1-8",
+          "exe": null,
+          "flags": 2359360,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 407,
+          "ppid": 2,
+          "starttime_ticks": 519,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "408": {
+          "cmdline": [],
+          "comm": "jbd2/dm-4-8",
+          "exe": null,
+          "flags": 2359360,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 408,
+          "ppid": 2,
+          "starttime_ticks": 519,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "41": {
+          "cmdline": [],
+          "comm": "blkcg_punt_bio",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 41,
+          "ppid": 2,
+          "starttime_ticks": 82,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "410": {
+          "cmdline": [],
+          "comm": "ext4-rsv-conver",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 410,
+          "ppid": 2,
+          "starttime_ticks": 519,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "413": {
+          "cmdline": [],
+          "comm": "ext4-rsv-conver",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 413,
+          "ppid": 2,
+          "starttime_ticks": 519,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "42": {
+          "cmdline": [],
+          "comm": "tpm_dev_wq",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 42,
+          "ppid": 2,
+          "starttime_ticks": 109,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "43": {
+          "cmdline": [],
+          "comm": "edac-poller",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 43,
+          "ppid": 2,
+          "starttime_ticks": 109,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "44": {
+          "cmdline": [],
+          "comm": "devfreq_wq",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 44,
+          "ppid": 2,
+          "starttime_ticks": 109,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "45": {
+          "cmdline": [],
+          "comm": "kworker/0:1H-kblockd",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 45,
+          "ppid": 2,
+          "starttime_ticks": 126,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "454": {
+          "cmdline": [],
+          "comm": "irq/16-vmwgfx",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 454,
+          "ppid": 2,
+          "starttime_ticks": 529,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "46": {
+          "cmdline": [],
+          "comm": "kswapd0",
+          "exe": null,
+          "flags": 2230336,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 46,
+          "ppid": 2,
+          "starttime_ticks": 129,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "4602": {
+          "cmdline": [
+            "sshd: debian [priv]"
+          ],
+          "comm": "sshd",
+          "exe": "/usr/sbin/sshd",
+          "flags": 4194560,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 4602,
+          "ppid": 603,
+          "starttime_ticks": 188974,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "4608": {
+          "cmdline": [
+            "sshd: debian@notty"
+          ],
+          "comm": "sshd",
+          "exe": "/usr/sbin/sshd",
+          "flags": 4194624,
+          "gid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 4608,
+          "ppid": 4602,
+          "starttime_ticks": 188992,
+          "state": "S",
+          "uid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        "4609": {
+          "cmdline": [
+            "sh"
+          ],
+          "comm": "sh",
+          "exe": "/usr/bin/dash",
+          "flags": 4194304,
+          "gid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 4609,
+          "ppid": 4608,
+          "starttime_ticks": 188997,
+          "state": "S",
+          "uid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        "4653": {
+          "cmdline": [
+            "/home/debian/.vscode-server/code-df53daabb18cd157bdb08c7f01c34df936cf12f4",
+            "command-shell",
+            "--cli-data-dir",
+            "/home/debian/.vscode-server/cli",
+            "--parent-process-id",
+            "4609",
+            "--on-host=127.0.0.1",
+            "--on-port"
+          ],
+          "comm": "code-df53daabb1",
+          "exe": "/home/debian/.vscode-server/code-df53daabb18cd157bdb08c7f01c34df936cf12f4",
+          "flags": 4194304,
+          "gid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ],
+          "num_threads": 3,
+          "partial": [],
+          "pid": 4653,
+          "ppid": 4609,
+          "starttime_ticks": 189652,
+          "state": "S",
+          "uid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        "4672": {
+          "cmdline": [
+            "/home/debian/.vscode-server/code-df53daabb18cd157bdb08c7f01c34df936cf12f4",
+            "--cli-data-dir",
+            "/home/debian/.vscode-server/cli",
+            "agent",
+            "host"
+          ],
+          "comm": "code-df53daabb1",
+          "exe": "/home/debian/.vscode-server/code-df53daabb18cd157bdb08c7f01c34df936cf12f4",
+          "flags": 4194304,
+          "gid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ],
+          "num_threads": 3,
+          "partial": [],
+          "pid": 4672,
+          "ppid": 4653,
+          "starttime_ticks": 189656,
+          "state": "S",
+          "uid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        "4721": {
+          "cmdline": [
+            "sh",
+            "/home/debian/.vscode-server/cli/servers/Stable-df53daabb18cd157bdb08c7f01c34df936cf12f4/server/bin/code-server",
+            "--connection-token=remotessh",
+            "--accept-server-license-terms",
+            "--agent-host-bridge-port=46681",
+            "--agent-host-bridge-host=127.0.0.1",
+            "--agent-host-bridge-connection-token=REDACTED",
+            "--start-server",
+            "--enable-remote-auto-shutdown",
+            "--socket-path=/tmp/code-90fe177b-d13c-4d2e-867a-a4bb13e56fea"
+          ],
+          "comm": "sh",
+          "exe": "/usr/bin/dash",
+          "flags": 4194304,
+          "gid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 4721,
+          "ppid": 4653,
+          "starttime_ticks": 193190,
+          "state": "S",
+          "uid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        "4725": {
+          "cmdline": [
+            "/home/debian/.vscode-server/cli/servers/Stable-df53daabb18cd157bdb08c7f01c34df936cf12f4/server/node",
+            "/home/debian/.vscode-server/cli/servers/Stable-df53daabb18cd157bdb08c7f01c34df936cf12f4/server/out/server-main.js",
+            "--connection-token=remotessh",
+            "--accept-server-license-terms",
+            "--agent-host-bridge-port=46681",
+            "--agent-host-bridge-host=127.0.0.1",
+            "--agent-host-bridge-connection-token=REDACTED",
+            "--start-server",
+            "--enable-remote-auto-shutdown",
+            "--socket-path=/tmp/code-90fe177b-d13c-4d2e-867a-a4bb13e56fea"
+          ],
+          "comm": "MainThread",
+          "exe": "/home/debian/.vscode-server/cli/servers/Stable-df53daabb18cd157bdb08c7f01c34df936cf12f4/server/node",
+          "flags": 4194304,
+          "gid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ],
+          "num_threads": 11,
+          "partial": [],
+          "pid": 4725,
+          "ppid": 4721,
+          "starttime_ticks": 193191,
+          "state": "S",
+          "uid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        "4746": {
+          "cmdline": [
+            "/home/debian/.vscode-server/cli/servers/Stable-df53daabb18cd157bdb08c7f01c34df936cf12f4/server/node",
+            "--dns-result-order=ipv4first",
+            "/home/debian/.vscode-server/cli/servers/Stable-df53daabb18cd157bdb08c7f01c34df936cf12f4/server/out/bootstrap-fork",
+            "--type=extensionHost",
+            "--transformURIs",
+            "--useHostProxy=false"
+          ],
+          "comm": "MainThread",
+          "exe": "/home/debian/.vscode-server/cli/servers/Stable-df53daabb18cd157bdb08c7f01c34df936cf12f4/server/node",
+          "flags": 4194304,
+          "gid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ],
+          "num_threads": 14,
+          "partial": [],
+          "pid": 4746,
+          "ppid": 4725,
+          "starttime_ticks": 193227,
+          "state": "S",
+          "uid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        "4760": {
+          "cmdline": [
+            "/home/debian/.vscode-server/cli/servers/Stable-df53daabb18cd157bdb08c7f01c34df936cf12f4/server/node",
+            "/home/debian/.vscode-server/cli/servers/Stable-df53daabb18cd157bdb08c7f01c34df936cf12f4/server/out/bootstrap-fork",
+            "--type=fileWatcher"
+          ],
+          "comm": "MainThread",
+          "exe": "/home/debian/.vscode-server/cli/servers/Stable-df53daabb18cd157bdb08c7f01c34df936cf12f4/server/node",
+          "flags": 4194304,
+          "gid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ],
+          "num_threads": 11,
+          "partial": [],
+          "pid": 4760,
+          "ppid": 4725,
+          "starttime_ticks": 193244,
+          "state": "S",
+          "uid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        "4781": {
+          "cmdline": [
+            "/home/debian/.vscode-server/cli/servers/Stable-df53daabb18cd157bdb08c7f01c34df936cf12f4/server/node",
+            "/home/debian/.vscode-server/cli/servers/Stable-df53daabb18cd157bdb08c7f01c34df936cf12f4/server/out/bootstrap-fork",
+            "--type=ptyHost",
+            "--logsPath",
+            "/home/debian/.vscode-server/data/logs/20260818T013154"
+          ],
+          "comm": "MainThread",
+          "exe": "/home/debian/.vscode-server/cli/servers/Stable-df53daabb18cd157bdb08c7f01c34df936cf12f4/server/node",
+          "flags": 4194304,
+          "gid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ],
+          "num_threads": 12,
+          "partial": [],
+          "pid": 4781,
+          "ppid": 4725,
+          "starttime_ticks": 193266,
+          "state": "S",
+          "uid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        "4945": {
+          "cmdline": [
+            "sshd: debian [priv]"
+          ],
+          "comm": "sshd",
+          "exe": "/usr/sbin/sshd",
+          "flags": 4194560,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 4945,
+          "ppid": 603,
+          "starttime_ticks": 198295,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "4951": {
+          "cmdline": [
+            "sshd: debian@notty"
+          ],
+          "comm": "sshd",
+          "exe": "/usr/sbin/sshd",
+          "flags": 4194624,
+          "gid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 4951,
+          "ppid": 4945,
+          "starttime_ticks": 198311,
+          "state": "S",
+          "uid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        "4952": {
+          "cmdline": [
+            "sh"
+          ],
+          "comm": "sh",
+          "exe": "/usr/bin/dash",
+          "flags": 4194304,
+          "gid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 4952,
+          "ppid": 4951,
+          "starttime_ticks": 198316,
+          "state": "S",
+          "uid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        "4970": {
+          "cmdline": [
+            "/home/debian/.vscode-server/code-df53daabb18cd157bdb08c7f01c34df936cf12f4",
+            "command-shell",
+            "--cli-data-dir",
+            "/home/debian/.vscode-server/cli",
+            "--parent-process-id",
+            "4952",
+            "--on-host=127.0.0.1",
+            "--on-port"
+          ],
+          "comm": "code-df53daabb1",
+          "exe": "/home/debian/.vscode-server/code-df53daabb18cd157bdb08c7f01c34df936cf12f4",
+          "flags": 4194304,
+          "gid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ],
+          "num_threads": 3,
+          "partial": [],
+          "pid": 4970,
+          "ppid": 4952,
+          "starttime_ticks": 198319,
+          "state": "S",
+          "uid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        "4992": {
+          "cmdline": [
+            "/home/debian/.vscode-server/cli/servers/Stable-df53daabb18cd157bdb08c7f01c34df936cf12f4/server/node",
+            "--dns-result-order=ipv4first",
+            "/home/debian/.vscode-server/cli/servers/Stable-df53daabb18cd157bdb08c7f01c34df936cf12f4/server/out/bootstrap-fork",
+            "--type=extensionHost",
+            "--transformURIs",
+            "--useHostProxy=false"
+          ],
+          "comm": "MainThread",
+          "exe": "/home/debian/.vscode-server/cli/servers/Stable-df53daabb18cd157bdb08c7f01c34df936cf12f4/server/node",
+          "flags": 4194304,
+          "gid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ],
+          "num_threads": 14,
+          "partial": [],
+          "pid": 4992,
+          "ppid": 4725,
+          "starttime_ticks": 198340,
+          "state": "S",
+          "uid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        "5": {
+          "cmdline": [],
+          "comm": "slub_flushwq",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 5,
+          "ppid": 2,
+          "starttime_ticks": 73,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "5004": {
+          "cmdline": [
+            "/home/debian/.vscode-server/cli/servers/Stable-df53daabb18cd157bdb08c7f01c34df936cf12f4/server/node",
+            "/home/debian/.vscode-server/cli/servers/Stable-df53daabb18cd157bdb08c7f01c34df936cf12f4/server/out/bootstrap-fork",
+            "--type=fileWatcher"
+          ],
+          "comm": "MainThread",
+          "exe": "/home/debian/.vscode-server/cli/servers/Stable-df53daabb18cd157bdb08c7f01c34df936cf12f4/server/node",
+          "flags": 4194304,
+          "gid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ],
+          "num_threads": 13,
+          "partial": [],
+          "pid": 5004,
+          "ppid": 4725,
+          "starttime_ticks": 198361,
+          "state": "S",
+          "uid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        "5076": {
+          "cmdline": [
+            "/bin/bash",
+            "--init-file",
+            "/home/debian/.vscode-server/cli/servers/Stable-df53daabb18cd157bdb08c7f01c34df936cf12f4/server/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh"
+          ],
+          "comm": "bash",
+          "exe": "/usr/bin/bash",
+          "flags": 4194304,
+          "gid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 5076,
+          "ppid": 4781,
+          "starttime_ticks": 227314,
+          "state": "S",
+          "uid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        "514": {
+          "cmdline": [
+            "dhclient",
+            "-4",
+            "-v",
+            "-i",
+            "-pf",
+            "/run/dhclient.ens33.pid",
+            "-lf",
+            "/var/lib/dhcp/dhclient.ens33.leases",
+            "-I",
+            "-df",
+            "/var/lib/dhcp/dhclient6.ens33.leases",
+            "ens33"
+          ],
+          "comm": "dhclient",
+          "exe": "/usr/sbin/dhclient",
+          "flags": 4194624,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 514,
+          "ppid": 1,
+          "starttime_ticks": 539,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "52": {
+          "cmdline": [],
+          "comm": "kthrotld",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 52,
+          "ppid": 2,
+          "starttime_ticks": 243,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "5397": {
+          "cmdline": [
+            "/home/debian/.vscode-server/cli/servers/Stable-df53daabb18cd157bdb08c7f01c34df936cf12f4/server/node",
+            "/home/debian/.vscode-server/cli/servers/Stable-df53daabb18cd157bdb08c7f01c34df936cf12f4/server/extensions/json-language-features/server/dist/node/jsonServerMain",
+            "--node-ipc",
+            "--clientProcessId=4992"
+          ],
+          "comm": "MainThread",
+          "exe": "/home/debian/.vscode-server/cli/servers/Stable-df53daabb18cd157bdb08c7f01c34df936cf12f4/server/node",
+          "flags": 4194304,
+          "gid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ],
+          "num_threads": 7,
+          "partial": [],
+          "pid": 5397,
+          "ppid": 4992,
+          "starttime_ticks": 248711,
+          "state": "S",
+          "uid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        "54": {
+          "cmdline": [],
+          "comm": "irq/24-pciehp",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 54,
+          "ppid": 2,
+          "starttime_ticks": 243,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "540": {
+          "cmdline": [
+            "/lib/systemd/systemd-timesyncd"
+          ],
+          "comm": "systemd-timesyn",
+          "exe": "/usr/lib/systemd/systemd-timesyncd",
+          "flags": 4194560,
+          "gid": [
+            997,
+            997,
+            997,
+            997
+          ],
+          "num_threads": 2,
+          "partial": [],
+          "pid": 540,
+          "ppid": 1,
+          "starttime_ticks": 545,
+          "state": "S",
+          "uid": [
+            997,
+            997,
+            997,
+            997
+          ]
+        },
+        "543": {
+          "cmdline": [
+            "/usr/bin/VGAuthService"
+          ],
+          "comm": "VGAuthService",
+          "exe": "/usr/bin/VGAuthService",
+          "flags": 4194560,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 543,
+          "ppid": 1,
+          "starttime_ticks": 546,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "544": {
+          "cmdline": [
+            "/usr/bin/vmtoolsd"
+          ],
+          "comm": "vmtoolsd",
+          "exe": "/usr/bin/vmtoolsd",
+          "flags": 4194560,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 3,
+          "partial": [],
+          "pid": 544,
+          "ppid": 1,
+          "starttime_ticks": 546,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "55": {
+          "cmdline": [],
+          "comm": "irq/25-pciehp",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 55,
+          "ppid": 2,
+          "starttime_ticks": 243,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "56": {
+          "cmdline": [],
+          "comm": "irq/26-pciehp",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 56,
+          "ppid": 2,
+          "starttime_ticks": 243,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "57": {
+          "cmdline": [],
+          "comm": "irq/27-pciehp",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 57,
+          "ppid": 2,
+          "starttime_ticks": 244,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "573": {
+          "cmdline": [
+            "/usr/sbin/cron",
+            "-f"
+          ],
+          "comm": "cron",
+          "exe": "/usr/sbin/cron",
+          "flags": 4194560,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 573,
+          "ppid": 1,
+          "starttime_ticks": 557,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "58": {
+          "cmdline": [],
+          "comm": "irq/28-pciehp",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 58,
+          "ppid": 2,
+          "starttime_ticks": 244,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "586": {
+          "cmdline": [
+            "/usr/bin/dbus-daemon",
+            "--system",
+            "--address=systemd:",
+            "--nofork",
+            "--nopidfile",
+            "--systemd-activation",
+            "--syslog-only"
+          ],
+          "comm": "dbus-daemon",
+          "exe": "/usr/bin/dbus-daemon",
+          "flags": 4194560,
+          "gid": [
+            107,
+            107,
+            107,
+            107
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 586,
+          "ppid": 1,
+          "starttime_ticks": 558,
+          "state": "S",
+          "uid": [
+            100,
+            100,
+            100,
+            100
+          ]
+        },
+        "589": {
+          "cmdline": [
+            "/lib/systemd/systemd-logind"
+          ],
+          "comm": "systemd-logind",
+          "exe": "/usr/lib/systemd/systemd-logind",
+          "flags": 4194560,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 589,
+          "ppid": 1,
+          "starttime_ticks": 559,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "59": {
+          "cmdline": [],
+          "comm": "irq/29-pciehp",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 59,
+          "ppid": 2,
+          "starttime_ticks": 244,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "6": {
+          "cmdline": [],
+          "comm": "netns",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 6,
+          "ppid": 2,
+          "starttime_ticks": 73,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "60": {
+          "cmdline": [],
+          "comm": "irq/30-pciehp",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 60,
+          "ppid": 2,
+          "starttime_ticks": 244,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "603": {
+          "cmdline": [
+            "sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups"
+          ],
+          "comm": "sshd",
+          "exe": "/usr/sbin/sshd",
+          "flags": 4194560,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 603,
+          "ppid": 1,
+          "starttime_ticks": 567,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "61": {
+          "cmdline": [],
+          "comm": "irq/31-pciehp",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 61,
+          "ppid": 2,
+          "starttime_ticks": 245,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "62": {
+          "cmdline": [],
+          "comm": "irq/32-pciehp",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 62,
+          "ppid": 2,
+          "starttime_ticks": 245,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "6294": {
+          "cmdline": [],
+          "comm": "kworker/1:0-cgroup_destroy",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 6294,
+          "ppid": 2,
+          "starttime_ticks": 479834,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "63": {
+          "cmdline": [],
+          "comm": "irq/33-pciehp",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 63,
+          "ppid": 2,
+          "starttime_ticks": 245,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "64": {
+          "cmdline": [],
+          "comm": "irq/34-pciehp",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 64,
+          "ppid": 2,
+          "starttime_ticks": 245,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "65": {
+          "cmdline": [],
+          "comm": "irq/35-pciehp",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 65,
+          "ppid": 2,
+          "starttime_ticks": 245,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "66": {
+          "cmdline": [],
+          "comm": "irq/36-pciehp",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 66,
+          "ppid": 2,
+          "starttime_ticks": 246,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "67": {
+          "cmdline": [],
+          "comm": "irq/37-pciehp",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 67,
+          "ppid": 2,
+          "starttime_ticks": 246,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "68": {
+          "cmdline": [],
+          "comm": "irq/38-pciehp",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 68,
+          "ppid": 2,
+          "starttime_ticks": 246,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "69": {
+          "cmdline": [],
+          "comm": "irq/39-pciehp",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 69,
+          "ppid": 2,
+          "starttime_ticks": 246,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "6973": {
+          "cmdline": [
+            "/home/debian/.vscode-server/cli/servers/Stable-df53daabb18cd157bdb08c7f01c34df936cf12f4/server/node",
+            "/home/debian/.vscode-server/cli/servers/Stable-df53daabb18cd157bdb08c7f01c34df936cf12f4/server/extensions/markdown-language-features/dist/serverWorkerMain",
+            "--node-ipc",
+            "--clientProcessId=4992"
+          ],
+          "comm": "MainThread",
+          "exe": "/home/debian/.vscode-server/cli/servers/Stable-df53daabb18cd157bdb08c7f01c34df936cf12f4/server/node",
+          "flags": 4194304,
+          "gid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ],
+          "num_threads": 7,
+          "partial": [],
+          "pid": 6973,
+          "ppid": 4992,
+          "starttime_ticks": 946683,
+          "state": "S",
+          "uid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        "70": {
+          "cmdline": [],
+          "comm": "irq/40-pciehp",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 70,
+          "ppid": 2,
+          "starttime_ticks": 247,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "71": {
+          "cmdline": [],
+          "comm": "irq/41-pciehp",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 71,
+          "ppid": 2,
+          "starttime_ticks": 247,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "72": {
+          "cmdline": [],
+          "comm": "irq/42-pciehp",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 72,
+          "ppid": 2,
+          "starttime_ticks": 247,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "73": {
+          "cmdline": [],
+          "comm": "irq/43-pciehp",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 73,
+          "ppid": 2,
+          "starttime_ticks": 248,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "74": {
+          "cmdline": [],
+          "comm": "irq/44-pciehp",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 74,
+          "ppid": 2,
+          "starttime_ticks": 248,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "75": {
+          "cmdline": [],
+          "comm": "irq/45-pciehp",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 75,
+          "ppid": 2,
+          "starttime_ticks": 248,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "76": {
+          "cmdline": [],
+          "comm": "irq/46-pciehp",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 76,
+          "ppid": 2,
+          "starttime_ticks": 248,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "77": {
+          "cmdline": [],
+          "comm": "irq/47-pciehp",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 77,
+          "ppid": 2,
+          "starttime_ticks": 249,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "78": {
+          "cmdline": [],
+          "comm": "irq/48-pciehp",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 78,
+          "ppid": 2,
+          "starttime_ticks": 249,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "786": {
+          "cmdline": [
+            "/bin/login",
+            "-p",
+            "--"
+          ],
+          "comm": "login",
+          "exe": "/usr/bin/login",
+          "flags": 4194560,
+          "gid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 786,
+          "ppid": 1,
+          "starttime_ticks": 13544,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "79": {
+          "cmdline": [],
+          "comm": "irq/49-pciehp",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 79,
+          "ppid": 2,
+          "starttime_ticks": 249,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "792": {
+          "cmdline": [
+            "/lib/systemd/systemd",
+            "--user"
+          ],
+          "comm": "systemd",
+          "exe": "/usr/lib/systemd/systemd",
+          "flags": 4194560,
+          "gid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 792,
+          "ppid": 1,
+          "starttime_ticks": 14095,
+          "state": "S",
+          "uid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        "793": {
+          "cmdline": [
+            "(sd-pam)"
+          ],
+          "comm": "(sd-pam)",
+          "exe": "/usr/lib/systemd/systemd",
+          "flags": 4194624,
+          "gid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 793,
+          "ppid": 792,
+          "starttime_ticks": 14095,
+          "state": "S",
+          "uid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        "799": {
+          "cmdline": [
+            "-bash"
+          ],
+          "comm": "bash",
+          "exe": "/usr/bin/bash",
+          "flags": 4194560,
+          "gid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 799,
+          "ppid": 786,
+          "starttime_ticks": 14103,
+          "state": "S",
+          "uid": [
+            1000,
+            1000,
+            1000,
+            1000
+          ]
+        },
+        "8": {
+          "cmdline": [],
+          "comm": "kworker/0:0H-events_highpri",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 8,
+          "ppid": 2,
+          "starttime_ticks": 73,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "80": {
+          "cmdline": [],
+          "comm": "irq/50-pciehp",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 80,
+          "ppid": 2,
+          "starttime_ticks": 249,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "81": {
+          "cmdline": [],
+          "comm": "irq/51-pciehp",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 81,
+          "ppid": 2,
+          "starttime_ticks": 250,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "8194": {
+          "cmdline": [],
+          "comm": "kworker/0:2-mm_percpu_wq",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 8194,
+          "ppid": 2,
+          "starttime_ticks": 1037397,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "82": {
+          "cmdline": [],
+          "comm": "irq/52-pciehp",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 82,
+          "ppid": 2,
+          "starttime_ticks": 250,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "83": {
+          "cmdline": [],
+          "comm": "irq/53-pciehp",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 83,
+          "ppid": 2,
+          "starttime_ticks": 250,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "84": {
+          "cmdline": [],
+          "comm": "irq/54-pciehp",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 84,
+          "ppid": 2,
+          "starttime_ticks": 250,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "85": {
+          "cmdline": [],
+          "comm": "irq/55-pciehp",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 85,
+          "ppid": 2,
+          "starttime_ticks": 251,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "86": {
+          "cmdline": [],
+          "comm": "acpi_thermal_pm",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 86,
+          "ppid": 2,
+          "starttime_ticks": 251,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "87": {
+          "cmdline": [],
+          "comm": "xenbus_probe",
+          "exe": null,
+          "flags": 2129984,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 87,
+          "ppid": 2,
+          "starttime_ticks": 251,
+          "state": "S",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "88": {
+          "cmdline": [],
+          "comm": "mld",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 88,
+          "ppid": 2,
+          "starttime_ticks": 256,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "89": {
+          "cmdline": [],
+          "comm": "ipv6_addrconf",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 89,
+          "ppid": 2,
+          "starttime_ticks": 256,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "94": {
+          "cmdline": [],
+          "comm": "kstrp",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 94,
+          "ppid": 2,
+          "starttime_ticks": 257,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "99": {
+          "cmdline": [],
+          "comm": "zswap-shrink",
+          "exe": null,
+          "flags": 69238880,
+          "gid": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "num_threads": 1,
+          "partial": [],
+          "pid": 99,
+          "ppid": 2,
+          "starttime_ticks": 275,
+          "state": "I",
+          "uid": [
+            0,
+            0,
+            0,
+            0
+          ]
+        }
+      },
+      "entity_ids": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        8,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        18,
+        19,
+        20,
+        21,
+        23,
+        26,
+        27,
+        28,
+        32,
+        33,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        52,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        94,
+        99,
+        100,
+        153,
+        169,
+        170,
+        171,
+        173,
+        174,
+        175,
+        176,
+        178,
+        179,
+        188,
+        189,
+        191,
+        192,
+        195,
+        233,
+        234,
+        272,
+        298,
+        338,
+        345,
+        346,
+        393,
+        395,
+        399,
+        407,
+        408,
+        410,
+        413,
+        454,
+        514,
+        540,
+        543,
+        544,
+        573,
+        586,
+        589,
+        603,
+        786,
+        792,
+        793,
+        799,
+        4602,
+        4608,
+        4609,
+        4653,
+        4672,
+        4721,
+        4725,
+        4746,
+        4760,
+        4781,
+        4945,
+        4951,
+        4952,
+        4970,
+        4992,
+        5004,
+        5076,
+        5397,
+        6294,
+        6973,
+        8194,
+        15647,
+        15660,
+        15975,
+        16022,
+        16028,
+        16207,
+        16217,
+        16250,
+        16259,
+        16346,
+        16433,
+        16439,
+        16440,
+        16442,
+        16443
+      ],
+      "errors": [],
+      "stats": {
+        "collected": 154,
+        "scanned": 154,
+        "vanished": 0
+      },
+      "status": "OK",
+      "trust_level": "LOW",
+      "view": "processes"
+    }
+  ],
+  "schema_version": "1.0",
+  "snapshot_id": "7cb8940d-995a-4c53-9933-f1f1fda63423"
+}
