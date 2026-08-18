@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kdetect"
+version = "0.1.0"
+description = "Linux kernel rootkit detection via cross-view comparison"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+kdetect = "kdetect.cli:cli_entry"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["needs_procfs: requires a live /proc filesystem"]
