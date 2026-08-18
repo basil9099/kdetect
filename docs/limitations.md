@@ -66,3 +66,12 @@ records fewer arguments than it was given.
 cannot be forged from userspace. kdetect stores all three precisely because
 their disagreement is the signal.
 Evidence: `docs/step0/02-comm-vs-cmdline.txt`
+
+**L12 — Unprivileged captures cannot distinguish "no exe" from "denied exe".**
+As root, a kernel thread's `exe` gives `ENOENT` and `partial` stays empty. As an
+ordinary user the same read gives `EACCES`, so every kernel thread is recorded
+`partial: ["exe"]`. Measured on this host: 152 processes, 131 with partial reads
+and status `PARTIAL` as uid 1000, versus 154 processes, 0 partial and status `OK`
+as root. Kernel-thread identity survives regardless, because `PF_KTHREAD` lives
+in world-readable `stat` field 9 - which is why that field is stored raw rather
+than derived from `exe` and `cmdline`.
