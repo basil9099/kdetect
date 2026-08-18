@@ -10,8 +10,58 @@ was observed; judging it is the analysis layer's job (principle P1).
 from __future__ import annotations
 
 import json
+import sys
 from dataclasses import dataclass
 from enum import Enum
+
+#: Schema version this build reads and writes. MAJOR.MINOR.
+#:   MAJOR - a field was removed, renamed, or changed meaning. Refuse to load.
+#:   MINOR - additive only. Load, but warn about keys we do not recognise.
+SCHEMA_VERSION = "1.0"
+
+#: Top-level keys a 1.x snapshot is expected to carry.
+_KNOWN_TOP_LEVEL_KEYS = frozenset(
+    {"schema_version", "snapshot_id", "captured_at", "host", "capture", "observations"}
+)
+
+
+class IncompatibleSnapshot(Exception):
+    """The snapshot's schema version cannot be read by this build."""
+
+
+def _check_schema_version(d: dict) -> None:
+    """Gate a snapshot dict on its schema version.
+
+    Runs before anything else is parsed, so a partially-parsed Snapshot can
+    never escape into the rest of the program: either the whole object is
+    returned, or this raises.
+    """
+    raw = d.get("schema_version")
+    if raw is None:
+        raise IncompatibleSnapshot("snapshot has no schema_version field")
+
+    try:
+        major, minor = (int(part) for part in str(raw).split("."))
+    except ValueError as exc:
+        raise IncompatibleSnapshot(
+            f"unparseable schema_version {raw!r}, expected MAJOR.MINOR"
+        ) from exc
+
+    our_major, our_minor = (int(part) for part in SCHEMA_VERSION.split("."))
+
+    if major != our_major:
+        raise IncompatibleSnapshot(
+            f"snapshot schema_version {raw} is incompatible with "
+            f"{SCHEMA_VERSION}: major versions differ"
+        )
+
+    if minor > our_minor:
+        unknown = sorted(set(d) - _KNOWN_TOP_LEVEL_KEYS)
+        print(
+            f"warning: snapshot schema_version {raw} is newer than "
+            f"{SCHEMA_VERSION}; ignoring unknown keys: {unknown}",
+            file=sys.stderr,
+        )
 
 
 class TrustLevel(str, Enum):
@@ -283,6 +333,7 @@ class Snapshot:
 
     @classmethod
     def from_dict(cls, d: dict) -> Snapshot:
+        _check_schema_version(d)
         return cls(
             schema_version=d["schema_version"],
             snapshot_id=d["snapshot_id"],
