@@ -15,6 +15,46 @@ class StatFields:
     num_threads: int
     starttime_ticks: int
 
+@dataclass(frozen=True)
+class StatusFields:
+    uid: list[int]
+    gid: list[int]
+
+def parse_cmdline(text: str) -> list[str]:
+    """Split a NUL-separated /proc/[pid]/cmdline into its arguments.
+
+    Kernel threads have an empty cmdline; that is normal, not an error.
+    Arguments are recorded verbatim - argv[0] is attacker-controlled
+    (see docs/step0/02-comm-vs-cmdline.txt) and must not be sanitised.
+    """
+    return [part for part in text.split("\x00") if part]
+
+def parse_status(text: str) -> StatusFields:
+    """Extract the Uid and Gid lines from /proc/[pid]/status.
+
+    Each is four values: real, effective, saved, filesystem.
+    """
+    uid = None
+    gid = None
+
+    try:
+        for line in text.splitlines():
+            # maxsplit=1 so a value containing ':' stays intact.
+            parts = line.split(":", 1)
+            if len(parts) != 2:
+                continue
+            key, value = parts
+            if key == "Uid":
+                uid = [int(v) for v in value.split()]
+            elif key == "Gid":
+                gid = [int(v) for v in value.split()]
+    except ValueError as exc:
+        raise ParseError(f"non-numeric Uid/Gid in status: {text!r}") from exc
+
+    if uid is None or gid is None:
+        raise ParseError(f"status is missing a Uid or Gid line: {text!r}")
+
+    return StatusFields(uid=uid, gid=gid)
 
 def parse_stat(text: str) -> StatFields:
     """Parse one line of /proc/[pid]/stat into typed fields.
