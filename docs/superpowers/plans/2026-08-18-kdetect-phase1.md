@@ -69,7 +69,7 @@ Copied verbatim from the spec. Every task's requirements implicitly include thes
 | `src/kdetect/collectors/sources.py` | `LiveProcSource`, `FixtureProcSource` |
 | `src/kdetect/collectors/procfs.py` | `ProcfsProcessCollector` |
 | `src/kdetect/cli.py` | `argparse`, `capture`, `analyze` |
-| `tools/capture-fixture.sh` | Lab utility that builds a fixture tree |
+| `tools/capture_fixture.py` | Lab utility that builds a fixture tree |
 
 **Note on `parsers/`:** the original project tree had no such package. It is added
 here to make spec §4.1's three layers visible in the directory structure — parse
@@ -859,7 +859,7 @@ git add src/kdetect/collectors tests/integration && git commit -m "feat: ProcSou
 
 **Files:**
 - Modify: `src/kdetect/collectors/sources.py`
-- Create: `tools/capture-fixture.sh`
+- Create: `tools/capture_fixture.py`
 - Create: `tests/fixtures/proc-trees/clean-vm-6.1.0-10/`
 - Test: `tests/unit/test_fixture_source.py`
 
@@ -945,9 +945,11 @@ python -m pytest tests/unit/test_fixture_source.py -v
 
 Expected: `ImportError: cannot import name 'FixtureProcSource'`.
 
-- [ ] **Step 3: Write `tools/capture-fixture.sh`**
+- [ ] **Step 3: Write `tools/capture_fixture.py`**
 
-A lab utility, not part of kdetect. Requirements:
+A lab utility, not part of kdetect. Written in Python rather than shell: it
+must rewrite a pid inside a stat line and emit JSON, both awkward in shell.
+Requirements:
 - Takes a destination directory and a list of PIDs.
 - For each PID, copies `stat`, `cmdline`, `status` into `<dest>/proc/<pid>/`.
 - Writes `readlink /proc/<pid>/exe` output into `<pid>/exe.readlink` when it
@@ -978,8 +980,12 @@ leaves the machine, and it contains hostnames, usernames and command lines.
 - Before every read, consult the errors map for the key `f"{pid}/{name}"`. If
   present, raise the mapped domain error: `ENOENT`/`ESRCH` → `Vanished`,
   `EACCES`/`EPERM` → `Denied`, anything else → `Unreadable`.
-- `list_pids()` — numeric directory names under `root / "proc"`, sorted. Do not
-  include synthetic PIDs that exist only in `_errors.json`.
+- `list_pids()` — numeric directory names under `root / "proc"`, sorted.
+  **PID 4171 gets an empty directory so that it IS listed.** The collector only
+  reads pids that `list_pids()` returns, so a pid absent from the listing can
+  never be recorded as vanished. An empty directory is also the faithful
+  simulation: the dirent existed when we listed, and the files were gone by the
+  time we read. git does not track empty directories, hence a `.gitkeep`.
 - `read_text(pid, name)` — read `root / "proc" / str(pid) / name`. A missing file
   raises `Vanished`.
 - `read_link(pid, name)` — read `root / "proc" / str(pid) / f"{name}.readlink"`
@@ -996,7 +1002,7 @@ Expected: 7 passed.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add src/kdetect/collectors/sources.py tools/capture-fixture.sh tests/fixtures tests/unit/test_fixture_source.py && git commit -m "feat: fixture source with replayable errnos"
+git add src/kdetect/collectors/sources.py tools/capture_fixture.py tests/fixtures tests/unit/test_fixture_source.py && git commit -m "feat: fixture source with replayable errnos"
 ```
 
 **Satisfies acceptance criterion 5.** → **Review checkpoint.**
@@ -1059,11 +1065,28 @@ def test_denied_exe_is_none_and_marked_partial():
     assert "exe" in e.partial
 
 
-def test_vanished_does_not_degrade_status():
+def test_vanished_is_recorded_without_being_an_error():
     obs = collect()
-    assert obs.status is Status.OK
     assert obs.stats["vanished"] >= 1
     assert any(err.kind is ErrorKind.VANISHED for err in obs.errors)
+
+
+def test_denied_read_degrades_status_to_partial():
+    # The fixture contains one EACCES (812/exe), so PARTIAL is correct.
+    assert collect().status is Status.PARTIAL
+
+
+def test_vanished_alone_leaves_status_ok(tmp_path):
+    """A process exiting mid-scan is normal Linux, not a degradation."""
+    tree = tmp_path / "tree"
+    shutil.copytree(ROOT, tree)
+    errors = json.loads((tree / "_errors.json").read_text())
+    del errors["812/exe"]  # leave `vanished` as the only failure
+    (tree / "_errors.json").write_text(json.dumps(errors))
+
+    obs = ProcfsProcessCollector().collect(FixtureProcSource(tree))
+    assert obs.stats["vanished"] >= 1
+    assert obs.status is Status.OK
 
 
 def test_stats_are_consistent():
@@ -1124,7 +1147,7 @@ two of the tests above check. Getting it wrong is invisible until phase 2.
 python -m pytest tests/unit -v
 ```
 
-Expected: 46 passed.
+Expected: 53 passed.
 
 - [ ] **Step 5: Commit**
 
@@ -1405,7 +1428,12 @@ git push
 - [ ] **Step 2: On Windows, with the VM powered off, pull and run the unit suite**
 
 ```bash
-cd C:\Users\angus\projects\kdetect && git pull && py -m venv .venv && .venv\Scripts\python -m pip install -e . pytest && .venv\Scripts\python -m pytest tests/unit -v
+cd C:\Users\angus\projects\kdetect && # Windows PowerShell 5.1 has no && operator - run these as separate lines.
+cd C:\Users\angus\projects\kdetect
+git pull
+py -m venv .venv
+.venv\Scripts\python -m pip install -e . pytest
+.venv\Scripts\python -m pytest -v
 ```
 
 Expected: every unit test passes on Windows. The integration tests are skipped,

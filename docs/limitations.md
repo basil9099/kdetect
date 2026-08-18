@@ -83,3 +83,16 @@ phase 1 fixture had to have a VS Code Remote-SSH session token redacted before
 it could be committed. This is a property of `/proc`, not of kdetect, and it
 means **a snapshot must be treated as sensitive by default**. Phase 4's
 reporting will need a redaction pass before any report is shareable.
+
+## Verified properties
+
+**V1 — The unit suite runs without Linux.** Measured 2026-08-18: 55 passed,
+11 skipped on Windows 11 / Python 3.12.10, against a clone of this repository.
+The 11 skips are exactly the integration tier, gated on
+`Path("/proc/self/stat").exists()` rather than on `sys.platform`. The full
+`ProcfsProcessCollector` runs on Windows against a captured fixture tree, and a
+snapshot captured on Linux/Python 3.11 re-serialises byte-identically on
+Windows/Python 3.12.
+
+This is why `ProcSource` is an interface rather than a configurable root path:
+parser and collector work needs no VM, and only the live-capture path does.

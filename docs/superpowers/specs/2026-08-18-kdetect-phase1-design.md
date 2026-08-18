@@ -464,7 +464,7 @@ text files, since Windows cannot create symlinks without elevated privileges; an
 a `_errors.json` sidecar mapping relative paths to errno names so failures can be
 replayed.
 
-`tools/capture-fixture.sh` builds the tree. It is a lab utility, not part of
+`tools/capture_fixture.py` builds the tree. It is a lab utility, not part of
 kdetect.
 
 The round-trip fixture `tests/fixtures/snapshots/clean-vm.json` is the exception
