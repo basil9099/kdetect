@@ -78,3 +78,8 @@ def test_paren_comm_process_parsed_correctly():
 
 def test_duration_is_recorded():
     assert collect().duration_ms >= 0
+
+
+def test_procfs_collector_stamps_pass_label():
+    obs = ProcfsProcessCollector(pass_label="A").collect(FixtureProcSource(ROOT))
+    assert obs.pass_ == "A"

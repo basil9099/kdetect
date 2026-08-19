@@ -11,8 +11,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from kdetect import __version__, hostfacts
+from kdetect.analysis.crossview import diff_all
+from kdetect.collectors.modules import ModuleEvidenceCollector, ProcfsModuleCollector
 from kdetect.collectors.procfs import ProcfsProcessCollector
-from kdetect.collectors.sources import LiveProcSource
+from kdetect.collectors.sources import (
+    LiveModuleSource,
+    LiveProcSource,
+    LiveSignalSource,
+)
+from kdetect.collectors.syscall_sweep import SweepProcessCollector
 from kdetect.models import (
     SCHEMA_VERSION,
     CaptureMeta,
@@ -20,8 +27,9 @@ from kdetect.models import (
     Snapshot,
 )
 
-#: Exit codes. 3 is reserved for "analysis produced findings" so that phase 2
-#: can introduce it without breaking anything scripted against phase 1.
+#: Exit codes. 3 means "analyze produced at least one finding" (any
+#: confidence) - distinct from 1 (error) so scripts can branch on detection
+#: vs. failure.
 EXIT_OK = 0
 EXIT_ERROR = 1
 EXIT_USAGE = 2
@@ -53,7 +61,14 @@ def cmd_capture(args) -> int:
             file=sys.stderr,
         )
 
-    observation = ProcfsProcessCollector().collect(LiveProcSource())
+    procs, signals, mods = LiveProcSource(), LiveSignalSource(), LiveModuleSource()
+    observations = [
+        ProcfsProcessCollector(pass_label="A").collect(procs),   # bread
+        SweepProcessCollector().collect(signals),                # filling
+        ProcfsProcessCollector(pass_label="B").collect(procs),   # bread
+        ProcfsModuleCollector().collect(mods),
+        ModuleEvidenceCollector().collect(mods),
+    ]
 
     now = datetime.now(timezone.utc)
     snapshot = Snapshot(
@@ -62,7 +77,7 @@ def cmd_capture(args) -> int:
         captured_at=_iso_millis(now),
         host=host,
         capture=CaptureMeta(tool_version=__version__, euid=euid),
-        observations=[observation],
+        observations=observations,
     )
 
     payload = snapshot.to_json(pretty=args.pretty)
@@ -104,26 +119,41 @@ def cmd_analyze(args) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_ERROR
 
-    host = snapshot.host
-    print(f"snapshot:  {path}")
-    print(f"schema:    {snapshot.schema_version}")
-    print(f"host:      {host.hostname}  {host.kernel_release}  {host.arch}")
-    print(f"captured:  {snapshot.captured_at}   boot {host.boot_id[:8]}")
-    print(f"euid:      {snapshot.capture.euid}")
-    print()
-    print("collectors:")
-    for obs in snapshot.observations:
-        print(
-            f"  {obs.collector}   trust={obs.trust_level.value}   "
-            f"status={obs.status.value}   {len(obs.entity_ids)} entities   "
-            f"{obs.duration_ms}ms"
-        )
-        stats = "  ".join(f"{k}={v}" for k, v in sorted(obs.stats.items()))
-        print(f"{' ' * 21}{stats}")
+    if not getattr(args, "json", False):
+        host = snapshot.host
+        print(f"snapshot:  {path}")
+        print(f"schema:    {snapshot.schema_version}")
+        print(f"host:      {host.hostname}  {host.kernel_release}  {host.arch}")
+        print(f"captured:  {snapshot.captured_at}   boot {host.boot_id[:8]}")
+        print(f"euid:      {snapshot.capture.euid}")
+        print()
+        print("collectors:")
+        for obs in snapshot.observations:
+            print(
+                f"  {obs.collector}   trust={obs.trust_level.value}   "
+                f"status={obs.status.value}   {len(obs.entity_ids)} entities   "
+                f"{obs.duration_ms}ms"
+            )
+            stats = "  ".join(f"{k}={v}" for k, v in sorted(obs.stats.items()))
+            print(f"{' ' * 21}{stats}")
 
-    # Phase 1 performs no detection, so there are no findings and never an
-    # exit code 3. That code stays reserved for phase 2.
-    return EXIT_OK
+    findings = diff_all(snapshot)
+
+    if getattr(args, "json", False):
+        print(json.dumps([f.to_dict() for f in findings], indent=2, sort_keys=True))
+        return 3 if findings else EXIT_OK
+
+    print()
+    if not findings:
+        print("findings:  none")
+        return EXIT_OK
+
+    print("findings:")
+    for f in findings:
+        print(f"  [{f.confidence.value}]   {f.kind.value}   {f.subject}")
+        print(f"           seen by: {', '.join(f.channels_agree)}")
+        print(f"           denied by: {', '.join(f.channels_dissent)}")
+    return 3
 
 
 def main(argv=None) -> int:
@@ -146,6 +176,8 @@ def main(argv=None) -> int:
 
     analyze = subparsers.add_parser("analyze", help="Summarise a snapshot file.")
     analyze.add_argument("snapshot", help="Path to a snapshot JSON file.")
+    analyze.add_argument("--json", action="store_true",
+                         help="Emit findings as JSON; suppress the summary.")
 
     args = parser.parse_args(argv)
 

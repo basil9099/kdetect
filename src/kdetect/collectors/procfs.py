@@ -47,6 +47,9 @@ class ProcfsProcessCollector(Collector):
     trust_level = TrustLevel.LOW
     version = "1"
 
+    def __init__(self, pass_label: str | None = None) -> None:
+        self._pass_label = pass_label
+
     def collect(self, source: ProcSource) -> Observation:
         started = time.monotonic()
         errors: list[CollectionError] = []
@@ -174,4 +177,5 @@ class ProcfsProcessCollector(Collector):
             entities=entities,
             stats=stats,
             errors=errors,
+            pass_=self._pass_label,
         )
