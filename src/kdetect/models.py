@@ -17,7 +17,7 @@ from enum import Enum
 #: Schema version this build reads and writes. MAJOR.MINOR.
 #:   MAJOR - a field was removed, renamed, or changed meaning. Refuse to load.
 #:   MINOR - additive only. Load, but warn about keys we do not recognise.
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "1.1"
 
 #: Top-level keys a 1.x snapshot is expected to carry.
 _KNOWN_TOP_LEVEL_KEYS = frozenset(
@@ -183,6 +183,73 @@ class ProcessEntity:
 
 
 @dataclass(frozen=True)
+class SweepEntity:
+    """One task id that answered a kill(id, 0) sweep (spec §4.1).
+
+    Evidence only (P4): the tgid we read from /proc/<id>/status, and whether
+    that read succeeded. The differ folds threads into leaders using tgid; it
+    is not folded here.
+    """
+
+    tgid: int
+    status_readable: bool
+
+    def to_dict(self) -> dict:
+        return {"tgid": self.tgid, "status_readable": self.status_readable}
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "SweepEntity":
+        return cls(tgid=d["tgid"], status_readable=d["status_readable"])
+
+
+@dataclass(frozen=True)
+class ModuleEntity:
+    """One row of /proc/modules (spec §5.1), stored raw (P1).
+
+    `taint` is the trailing parenthesised marker, e.g. "OE", or None when the
+    module carries none. `base_addr` is kept as the textual value; on an
+    unprivileged capture it reads "0x0" (L4) and analysis must expect that.
+    """
+
+    name: str
+    size: int
+    refcount: int
+    dependents: list[str]
+    state: str
+    base_addr: str
+    taint: str | None
+
+    def to_dict(self) -> dict:
+        return {
+            "name": self.name, "size": self.size, "refcount": self.refcount,
+            "dependents": list(self.dependents), "state": self.state,
+            "base_addr": self.base_addr, "taint": self.taint,
+        }
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "ModuleEntity":
+        return cls(
+            name=d["name"], size=d["size"], refcount=d["refcount"],
+            dependents=list(d["dependents"]), state=d["state"],
+            base_addr=d["base_addr"], taint=d["taint"],
+        )
+
+
+#: Which entity type each collector stores. Collectors that record only
+#: existence (kernel.module_evidence) have no per-entity detail.
+_ENTITY_TYPES = {
+    "procfs.processes": ProcessEntity,
+    "syscall_sweep.processes": SweepEntity,
+    "procfs.modules": ModuleEntity,
+    "kernel.module_evidence": None,
+}
+
+#: Collectors whose entity ids are names, not pids. Their entity_ids and
+#: entities keys stay strings; every other collector casts keys back to int.
+_STRING_ID_COLLECTORS = frozenset({"procfs.modules"})
+
+
+@dataclass(frozen=True)
 class Observation:
     """One whole view from one collector - not one entity.
 
@@ -210,9 +277,11 @@ class Observation:
     entities: dict[int, ProcessEntity]
     stats: dict[str, int]
     errors: list[CollectionError]
+    pass_: str | None = None          # JSON key "pass"; distinguishes A/B walks
+    extra: dict | None = None         # channel detail that is not per-entity
 
     def to_dict(self) -> dict:
-        return {
+        d = {
             "collector": self.collector,
             "collector_version": self.collector_version,
             "view": self.view,
@@ -220,30 +289,38 @@ class Observation:
             "status": self.status.value,
             "duration_ms": self.duration_ms,
             "entity_ids": sorted(self.entity_ids),
-            # JSON object keys must be strings, so int pids become "1", "2", ...
-            "entities": {str(pid): e.to_dict() for pid, e in self.entities.items()},
+            "entities": {str(k): e.to_dict() for k, e in self.entities.items()},
             "stats": dict(self.stats),
             "errors": [err.to_dict() for err in self.errors],
         }
+        if self.pass_ is not None:
+            d["pass"] = self.pass_
+        if self.extra is not None:
+            d["extra"] = self.extra
+        return d
 
     @classmethod
     def from_dict(cls, d: dict) -> Observation:
+        collector = d["collector"]
+        entity_cls = _ENTITY_TYPES.get(collector, ProcessEntity)
+        cast = str if collector in _STRING_ID_COLLECTORS else int
+        entities = (
+            {cast(k): entity_cls.from_dict(v) for k, v in d["entities"].items()}
+            if entity_cls is not None else {}
+        )
         return cls(
-            collector=d["collector"],
+            collector=collector,
             collector_version=d["collector_version"],
             view=d["view"],
             trust_level=TrustLevel(d["trust_level"]),
             status=Status(d["status"]),
             duration_ms=d["duration_ms"],
             entity_ids=list(d["entity_ids"]),
-            # ...and back to int on the way in. This asymmetry is the round-trip
-            # bug that test_entity_keys_survive_as_integers exists to catch.
-            entities={
-                int(pid): ProcessEntity.from_dict(e)
-                for pid, e in d["entities"].items()
-            },
+            entities=entities,
             stats=dict(d["stats"]),
-            errors=[CollectionError.from_dict(err) for err in d["errors"]],
+            errors=[CollectionError.from_dict(e) for e in d["errors"]],
+            pass_=d.get("pass"),
+            extra=d.get("extra"),
         )
 
 

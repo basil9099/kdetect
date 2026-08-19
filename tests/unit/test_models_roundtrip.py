@@ -5,10 +5,12 @@ from kdetect.models import (
     CollectionError,
     ErrorKind,
     HostFacts,
+    ModuleEntity,
     Observation,
     ProcessEntity,
     Snapshot,
     Status,
+    SweepEntity,
     TrustLevel,
 )
 
@@ -98,3 +100,51 @@ def test_enums_serialise_as_their_string_values():
 def test_pretty_and_compact_carry_the_same_data():
     s = make_snapshot()
     assert json.loads(s.to_json(pretty=True)) == json.loads(s.to_json())
+
+
+def _obs(**kw):
+    base = dict(collector="x", collector_version="1", view="v",
+                trust_level=TrustLevel.MEDIUM, status=Status.OK, duration_ms=1,
+                entity_ids=[], entities={}, stats={}, errors=[])
+    base.update(kw)
+    return Observation(**base)
+
+
+def test_sweep_entity_roundtrip():
+    obs = _obs(collector="syscall_sweep.processes",
+               entity_ids=[1, 551, 31337],
+               entities={1: SweepEntity(1, True),
+                         551: SweepEntity(501, True),
+                         31337: SweepEntity(31337, True)})
+    back = Observation.from_dict(obs.to_dict())
+    assert back == obs
+    assert back.entities[551].tgid == 501            # int key survives
+    assert back.entities[551].status_readable is True
+
+
+def test_module_entity_roundtrip_string_keys():
+    obs = _obs(collector="procfs.modules", view="modules",
+               trust_level=TrustLevel.LOW,
+               entity_ids=["diamorphine", "ext4"],
+               entities={
+                   "ext4": ModuleEntity("ext4", 999424, 1, [], "Live",
+                                        "0xffffffffc0591000", None),
+                   "diamorphine": ModuleEntity("diamorphine", 16384, 0, [],
+                                               "Live", "0x0", "OE"),
+               })
+    back = Observation.from_dict(obs.to_dict())
+    assert back == obs
+    assert set(back.entities) == {"ext4", "diamorphine"}   # stayed strings
+    assert back.entities["diamorphine"].taint == "OE"
+
+
+def test_pass_and_extra_omitted_when_none():
+    d = _obs().to_dict()
+    assert "pass" not in d and "extra" not in d           # phase-1 fixtures round-trip
+
+
+def test_pass_and_extra_present_when_set():
+    obs = _obs(pass_="A", extra={"ftrace_modules": ["ext4"]})
+    d = obs.to_dict()
+    assert d["pass"] == "A" and d["extra"] == {"ftrace_modules": ["ext4"]}
+    assert Observation.from_dict(d) == obs

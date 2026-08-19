@@ -1,7 +1,11 @@
 import pytest
 
-from kdetect.models import IncompatibleSnapshot, Snapshot
+from kdetect.models import SCHEMA_VERSION, IncompatibleSnapshot, Snapshot
 from tests.unit.test_models_roundtrip import make_snapshot
+
+
+def test_schema_is_1_1():
+    assert SCHEMA_VERSION == "1.1"
 
 
 def test_same_version_loads():
