@@ -15,9 +15,11 @@ from kdetect.collectors.base import (
     Denied,
     ProcSource,
     ProcSourceError,
+    SignalSource,
     Unreadable,
     Vanished,
 )
+from kdetect.parsers.procfs import ParseError, parse_status
 
 #: errno values that mean "gone, or never existed".
 _VANISHED_ERRNOS = frozenset({errno.ENOENT, errno.ESRCH})
@@ -150,3 +152,56 @@ class FixtureProcSource(ProcSource):
             return path.read_text(encoding="utf-8").rstrip("\n")
         except OSError as exc:
             raise _translate(exc, f"resolving {path}") from exc
+
+
+class LiveSignalSource(SignalSource):
+    """Sweeps the running kernel with os.kill and reads Tgid from /proc."""
+
+    def pid_max(self) -> int:
+        with open("/proc/sys/kernel/pid_max", encoding="ascii") as fh:
+            return int(fh.read().strip())
+
+    def sweep(self, pid_max: int) -> list[int]:
+        alive: list[int] = []
+        for task_id in range(1, pid_max + 1):
+            try:
+                os.kill(task_id, 0)
+            except ProcessLookupError:
+                continue          # ESRCH: no such id
+            except PermissionError:
+                alive.append(task_id)   # EPERM: exists, may not signal
+            except OSError:
+                continue
+            else:
+                alive.append(task_id)
+        return alive
+
+    def read_tgid(self, task_id: int) -> int | None:
+        try:
+            with open(f"/proc/{task_id}/status", encoding="utf-8",
+                      errors="replace") as fh:
+                return parse_status(fh.read()).tgid
+        except (OSError, ParseError):
+            return None
+
+
+class FixtureSignalSource(SignalSource):
+    """Replays a recorded sweep, including a hidden id that never existed (P3)."""
+
+    def __init__(self, path) -> None:
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+        self._pid_max = data["pid_max"]
+        self._alive = sorted(data["alive"])
+        self._tgid = {int(k): v for k, v in data["tgid"].items()}
+        self._unreadable = set(data.get("unreadable_status", []))
+
+    def pid_max(self) -> int:
+        return self._pid_max
+
+    def sweep(self, pid_max: int) -> list[int]:
+        return [i for i in self._alive if i <= pid_max]
+
+    def read_tgid(self, task_id: int) -> int | None:
+        if task_id in self._unreadable:
+            return None
+        return self._tgid.get(task_id)

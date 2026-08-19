@@ -75,6 +75,26 @@ class ProcSource(ABC):
         """
 
 
+class SignalSource(ABC):
+    """The process-existence channel that does not go through readdir (spec §4).
+
+    kill(id, 0) asks the kernel whether an id exists; /proc/<id>/status is read
+    by path lookup, not getdents. Both bypass a directory-listing hook, which
+    is why this is a MEDIUM channel independent of procfs.
+    """
+
+    @abstractmethod
+    def pid_max(self) -> int: ...
+
+    @abstractmethod
+    def sweep(self, pid_max: int) -> list[int]:
+        """Every id in 1..pid_max that exists, sorted. EPERM counts as exists."""
+
+    @abstractmethod
+    def read_tgid(self, task_id: int) -> int | None:
+        """The Tgid from /proc/<id>/status, or None if it could not be read."""
+
+
 class Collector(ABC):
     """Produces one Observation - one whole view of one kind of entity."""
 
