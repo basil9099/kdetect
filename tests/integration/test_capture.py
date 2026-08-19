@@ -3,7 +3,7 @@ import os
 import subprocess
 import sys
 
-from kdetect.models import Snapshot
+from kdetect.models import SCHEMA_VERSION, Snapshot
 from tests.conftest import needs_procfs
 
 pytestmark = needs_procfs
@@ -28,7 +28,9 @@ def test_capture_filename_has_no_colons(tmp_path):
 
 def test_capture_to_stdout(tmp_path):
     r = run(["capture", "--out", "-"], tmp_path)
-    assert Snapshot.from_dict(json.loads(r.stdout)).schema_version == "1.0"
+    # Assert against the constant, not a literal: a live capture always emits
+    # the build's current schema version, so a version bump must not break this.
+    assert Snapshot.from_dict(json.loads(r.stdout)).schema_version == SCHEMA_VERSION
 
 
 def test_capture_contains_its_own_pid(tmp_path):
