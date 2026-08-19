@@ -13,6 +13,7 @@ from pathlib import Path
 
 from kdetect.collectors.base import (
     Denied,
+    ModuleSource,
     ProcSource,
     ProcSourceError,
     SignalSource,
@@ -205,3 +206,71 @@ class FixtureSignalSource(SignalSource):
         if task_id in self._unreadable:
             return None
         return self._tgid.get(task_id)
+
+
+class LiveModuleSource(ModuleSource):
+    _TRACING = ("/sys/kernel/tracing/available_filter_functions",
+                "/sys/kernel/debug/tracing/available_filter_functions")
+
+    def read_proc_modules(self) -> str:
+        with open("/proc/modules", encoding="utf-8", errors="replace") as fh:
+            return fh.read()
+
+    def list_sys_module(self) -> list[str]:
+        try:
+            return sorted(os.listdir("/sys/module"))
+        except OSError:
+            return []
+
+    def sys_module_is_loaded(self, name: str) -> bool:
+        return os.path.exists(f"/sys/module/{name}/initstate")
+
+    def read_tainted(self) -> int:
+        with open("/proc/sys/kernel/tainted", encoding="ascii") as fh:
+            return int(fh.read().strip())
+
+    def read_vmallocinfo(self) -> str | None:
+        try:
+            with open("/proc/vmallocinfo", encoding="utf-8", errors="replace") as fh:
+                return fh.read()
+        except OSError:
+            return None        # 0400, root-only; skipped when unreadable
+
+    def read_ftrace_functions(self) -> str | None:
+        for path in self._TRACING:
+            try:
+                with open(path, encoding="utf-8", errors="replace") as fh:
+                    return fh.read()
+            except OSError:
+                continue
+        return None
+
+
+class FixtureModuleSource(ModuleSource):
+    """Replays a captured module tree; a missing file replays 'unreadable'."""
+
+    def __init__(self, root) -> None:
+        self._root = Path(root)
+        self._loaded = json.loads((self._root / "sys_module.json").read_text("utf-8"))
+
+    def _read(self, name: str) -> str | None:
+        p = self._root / name
+        return p.read_text(encoding="utf-8") if p.exists() else None
+
+    def read_proc_modules(self) -> str:
+        return self._read("proc_modules.txt") or ""
+
+    def list_sys_module(self) -> list[str]:
+        return sorted(self._loaded)
+
+    def sys_module_is_loaded(self, name: str) -> bool:
+        return bool(self._loaded.get(name, False))
+
+    def read_tainted(self) -> int:
+        return int((self._read("tainted.txt") or "0").strip())
+
+    def read_vmallocinfo(self) -> str | None:
+        return self._read("vmallocinfo.txt")
+
+    def read_ftrace_functions(self) -> str | None:
+        return self._read("ftrace.txt")

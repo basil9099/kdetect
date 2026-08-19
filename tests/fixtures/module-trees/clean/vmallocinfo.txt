@@ -1,0 +1,2 @@
+0xffffffffc0591000-0xffffffffc05a3000  73728 load_module+0x1234/0x2000 pages=17 vmalloc
+0xffffffffc0455000-0xffffffffc0459000  16384 load_module+0x1234/0x2000 pages=3 vmalloc

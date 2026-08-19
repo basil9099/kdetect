@@ -95,6 +95,26 @@ class SignalSource(ABC):
         """The Tgid from /proc/<id>/status, or None if it could not be read."""
 
 
+class ModuleSource(ABC):
+    """The module-view channels (spec §5). /proc/modules is the LOW listing a
+    rootkit unlinks itself from; tainted, vmallocinfo and ftrace are channels
+    that do NOT share that list's source. A channel that cannot be read returns
+    None, and the differ skips it rather than treating absence as agreement."""
+
+    @abstractmethod
+    def read_proc_modules(self) -> str: ...
+    @abstractmethod
+    def list_sys_module(self) -> list[str]: ...
+    @abstractmethod
+    def sys_module_is_loaded(self, name: str) -> bool: ...
+    @abstractmethod
+    def read_tainted(self) -> int: ...
+    @abstractmethod
+    def read_vmallocinfo(self) -> str | None: ...
+    @abstractmethod
+    def read_ftrace_functions(self) -> str | None: ...
+
+
 class Collector(ABC):
     """Produces one Observation - one whole view of one kind of entity."""
 
