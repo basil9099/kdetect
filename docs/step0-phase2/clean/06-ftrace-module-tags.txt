@@ -1,0 +1,99 @@
+# Candidate independent channel: ftrace's function records
+
+captured: 2026-08-19T11:50:33Z
+kernel:   6.1.0-52-amd64
+euid:     0
+label: clean
+
+Reproduce by hand:
+    cat /sys/kernel/tracing/available_filter_functions | grep '\[' | sed 's/.*\[//;s/\]//' | sort | uniq -c
+
+----------------------------------------------------------------------
+
+ftrace records a module's traceable functions when the module is
+LOADED, and drops them when it is UNLOADED. Unlinking a module from
+the kernel's `modules` list is neither, so if these records survive
+hiding, this is a channel that does not share a source with
+/proc/modules. That is the whole question this file answers.
+
+tracefs: /sys/kernel/tracing
+total records            : 45238
+untagged (core kernel)   : 38181
+distinct modules tagged  : 68
+
+Per module: traceable function count, and whether /proc/modules
+still admits the module exists.
+  ac                                    7
+  aesni_intel                          30
+  ata_generic                           2
+  ata_piix                             17
+  autofs4                              59
+  binfmt_misc                          14
+  button                               12
+  configfs                             76
+  crc32_pclmul                          8
+  crc32c_generic                        7
+  crc32c_intel                         10
+  crct10dif_common                      1
+  crct10dif_generic                     5
+  crct10dif_pclmul                      5
+  cryptd                               54
+  crypto_simd                          17
+  dm_mod                              344
+  drm                                 870
+  drm_kms_helper                      316
+  drm_ttm_helper                        5
+  e1000                               157
+  efi_pstore                            6
+  ehci_hcd                             94
+  ehci_pci                              5
+  evdev                                24
+  ext4                                842
+  fuse                                291
+  ghash_clmulni_intel                  13
+  hid                                 115
+  hid_generic                           3
+  i2c_piix4                            10
+  intel_rapl_common                    27
+  intel_rapl_msr                        7
+  ip_tables                            25
+  jbd2                                172
+  joydev                               15
+  libata                              445
+  loop                                 41
+  mbcache                              15
+  mptbase                              66
+  mptscsih                             42
+  mptspi                               32
+  pcspkr                                5
+  psmouse                             244
+  scsi_common                           8
+  scsi_mod                            346
+  scsi_transport_spi                   66
+  sd_mod                               89
+  serio_raw                            10
+  sg                                   28
+  sha1_ssse3                           20
+  sha256_ssse3                         19
+  sha512_generic                        5
+  sha512_ssse3                         15
+  t10_pi                               22
+  ttm                                 140
+  uhci_hcd                             51
+  usb_common                           12
+  usbcore                             510
+  usbhid                               70
+  vmw_balloon                          16
+  vmw_vmci                            127
+  vmw_vsock_virtio_transport_common     46
+  vmw_vsock_vmci_transport             84
+  vmwgfx                              682
+  vsock                                58
+  vsock_loopback                        5
+  x_tables                             73
+
+Modules in /proc/modules with no ftrace records:
+  crc16
+  crc64
+  crc64_rocksoft
+  crc_t10dif

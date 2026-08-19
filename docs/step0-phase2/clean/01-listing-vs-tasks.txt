@@ -1,0 +1,32 @@
+# False-positive class #1: /proc lists processes, the sweep finds tasks
+
+captured: 2026-08-19T11:50:33Z
+kernel:   6.1.0-52-amd64
+euid:     0
+label: clean
+
+Reproduce by hand:
+    ls /proc | grep '^[0-9]' | wc -l
+    awk '/^Threads:/{s+=$2} END{print s}' /proc/[0-9]*/status
+    ls -d /proc/<tid>   # a thread id absent from the listing above
+
+----------------------------------------------------------------------
+
+/proc top-level numeric entries (thread group leaders): 133
+task ids under /proc/<pid>/task/                      : 223
+task ids NOT present in the top-level listing         : 90
+
+Those unlisted task ids are ordinary threads of visible processes.
+A sweep compared naively against the /proc listing reports every one
+of them as a hidden process. On this machine that is the false-
+positive count above, on an idle system, with nothing malicious loaded.
+
+Proof that an unlisted task id is still directly reachable:
+  tid     551  in listing: no   /proc/551/status readable: yes   Tgid: 501  (leader 501)  comm: HangDetector
+  tid     552  in listing: no   /proc/552/status readable: yes   Tgid: 501  (leader 501)  comm: vmtoolsd
+  tid     676  in listing: no   /proc/676/status readable: yes   Tgid: 498  (leader 498)  comm: sd-resolve
+  tid    1235  in listing: no   /proc/1235/status readable: yes   Tgid: 1229  (leader 1229)  comm: tokio-rt-worker
+  tid    1236  in listing: no   /proc/1236/status readable: yes   Tgid: 1229  (leader 1229)  comm: tokio-rt-worker
+
+Reading Tgid directly is what separates 'a thread' from 'a hidden
+process': a thread's Tgid names a leader that IS in the listing.

@@ -1,0 +1,30 @@
+# Candidate independent channel: taint set, but nothing to blame
+
+captured: 2026-08-19T11:50:33Z
+kernel:   6.1.0-52-amd64
+euid:     0
+label: clean
+
+Reproduce by hand:
+    cat /proc/sys/kernel/tainted
+    cat /proc/modules            # taint flags in the trailing (...)
+    cat /sys/module/*/taint
+
+----------------------------------------------------------------------
+
+Loading an out-of-tree unsigned module sets taint bits 12 and 13.
+Unlinking the module from the list does not clear them. So a kernel
+that admits to an out-of-tree module while no listed module carries
+an (O) or (E) marker is accounting for something it will not name.
+This costs two file reads and needs no tracing and no addresses.
+
+/proc/sys/kernel/tainted : 0
+  bit 12 (out-of-tree)   : clear
+  bit 13 (unsigned)      : clear
+
+Per-module taint, from the trailing parenthesis of /proc/modules:
+  (no listed module carries a taint marker)
+
+Per-module taint, from sysfs:
+
+CONCLUSION FOR THIS RUN: taint bits 12/13 clear, listed modules carrying a taint marker: 0

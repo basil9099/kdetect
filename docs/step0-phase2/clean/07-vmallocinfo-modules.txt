@@ -1,0 +1,166 @@
+# Candidate independent channel: module memory in /proc/vmallocinfo
+
+captured: 2026-08-19T11:50:33Z
+kernel:   6.1.0-52-amd64
+euid:     0
+label: clean
+
+Reproduce by hand:
+    grep -E 'module_alloc|load_module' /proc/vmallocinfo
+
+----------------------------------------------------------------------
+
+Module code lives in a vmalloc region allocated at load time. The
+allocation is released on unload, not on unlinking, so a hidden
+module should still own a region here. Unlike ftrace this needs no
+tracing subsystem, but it gives an address range rather than a name.
+
+total vmallocinfo lines   : 1065
+module-allocation lines   : 72
+
+  0x0000000012b28f67-0x000000007686af7c   20480 load_module+0xbb7/0x21a0 pages=4 vmalloc N0=4
+  0x00000000bf096ed6-0x00000000dcb9b6c2   32768 load_module+0xbb7/0x21a0 pages=7 vmalloc N0=7
+  0x00000000dcb9b6c2-0x00000000467f5b3d   20480 load_module+0xbb7/0x21a0 pages=4 vmalloc N0=4
+  0x00000000467f5b3d-0x00000000f06943fe  290816 load_module+0xbb7/0x21a0 pages=70 vmalloc N0=70
+  0x00000000f06943fe-0x00000000435b73fe   20480 load_module+0xbb7/0x21a0 pages=4 vmalloc N0=4
+  0x00000000435b73fe-0x0000000067a23f81   20480 load_module+0xbb7/0x21a0 pages=4 vmalloc N0=4
+  0x000000008b3f2667-0x00000000e7c60399   20480 load_module+0xbb7/0x21a0 pages=4 vmalloc N0=4
+  0x00000000da64db4e-0x000000009fea33df   20480 load_module+0xbb7/0x21a0 pages=4 vmalloc N0=4
+  0x000000009fea33df-0x00000000b7d03381   20480 load_module+0xbb7/0x21a0 pages=4 vmalloc N0=4
+  0x00000000b7d03381-0x000000002f9ab6b0  167936 load_module+0xbb7/0x21a0 pages=40 vmalloc N0=40
+  0x000000002f9ab6b0-0x00000000b23672a7   24576 load_module+0xbb7/0x21a0 pages=5 vmalloc N0=5
+  0x00000000b23672a7-0x00000000d62ec860   20480 load_module+0xbb7/0x21a0 pages=4 vmalloc N0=4
+  0x00000000d62ec860-0x00000000058ea1ca  352256 load_module+0xbb7/0x21a0 pages=85 vmalloc N0=85
+  0x00000000058ea1ca-0x000000002944cd1e   61440 load_module+0xbb7/0x21a0 pages=14 vmalloc N0=14
+  0x000000002944cd1e-0x000000002bd521ba   24576 load_module+0xbb7/0x21a0 pages=5 vmalloc N0=5
+  0x000000002bd521ba-0x0000000055309639   24576 load_module+0xbb7/0x21a0 pages=5 vmalloc N0=5
+  0x0000000055309639-0x0000000014e19ad7   49152 load_module+0xbb7/0x21a0 pages=11 vmalloc N0=11
+  0x0000000014e19ad7-0x000000003c07cd1e   69632 load_module+0xbb7/0x21a0 pages=16 vmalloc N0=16
+  0x000000005b7a5713-0x00000000604b9877   28672 load_module+0xbb7/0x21a0 pages=6 vmalloc N0=6
+  0x00000000604b9877-0x00000000294caae2   20480 load_module+0xbb7/0x21a0 pages=4 vmalloc N0=4
+  0x00000000294caae2-0x000000007f70cbab   20480 load_module+0xbb7/0x21a0 pages=4 vmalloc N0=4
+  0x000000007f70cbab-0x00000000b315ccc3   24576 load_module+0xbb7/0x21a0 pages=5 vmalloc N0=5
+  0x00000000b315ccc3-0x00000000fda9b972   20480 load_module+0xbb7/0x21a0 pages=4 vmalloc N0=4
+  0x00000000fda9b972-0x0000000080fa0d38   69632 load_module+0xbb7/0x21a0 pages=16 vmalloc N0=16
+  0x0000000080fa0d38-0x00000000208449b6   20480 load_module+0xbb7/0x21a0 pages=4 vmalloc N0=4
+  0x0000000086c47aac-0x000000006e28a379   45056 load_module+0xbb7/0x21a0 pages=10 vmalloc N0=10
+  0x000000006e28a379-0x000000009796d0f3   24576 load_module+0xbb7/0x21a0 pages=5 vmalloc N0=5
+  0x000000009796d0f3-0x00000000677e2e12   86016 load_module+0xbb7/0x21a0 pages=20 vmalloc N0=20
+  0x00000000677e2e12-0x00000000221ec17b   20480 load_module+0xbb7/0x21a0 pages=4 vmalloc N0=4
+  0x000000004b8fa397-0x00000000b3c0ff48   40960 load_module+0xbb7/0x21a0 pages=9 vmalloc N0=9
+  0x00000000b3c0ff48-0x000000007cf5d14c   32768 load_module+0xbb7/0x21a0 pages=7 vmalloc N0=7
+  0x000000007cf5d14c-0x000000000f9691d9   20480 load_module+0xbb7/0x21a0 pages=4 vmalloc N0=4
+  0x000000000f9691d9-0x0000000063a3ddc8  405504 load_module+0xbb7/0x21a0 pages=98 vmalloc N0=98
+  0x0000000063a3ddc8-0x00000000e19ee18a   57344 load_module+0xbb7/0x21a0 pages=13 vmalloc N0=13
+  0x00000000e19ee18a-0x00000000953f55a4   65536 load_module+0xbb7/0x21a0 pages=15 vmalloc N0=15
+  0x0000000018faa6d7-0x00000000c3c8bb4d  188416 load_module+0xbb7/0x21a0 pages=45 vmalloc N0=45
+  0x00000000c3c8bb4d-0x000000003105ee47  106496 load_module+0xbb7/0x21a0 pages=25 vmalloc N0=25
+  0x000000003105ee47-0x00000000b7fb4841  167936 load_module+0xbb7/0x21a0 pages=40 vmalloc N0=40
+  0x00000000b7fb4841-0x000000005c320358  172032 load_module+0xbb7/0x21a0 pages=41 vmalloc N0=41
+  0x000000005c320358-0x00000000322e1f00  995328 load_module+0xbb7/0x21a0 pages=242 vmalloc N0=242
+  0x00000000322e1f00-0x00000000c0770a45   32768 load_module+0xbb7/0x21a0 pages=7 vmalloc N0=7
+  0x00000000c0770a45-0x0000000046732d2e   40960 load_module+0xbb7/0x21a0 pages=9 vmalloc N0=9
+  0x0000000046732d2e-0x0000000068d44337   61440 load_module+0xbb7/0x21a0 pages=14 vmalloc N0=14
+  0x0000000068d44337-0x00000000c4656fe0  180224 load_module+0xbb7/0x21a0 pages=43 vmalloc N0=43
+  0x00000000c4656fe0-0x00000000a8f38af4   32768 load_module+0xbb7/0x21a0 pages=7 vmalloc N0=7
+  0x00000000a8f38af4-0x00000000b220b875   20480 load_module+0xbb7/0x21a0 pages=4 vmalloc N0=4
+  0x00000000b220b875-0x0000000094d66770   36864 load_module+0xbb7/0x21a0 pages=8 vmalloc N0=8
+  0x0000000094d66770-0x00000000191f1188  188416 load_module+0xbb7/0x21a0 pages=45 vmalloc N0=45
+  0x00000000191f1188-0x000000006f7ced5b   28672 load_module+0xbb7/0x21a0 pages=6 vmalloc N0=6
+  0x000000006f7ced5b-0x000000009746fdbf   20480 load_module+0xbb7/0x21a0 pages=4 vmalloc N0=4
+  0x000000000c2ed1e9-0x00000000eb9e45ba  618496 load_module+0xbb7/0x21a0 pages=150 vmalloc N0=150
+  0x00000000eb9e45ba-0x0000000067607908   45056 load_module+0xbb7/0x21a0 pages=10 vmalloc N0=10
+  0x0000000067607908-0x00000000fdc48a06   20480 load_module+0xbb7/0x21a0 pages=4 vmalloc N0=4
+  0x000000003bd49add-0x00000000a2e02ea0   24576 load_module+0xbb7/0x21a0 pages=5 vmalloc N0=5
+  0x00000000a2e02ea0-0x00000000d68c7195   20480 load_module+0xbb7/0x21a0 pages=4 vmalloc N0=4
+  0x00000000d68c7195-0x0000000091baf4c0   28672 load_module+0xbb7/0x21a0 pages=6 vmalloc N0=6
+  0x0000000078d86bbc-0x00000000ac91dc72  102400 load_module+0xbb7/0x21a0 pages=24 vmalloc N0=24
+  0x00000000ac91dc72-0x00000000075ffac3  217088 load_module+0xbb7/0x21a0 pages=52 vmalloc N0=52
+  0x00000000075ffac3-0x0000000096882bce   53248 load_module+0xbb7/0x21a0 pages=12 vmalloc N0=12
+  0x0000000096882bce-0x00000000bd76c1ee   32768 load_module+0xbb7/0x21a0 pages=7 vmalloc N0=7
+  0x00000000f530f433-0x00000000247b3795   98304 load_module+0xbb7/0x21a0 pages=23 vmalloc N0=23
+  0x00000000247b3795-0x00000000d028005b   32768 load_module+0xbb7/0x21a0 pages=7 vmalloc N0=7
+  0x00000000d028005b-0x000000004bc128f1  397312 load_module+0xbb7/0x21a0 pages=96 vmalloc N0=96
+  0x000000004bc128f1-0x0000000075d4815a   36864 load_module+0xbb7/0x21a0 pages=8 vmalloc N0=8
+  0x0000000075d4815a-0x000000002b63086d   36864 load_module+0xbb7/0x21a0 pages=8 vmalloc N0=8
+  0x000000002b63086d-0x0000000053936d5e   20480 load_module+0xbb7/0x21a0 pages=4 vmalloc N0=4
+  0x0000000053936d5e-0x000000004236b721   36864 load_module+0xbb7/0x21a0 pages=8 vmalloc N0=8
+  0x000000003a33f12a-0x000000002bedb74b   36864 load_module+0xbb7/0x21a0 pages=8 vmalloc N0=8
+  0x00000000eab1c649-0x000000004cf2a3bd   24576 load_module+0xbb7/0x21a0 pages=5 vmalloc N0=5
+  0x000000004cf2a3bd-0x00000000009d5917   57344 load_module+0xbb7/0x21a0 pages=13 vmalloc N0=13
+  0x00000000009d5917-0x00000000f136050f   57344 load_module+0xbb7/0x21a0 pages=13 vmalloc N0=13
+  0x0000000003a238a2-0x000000003d7649ed  376832 load_module+0xbb7/0x21a0 pages=91 vmalloc N0=91
+
+Base addresses claimed by /proc/modules, for correlation:
+  ac                               0xffffffffc07cc000
+  aesni_intel                      0xffffffffc0865000
+  ata_generic                      0xffffffffc0316000
+  ata_piix                         0xffffffffc03da000
+  autofs4                          0xffffffffc04d7000
+  binfmt_misc                      0xffffffffc083c000
+  button                           0xffffffffc0715000
+  configfs                         0xffffffffc0696000
+  crc16                            0xffffffffc0455000
+  crc32_pclmul                     0xffffffffc0323000
+  crc32c_generic                   0xffffffffc0330000
+  crc32c_intel                     0xffffffffc03fb000
+  crc64                            0xffffffffc03ce000
+  crc64_rocksoft                   0xffffffffc040c000
+  crc_t10dif                       0xffffffffc035e000
+  crct10dif_common                 0xffffffffc0402000
+  crct10dif_generic                0xffffffffc031b000
+  crct10dif_pclmul                 0xffffffffc0407000
+  cryptd                           0xffffffffc085d000
+  crypto_simd                      0xffffffffc06d9000
+  dm_mod                           0xffffffffc06e7000
+  drm                              0xffffffffc0724000
+  drm_kms_helper                   0xffffffffc07fa000
+  drm_ttm_helper                   0xffffffffc07d2000
+  e1000                            0xffffffffc0335000
+  efi_pstore                       0xffffffffc0364000
+  ehci_hcd                         0xffffffffc0524000
+  ehci_pci                         0xffffffffc03d4000
+  evdev                            0xffffffffc06d1000
+  ext4                             0xffffffffc0591000
+  fuse                             0xffffffffc06a5000
+  ghash_clmulni_intel              0xffffffffc08d8000
+  hid                              0xffffffffc053e000
+  hid_generic                      0xffffffffc02ca000
+  i2c_piix4                        0xffffffffc02c2000
+  intel_rapl_common                0xffffffffc08e8000
+  intel_rapl_msr                   0xffffffffc08f8000
+  ip_tables                        0xffffffffc068c000
+  jbd2                             0xffffffffc0567000
+  joydev                           0xffffffffc0684000
+  libata                           0xffffffffc0474000
+  loop                             0xffffffffc06de000
+  mbcache                          0xffffffffc0428000
+  mptbase                          0xffffffffc0440000
+  mptscsih                         0xffffffffc045d000
+  mptspi                           0xffffffffc0467000
+  pcspkr                           0xffffffffc046f000
+  psmouse                          0xffffffffc04f6000
+  scsi_common                      0xffffffffc02bb000
+  scsi_mod                         0xffffffffc02cf000
+  scsi_transport_spi               0xffffffffc042f000
+  sd_mod                           0xffffffffc0417000
+  serio_raw                        0xffffffffc043a000
+  sg                               0xffffffffc07bb000
+  sha1_ssse3                       0xffffffffc08c6000
+  sha256_ssse3                     0xffffffffc08cf000
+  sha512_generic                   0xffffffffc071c000
+  sha512_ssse3                     0xffffffffc082f000
+  t10_pi                           0xffffffffc0412000
+  ttm                              0xffffffffc0845000
+  uhci_hcd                         0xffffffffc03bf000
+  usb_common                       0xffffffffc032b000
+  usbcore                          0xffffffffc0369000
+  usbhid                           0xffffffffc03e6000
+  vmw_balloon                      0xffffffffc07d7000
+  vmw_vmci                         0xffffffffc07e1000
+  vmw_vsock_virtio_transport_common 0xffffffffc090c000
+  vmw_vsock_vmci_transport         0xffffffffc08dd000
+  vmwgfx                           0xffffffffc0936000
+  vsock                            0xffffffffc08fe000
+  vsock_loopback                   0xffffffffc07c6000
+  x_tables                         0xffffffffc04e5000

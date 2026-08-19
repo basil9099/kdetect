@@ -1,0 +1,43 @@
+# Why the capture runs procfs -> sweep -> procfs
+
+captured: 2026-08-19T11:50:33Z
+kernel:   6.1.0-52-amd64
+euid:     0
+label: clean
+
+Reproduce by hand:
+    read /proc listing (pass A); sweep the pid space; read it again (pass B)
+
+----------------------------------------------------------------------
+
+A sweep takes seconds; a /proc walk takes milliseconds. Processes
+start and exit in between, so the two views disagree on a clean
+machine for reasons that have nothing to do with hiding.
+
+The sandwich distinguishes them: an id the sweep saw that is absent
+from BOTH walks, and still resolvable, cannot be explained by timing.
+
+--- idle ---
+  sweep duration          : 3.19 s
+  walk A / walk B sizes   : 133 / 137
+  sweep saw               : 223
+  absent from A only      : 0  (started mid-capture)
+  absent from B only      : 0  (exited mid-capture)
+  absent from BOTH walks  : 90  <- threads + anything hidden
+  in walk A, sweep missed : 0
+  in walk B, sweep missed : 4
+  of those, still resolvable: 90
+  whose Tgid is a listed pid: 12 distinct leaders
+
+--- under process churn ---
+  sweep duration          : 3.21 s
+  walk A / walk B sizes   : 138 / 141
+  sweep saw               : 229
+  absent from A only      : 0  (started mid-capture)
+  absent from B only      : 3  (exited mid-capture)
+  absent from BOTH walks  : 91  <- threads + anything hidden
+  in walk A, sweep missed : 0
+  in walk B, sweep missed : 6
+  of those, still resolvable: 90
+  whose Tgid is a listed pid: 12 distinct leaders
+

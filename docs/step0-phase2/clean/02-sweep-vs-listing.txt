@@ -1,0 +1,28 @@
+# Channel 2: full pid-space sweep with kill(id, 0)
+
+captured: 2026-08-19T11:50:33Z
+kernel:   6.1.0-52-amd64
+euid:     0
+label: clean
+
+Reproduce by hand:
+    python3 -c 'import os\nfor p in range(1, PID_MAX+1):\n    try: os.kill(p, 0)\n    except OSError: pass'
+
+----------------------------------------------------------------------
+
+pid_max swept          : 4194304
+sweep duration         : 3.14 s
+ids that responded     : 223
+/proc listing before   : 133
+/proc listing after    : 133
+known task ids after   : 223
+
+in sweep, not in listing : 90
+in listing, not in sweep : 0
+
+Classifying every id the sweep saw but the listing did not:
+  thread of a visible process (Tgid is listed): 90
+  vanished before we could resolve it         : 0
+  UNEXPLAINED - candidate hidden process      : 0
+
+  (none)

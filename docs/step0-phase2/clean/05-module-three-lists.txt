@@ -1,0 +1,98 @@
+# Three module lists that share one source
+
+captured: 2026-08-19T11:50:33Z
+kernel:   6.1.0-52-amd64
+euid:     0
+label: clean
+
+Reproduce by hand:
+    cat /proc/modules | awk '{print $1}' | sort
+    ls /sys/module | sort
+    awk '{print $4}' /proc/kallsyms | grep '^\[' | sort -u
+
+----------------------------------------------------------------------
+
+/proc/modules entries   : 72
+/sys/module entries     : 136
+modules named in kallsyms: 73
+kallsyms symbols with a zeroed address: 2
+  (a non-zero count means this capture cannot do address work - L4)
+
+In /sys/module but NOT in /proc/modules:
+  Expected on a clean system: built-in code registers a sysfs
+  directory for its parameters without ever being a loadable module.
+  This is false-positive class #2 for the module view.
+    8250                             has initstate: False
+    acpi                             has initstate: False
+    acpiphp                          has initstate: False
+    apparmor                         has initstate: False
+    blk_cgroup                       has initstate: False
+    block                            has initstate: False
+    clocksource                      has initstate: False
+    cpufreq                          has initstate: False
+    cpuidle                          has initstate: False
+    cpuidle_haltpoll                 has initstate: False
+    cryptomgr                        has initstate: False
+    cxl_core                         has initstate: False
+    device_hmem                      has initstate: False
+    dynamic_debug                    has initstate: False
+    edac_core                        has initstate: False
+    fb                               has initstate: False
+    firmware_class                   has initstate: False
+    fscrypto                         has initstate: False
+    gpiolib_acpi                     has initstate: False
+    grant_table                      has initstate: False
+    i8042                            has initstate: False
+    ima                              has initstate: False
+    intel_idle                       has initstate: False
+    ipv6                             has initstate: False
+    kernel                           has initstate: False
+    keyboard                         has initstate: False
+    memory_hotplug                   has initstate: False
+    module                           has initstate: False
+    mousedev                         has initstate: False
+    netpoll                          has initstate: False
+    nmi_backtrace                    has initstate: False
+    page_alloc                       has initstate: False
+    page_reporting                   has initstate: False
+    pci_hotplug                      has initstate: False
+    pcie_aspm                        has initstate: False
+    pciehp                           has initstate: False
+    printk                           has initstate: False
+    processor                        has initstate: False
+    pstore                           has initstate: False
+    random                           has initstate: False
+    rcupdate                         has initstate: False
+    rcutree                          has initstate: False
+    rng_core                         has initstate: False
+    rtc_cmos                         has initstate: False
+    secretmem                        has initstate: False
+    shpchp                           has initstate: False
+    spidev                           has initstate: False
+    spurious                         has initstate: False
+    srcutree                         has initstate: False
+    suspend                          has initstate: False
+    syscall                          has initstate: False
+    sysrq                            has initstate: False
+    tcp_cubic                        has initstate: False
+    thermal                          has initstate: False
+    tpm                              has initstate: False
+    tpm_crb                          has initstate: False
+    tpm_tis                          has initstate: False
+    tpm_tis_core                     has initstate: False
+    vt                               has initstate: False
+    workqueue                        has initstate: False
+    xen                              has initstate: False
+    xen_kbdfront                     has initstate: False
+    xz_dec                           has initstate: False
+    zswap                            has initstate: False
+
+In /proc/modules but NOT in /sys/module:
+    (none)
+
+Named in kallsyms but absent from /proc/modules:
+  False-positive class #3: the fourth column of /proc/kallsyms is
+  not exclusively module names. JIT-compiled BPF programs are tagged
+  [bpf], and ftrace trampolines get tags of their own. A differ that
+  treats every bracketed tag as a module invents one on a clean host.
+    bpf

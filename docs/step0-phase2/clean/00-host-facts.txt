@@ -1,0 +1,23 @@
+# Host facts and kernel taint state
+
+captured: 2026-08-19T11:50:33Z
+kernel:   6.1.0-52-amd64
+euid:     0
+label: clean
+
+Reproduce by hand:
+    uname -a; cat /proc/sys/kernel/pid_max; cat /proc/sys/kernel/tainted
+
+----------------------------------------------------------------------
+
+Linux kdetect-lab 6.1.0-52-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.1.180-1 (2026-08-03) x86_64 GNU/Linux
+pid_max          : 4194304
+euid             : 0
+boot_id          : 50d47790-3db5-489e-af90-36f2a6276eee
+kptr_restrict    : 0
+perf_event_paranoid: 3
+
+tainted (raw)    : 0
+  no taint bits set
+
+dmesg lines mentioning modules or taint:

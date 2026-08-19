@@ -1,0 +1,27 @@
+# Channel 3: reading /proc/<pid> without listing /proc
+
+captured: 2026-08-19T11:50:33Z
+kernel:   6.1.0-52-amd64
+euid:     0
+label: clean
+
+Reproduce by hand:
+    ls /proc | grep '^<pid>$'   # readdir - hookable
+    stat /proc/<pid>            # direct path lookup - different code path
+    kill -0 <pid>               # existence via the signal path
+
+----------------------------------------------------------------------
+
+Diamorphine hides processes by filtering the results of getdents64.
+A direct path lookup does not go through getdents64 at all, so the
+same kernel that refuses to list a pid will happily answer questions
+about it. Three channels, one filesystem.
+
+pid 2994  (self)
+  appears in readdir(/proc) : yes
+  kill(pid, 0) succeeds     : yes
+  /proc/<pid>/status readable: yes
+  comm                      : python3
+  exe                       : /usr/bin/python3.11
+  starttime (stat field 22) : 219663
+
