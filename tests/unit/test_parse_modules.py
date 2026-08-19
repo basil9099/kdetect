@@ -1,5 +1,7 @@
+import pytest
+
 from kdetect.parsers.modules import (
-    parse_proc_modules, parse_tainted, count_module_regions, parse_ftrace_modules,
+    ModuleParseError, parse_proc_modules, parse_tainted, count_module_regions, parse_ftrace_modules,
 )
 
 def test_parse_proc_modules_basic():
@@ -35,3 +37,15 @@ def test_parse_ftrace_modules_extracts_bracket_tags():
         "diamorphine_init [diamorphine]\n"
     )
     assert parse_ftrace_modules(text) == {"ext4", "diamorphine"}
+
+def test_parse_proc_modules_raises_on_short_line():
+    with pytest.raises(ModuleParseError):
+        parse_proc_modules("ext4 999424 1 -\n")          # only 4 fields, need >= 6
+
+def test_parse_proc_modules_raises_on_non_numeric_size():
+    with pytest.raises(ModuleParseError):
+        parse_proc_modules("ext4 notanumber 1 - Live 0x0\n")
+
+def test_parse_tainted_raises_on_non_integer():
+    with pytest.raises(ModuleParseError):
+        parse_tainted("garbage\n")

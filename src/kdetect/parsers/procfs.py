@@ -53,7 +53,7 @@ def parse_status(text: str) -> StatusFields:
             elif key == "Tgid":
                 tgid = int(value.strip())
     except ValueError as exc:
-        raise ParseError(f"non-numeric Uid/Gid in status: {text!r}") from exc
+        raise ParseError(f"non-numeric Uid/Gid/Tgid in status: {text!r}") from exc
 
     if uid is None or gid is None or tgid is None:
         raise ParseError(f"status missing Uid, Gid, or Tgid line: {text!r}")
