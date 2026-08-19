@@ -51,6 +51,26 @@ certificate authority and trusting Debian.
 Record the verified hash in your notes. It is the provenance claim that L1 said
 the previous image could not make.
 
+### Verification record — 2026-08-19
+
+The installer used to build the current lab VM:
+
+```
+file        debian-12.12.0-amd64-netinst.iso   (704643072 bytes)
+sha256      dfc30e04fd095ac2c07e998f145e94bb8f7d3a8eca3a631d2eb012398deae531
+signed by   Debian CD signing key <debian-cd@lists.debian.org>
+key         DF9B 9C49 EAA9 2984 3258  9D76 DA87 E80D 6294 BE9B
+verified    gpg --keyring /usr/share/keyrings/debian-role-keys.gpg \n                --no-default-keyring --verify SHA256SUMS.sign SHA256SUMS
+result      Good signature
+```
+
+Debian 12 is oldstable as of this date (current stable is 13.6.0). It was chosen
+deliberately: the phase 1 fixture, the Step 0 evidence and the phase 2 rootkit
+references all target the 6.1 kernel line, and changing the kernel at the same
+time as introducing the differ would confound two variables at once.
+
+Note `curl` is not installed on a minimal Debian; use `wget`.
+
 ## 2. Create the VM
 
 VMware Workstation, new virtual machine:
