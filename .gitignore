@@ -6,6 +6,7 @@ venv/
 .pytest_cache/
 .mypy_cache/
 .vscode/
+.vs/
 .idea/
 
 # Live captures — contain hostnames, paths, running processes

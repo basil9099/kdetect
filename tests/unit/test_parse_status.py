@@ -20,10 +20,15 @@ def test_uid_and_gid_are_four_tuples():
 
 
 def test_root_process():
-    s = parse_status("Uid:\t0\t0\t0\t0\nGid:\t0\t0\t0\t0\n")
+    s = parse_status("Tgid:\t1\nUid:\t0\t0\t0\t0\nGid:\t0\t0\t0\t0\n")
     assert s.uid == [0, 0, 0, 0]
 
 
 def test_missing_uid_line_raises():
     with pytest.raises(ParseError):
         parse_status("Name:\tbash\n")
+
+
+def test_parse_status_reads_tgid():
+    text = "Name:\tbash\nTgid:\t501\nPid:\t551\nUid:\t0\t0\t0\t0\nGid:\t0\t0\t0\t0\n"
+    assert parse_status(text).tgid == 501
