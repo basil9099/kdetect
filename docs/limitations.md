@@ -7,19 +7,28 @@ Deliverable 8 of the original brief asks for exactly this document.
 
 ## Lab environment
 
-**L1 — The baseline has unverifiable provenance.** The phase 1 lab VM is a
+**L1 — The baseline has unverifiable provenance.** ~~Current~~ **RESOLVED
+2026-08-19**: rebuilt from a signature-verified Debian 12.12.0 netinst. See the
+verification record in [`lab-setup.md`](lab-setup.md). Retained below for the
+history.
+
+ The phase 1 lab VM is a
 prebuilt LinuxVMImages.com Debian 12 image with publicly documented default
 credentials (`debian`/`debian`, root `linuxvmimages.com`) and passwordless sudo.
 A rootkit detector rests on knowing what uncompromised looks like; a third-party
 image cannot supply that. Acceptable for phase 1, which performs no detection.
 Rebuild from Debian netinst before phase 2.
 
-**L2 — The VM holds a GitHub deploy key with write access.** It must be rotated
-or removed before any live rootkit runs on this machine.
+**L2 — The VM holds a GitHub deploy key with write access.** **RESOLVED
+2026-08-19**: the old key was deleted and a new repository-scoped key generated
+on the rebuilt VM. It still grants write access to one private repository, so
+the working procedure in [`threat-model.md`](threat-model.md) applies — push
+from `clean-baseline`, never from an infected snapshot.
 
-**L3 — Passwordless sudo is enabled.** Any local code execution is trivially
-root, which makes this host a weaker test of privilege boundaries than a
-default install would be.
+**L3 — Passwordless sudo is enabled.** **RESOLVED 2026-08-19**: the rebuilt VM
+requires a password for `sudo`, as a stock Debian install does. Note the
+practical consequence — automated capture runs cannot silently escalate, so
+root captures are an explicit, interactive act.
 
 ## Observation limits
 
@@ -83,6 +92,15 @@ phase 1 fixture had to have a VS Code Remote-SSH session token redacted before
 it could be committed. This is a property of `/proc`, not of kdetect, and it
 means **a snapshot must be treated as sensitive by default**. Phase 4's
 reporting will need a redaction pass before any report is shareable.
+
+**L14 — A baseline inherits its installer's choices, not only its packages.**
+Comparing the vendor image against the rebuilt VM: the old one carried five
+device-mapper devices (LVM) contributing ten `kdmflush`/`jbd2` kernel threads,
+an AHCI controller VMware attaches by default contributing about sixty
+`scsi_eh_`/`scsi_tmf_` threads, and a `xenbus_probe` thread on a VMware host.
+None were malicious; none were chosen; all would have been noise to explain
+away in phase 2. Measured totals: 154 processes and 452 packages on the vendor
+image against 120 and 338 on the rebuilt one.
 
 ## Verified properties
 
