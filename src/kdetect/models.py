@@ -274,8 +274,8 @@ class Observation:
     status: Status
     duration_ms: int
     entity_ids: list[int]
-    entities: dict[int, ProcessEntity]
-    stats: dict[str, int]
+    entities: dict[int | str, ProcessEntity | SweepEntity | ModuleEntity]
+    stats: dict[str, object]
     errors: list[CollectionError]
     pass_: str | None = None          # JSON key "pass"; distinguishes A/B walks
     extra: dict | None = None         # channel detail that is not per-entity

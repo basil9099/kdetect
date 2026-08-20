@@ -323,6 +323,12 @@ re-establishes its vmalloc region to dodge the count, and strips its own
 ftrace records — hooking three unrelated kernel subsystems instead of one
 linked list. Each additional channel raises that cost.
 
+The taint channel's stickiness cuts both ways: it is exactly why an unlinked
+module can't hide its taint, but it also means a host that loaded and
+unloaded a legitimate out-of-tree/unsigned module earlier in the boot carries
+the same bits, so a taint-only hit is `LOW`-confidence and noisy on its own —
+see [`limitations.md`](limitations.md) L17.
+
 **Also worth collecting.** Module base addresses (requires `CAP_SYSLOG`, see
 method 6) and whether the module is signed. Debian's stock kernel ships with
 module signature checking available; an unsigned out-of-tree module is not

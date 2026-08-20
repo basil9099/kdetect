@@ -84,7 +84,12 @@ def diff_modules(snapshot: Snapshot) -> list[Finding]:
 
     findings: list[Finding] = []
     if taint_hit:
-        bit = "12 (out-of-tree)" if taint & (1 << 12) else "13 (unsigned)"
+        parts = []
+        if taint & (1 << 12):
+            parts.append("12 (out-of-tree)")
+        if taint & (1 << 13):
+            parts.append("13 (unsigned)")
+        bit = " + ".join(parts)
         findings.append(Finding(
             FindingKind.MODULE_TAINT_MISMATCH, f"taint bit {bit}", conf,
             ["kernel.module_evidence taint"], ["procfs.modules listing"],

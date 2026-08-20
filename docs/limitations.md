@@ -126,6 +126,22 @@ exercised against real ground truth and succeeded — three channels, `HIGH`
 confidence. Rootkits not surviving kernel updates is itself a documentable
 reality of this problem space.
 
+**L17 — Taint stickiness makes `module_taint_mismatch` a false-positive-prone
+signal on its own.** Taint bits 12 (out-of-tree) and 13 (unsigned) are set
+permanently for the rest of the boot when such a module loads, and are NOT
+cleared when it unloads. kdetect's `module_taint_mismatch` fires when a taint
+bit is set but no currently-listed module carries the `(O)`/`(E)` marker —
+which is true of a genuinely hidden module, but ALSO true of a host that
+merely loaded and then unloaded a legitimate out-of-tree or unsigned module
+earlier in the boot (VirtualBox additions, nvidia, vmware, a local dev build).
+On such a host `module_taint_mismatch` fires with no rootkit present. The
+clean-baseline fixture avoids this only because the freshly-rebuilt VM has
+`taint=0`. A taint-only hit therefore corroborates just one channel and is
+reported at LOW confidence; the `load_module` region-count and ftrace
+channels, which track currently-loaded state rather than sticky history, are
+the robust ones. Treat a lone `module_taint_mismatch` as a prompt to
+investigate, not proof.
+
 ## Verified properties
 
 **V1 — The unit suite runs without Linux.** Measured 2026-08-18: 55 passed,
