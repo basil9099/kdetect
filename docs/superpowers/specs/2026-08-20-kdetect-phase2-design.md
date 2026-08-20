@@ -208,6 +208,11 @@ modules versus built-ins. This is the listing a rootkit filters. Its entities
 carry each module's name, size, refcount, dependents, state, base address, and
 taint marker — the raw `/proc/modules` columns (P1).
 
+**[Implementation note]** `/proc/modules` already lists only loaded modules,
+so the `procfs.modules` collector reads it directly and the `/sys/module`
+initstate-filtering described above proved unnecessary and was not
+implemented.
+
 `kernel.module_evidence` (**MEDIUM**) records the three independent channels as
 evidence, judging nothing:
 

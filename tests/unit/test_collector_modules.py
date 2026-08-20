@@ -29,7 +29,6 @@ def test_module_evidence_null_channel_when_unreadable(tmp_path):
     # a tree with no vmallocinfo/ftrace file -> those channels read None
     (tmp_path / "proc_modules.txt").write_text("ext4 1 0 - Live 0x0\n")
     (tmp_path / "tainted.txt").write_text("0\n")
-    (tmp_path / "sys_module.json").write_text('{"ext4": true}')
     obs = ModuleEvidenceCollector().collect(FixtureModuleSource(tmp_path))
     assert obs.stats["load_module_regions"] is None
     assert obs.stats["ftrace_available"] is False

@@ -216,15 +216,6 @@ class LiveModuleSource(ModuleSource):
         with open("/proc/modules", encoding="utf-8", errors="replace") as fh:
             return fh.read()
 
-    def list_sys_module(self) -> list[str]:
-        try:
-            return sorted(os.listdir("/sys/module"))
-        except OSError:
-            return []
-
-    def sys_module_is_loaded(self, name: str) -> bool:
-        return os.path.exists(f"/sys/module/{name}/initstate")
-
     def read_tainted(self) -> int:
         with open("/proc/sys/kernel/tainted", encoding="ascii") as fh:
             return int(fh.read().strip())
@@ -251,7 +242,6 @@ class FixtureModuleSource(ModuleSource):
 
     def __init__(self, root) -> None:
         self._root = Path(root)
-        self._loaded = json.loads((self._root / "sys_module.json").read_text("utf-8"))
 
     def _read(self, name: str) -> str | None:
         p = self._root / name
@@ -259,12 +249,6 @@ class FixtureModuleSource(ModuleSource):
 
     def read_proc_modules(self) -> str:
         return self._read("proc_modules.txt") or ""
-
-    def list_sys_module(self) -> list[str]:
-        return sorted(self._loaded)
-
-    def sys_module_is_loaded(self, name: str) -> bool:
-        return bool(self._loaded.get(name, False))
 
     def read_tainted(self) -> int:
         return int((self._read("tainted.txt") or "0").strip())
