@@ -102,6 +102,30 @@ None were malicious; none were chosen; all would have been noise to explain
 away in phase 2. Measured totals: 154 processes and 452 packages on the vendor
 image against 120 and 338 on the rebuilt one.
 
+**L15 — vmallocinfo addresses are hash-obfuscated.** `/proc/vmallocinfo` prints
+its region addresses as hashed pointers (e.g. `0x12b28f67`), not real kernel
+addresses (`0xffffffffc0...`), independent of `kptr_restrict` — `%p` hashing is
+a separate mechanism from `kptr_restrict`. So the vmalloc channel can yield a
+**count** of `load_module` regions but never a name or an address to correlate
+against `/proc/modules`. Count-mismatch is still a valid signal; attribution
+comes from the ftrace channel, not this one.
+Evidence: `docs/step0-phase2/clean/07-vmallocinfo-modules.txt`
+
+**L16 — Diamorphine's process-hiding hooks did not engage on kernel 6.1.0-52.**
+During the phase 2 ground-truth run, Diamorphine loaded and hid its own module
+(a direct `list_del` in `init`, needing no syscall hook), but its
+syscall-hooking for process and file hiding never took effect: sending
+SIGINVIS (signal 31) to a target delivered it as `SIGSYS` ("Bad system call")
+and killed the process instead of hiding it. So kdetect's cross-view process
+detection could not be exercised against this rootkit on this kernel; it
+remains validated by the synthetic differ tests
+(`tests/unit/test_diff_processes.py`) and by the clean-baseline zero-findings
+guard. This is a property of classic m0nad/Diamorphine syscall-table hooking on
+modern (6.x) kernels, not of kdetect. The module-hiding detection **was**
+exercised against real ground truth and succeeded — three channels, `HIGH`
+confidence. Rootkits not surviving kernel updates is itself a documentable
+reality of this problem space.
+
 ## Verified properties
 
 **V1 — The unit suite runs without Linux.** Measured 2026-08-18: 55 passed,

@@ -221,61 +221,119 @@ capture, hard for a userspace-only rootkit to fake.
 
 ---
 
-## 8. Cross-view process enumeration [planned — phase 2]
+## 8. Cross-view process enumeration [implemented]
 
-**Observes.** The set of PIDs reported by channels of differing trust:
+**Observes.** A capture runs a three-part sandwich: `procfs.processes` (pass
+A) → `syscall_sweep.processes` → `procfs.processes` (pass B). The sweep drives
+`kill(id, 0)` across `1..pid_max`; success or `EPERM` means the id exists,
+`ESRCH` means it does not. For every id that responds, the sweep also reads
+`/proc/<id>/status` directly and records its `Tgid`.
 
 | Channel | Trust | Method |
 |---|---|---|
-| `/proc` directory listing | `LOW` | `os.listdir("/proc")` |
-| direct `getdents` on `/proc` | `MEDIUM` | bypasses libc, catches userspace-only interception |
-| PID-space sweep | `MEDIUM` | `kill(pid, 0)` across the whole PID range; `ESRCH` means absent, `EPERM` means present but not ours |
-| thread enumeration | `MEDIUM` | `/proc/[pid]/task/` — a hidden process's threads may still be reachable via its parent |
+| `procfs.processes`, passes A and B | `LOW` | `os.listdir("/proc")` |
+| `syscall_sweep.processes` | `MEDIUM` | `kill(id, 0)` across `1..pid_max`, plus a direct `/proc/<id>/status` read for `Tgid` |
 
-**Why it works.** Hiding a process from `/proc` means intercepting the directory
-listing. Hiding it from a `kill(pid, 0)` sweep means intercepting a different
-syscall path entirely. Each additional channel is another place the lie must be
-maintained perfectly.
+**Why it works.** Hiding a task from `/proc`'s directory listing means
+intercepting `getdents64`. The sweep never calls it — it asks "does this
+specific id exist", once per id in the whole PID space, and then reaches
+`/proc/<id>/status` by path lookup rather than readdir. A rootkit that only
+hooks the listing does not touch either.
 
-The `kill` sweep is particularly awkward to defeat because it does not ask "list
-processes" — it asks "does this specific PID exist", 32768 times.
+The sandwich exists to separate hiding from timing. `/proc` lists thread-group
+leaders, but the sweep sees every task, including ordinary threads — on the
+clean baseline `/proc` lists 133 leaders while the sweep finds 223 responding
+task ids, a 90-task gap that is entirely threads of visible processes
+(`step0-phase2/clean/01-listing-vs-tasks.txt`,
+`step0-phase2/clean/02-sweep-vs-listing.txt`). The differ folds each task into
+its leader via the `Tgid` the sweep recorded directly: a task whose `Tgid` is
+itself listed is a thread, not a finding. A naive sweep-minus-listing diff
+would report all ~84-90 of them as hidden processes on an idle, clean machine;
+folding by `Tgid` reduces that to zero, and the committed clean capture
+(`clean-phase2.json`) produces zero findings. Requiring a suspect id to be
+absent from **both** procfs passes, not just one, is what tells a genuinely
+hidden task apart from a process that started or exited mid-capture — a
+one-pass absence is a race, not a finding.
 
-**Defeated by.** A rootkit that hooks both paths consistently. That is exactly
-what a well-written LKM rootkit does, which is why phase 5 adds eBPF at `HIGH`
-trust.
+**Defeated by.** A rootkit that hooks `getdents64` and the path-lookup handler
+consistently, so both the listing and the direct status read agree with each
+other and lie together. That is exactly what a well-written LKM rootkit does,
+which is why phase 5 adds eBPF at `HIGH` trust.
 
-**Schema support.** This is why an `Observation` carries `entity_ids` separately
-from `entities`: the `kill` sweep proves a PID exists without learning anything
-else about it, so `entity_ids` is a superset of `entities`.
+**Schema support.** This is why an `Observation` carries `entity_ids`
+separately from `entities`: the sweep proves a task id exists — and, via its
+direct `/proc/<id>/status` read, what its `Tgid` is — without necessarily
+resolving full identity for it, so `entity_ids` is a superset of `entities`.
+
+**Evidence.**
+[`step0-phase2/clean/01-listing-vs-tasks.txt`](step0-phase2/clean/01-listing-vs-tasks.txt),
+[`step0-phase2/clean/02-sweep-vs-listing.txt`](step0-phase2/clean/02-sweep-vs-listing.txt).
 
 ---
 
-## 9. Hidden kernel module detection [planned — phase 2]
+## 9. Hidden kernel module detection [implemented]
 
-**Observes.** `/proc/modules` compared against `/sys/module/` and, later,
-against the kernel's own module list.
+**Observes.** Three module *lists* — `/proc/modules`, `/sys/module/`, and the
+bracketed tags in `/proc/kallsyms` — plus three *independent* channels that do
+not share the lists' source: kernel taint accounting, `load_module` regions in
+`/proc/vmallocinfo`, and ftrace's `available_filter_functions` tags.
 
-**Why it works.** The standard LKM self-hiding technique removes the module's
-entry from the kernel's module list (`list_del`), which takes it out of
-`/proc/modules` and `lsmod` while leaving it loaded and running. But
-`/sys/module/<name>/` is populated through a different mechanism, and a module
-that removes itself from one may remain visible in the other.
+**Why the three lists don't help alone.** All three lists are populated by
+walking the same kernel `modules` linked list. The standard LKM self-hiding
+technique (`list_del` on that list) removes an entry from all three at once,
+so comparing them against each other only calibrates false positives, it
+never catches a hidden module (`step0-phase2/clean/05-module-three-lists.txt`):
+built-in code registers a `/sys/module/<name>/` directory with no
+`initstate` file, which is FP class #2 (`/sys/module` has 136 entries against
+`/proc/modules`'s 72, all built-ins); and `kallsyms`'s fourth column tags
+JIT-compiled BPF programs `[bpf]` as well as modules, which is FP class #3.
 
-Comparing the two enumerations is the same cross-view idea applied to modules
-rather than processes.
+**Why the three independent channels do work.** Each is populated by a
+different kernel mechanism that a `list_del` does not touch, so a module
+that unlinks itself from the modules list still shows up in these:
 
-**Defeated by.** A rootkit that removes itself from both. Diamorphine, the test
-subject for phase 2, hides itself deliberately and exposes a magic-signal
-control channel — see its repository for the current mechanism.
+| Channel | Clean baseline | Evidence |
+|---|---|---|
+| kernel taint accounting | taint = 0, no listed module carries `(O)`/`(E)` | `step0-phase2/clean/08-taint-accounting.txt` |
+| `load_module` regions in `/proc/vmallocinfo` | 72 regions == 72 listed modules | `step0-phase2/clean/07-vmallocinfo-modules.txt` |
+| ftrace `available_filter_functions` tags | 68 modules tagged, a subset of the 72 listed | `step0-phase2/clean/06-ftrace-module-tags.txt` |
+
+Loading an out-of-tree, unsigned module sets taint bits 12 and 13 permanently;
+unlinking the module afterwards does not clear them. Its `load_module`
+vmalloc region is released on unload, not on unlinking, so it survives a
+`list_del`. Its ftrace function records are added when the module loads and
+dropped when it unloads — again, not when it is unlinked. Confidence is the
+count of these three channels that independently agree a module is hidden:
+one channel is `LOW`, two is `MEDIUM`, three is `HIGH`.
+
+**Live result (kernel 6.1.0-52, Diamorphine).** Diamorphine loaded and
+`list_del`'d itself out of the kernel's module list from its own `init`, so
+`/proc/modules` kept listing 72 modules and never named `diamorphine`. All
+three independent channels fired anyway: taint flipped `0` → `12288` (bits 12
+and 13, out-of-tree and unsigned) with no listed module to blame it on
+(`module_taint_mismatch`); `load_module` regions rose to 73 against 72 listed
+(`unexplained_module_region`); and ftrace tagged 69 modules, including
+`diamorphine` by name, absent from the listing (`ftrace_orphan_module`) —
+the only one of the three that attributes a name rather than a count. Three
+corroborating channels gave `HIGH` confidence, and `analyze` exited `3`. This
+is ground truth captured in `tests/fixtures/snapshots/infected-diamorphine.json`.
+
+**Defeated by.** A rootkit that also patches taint reporting, releases and
+re-establishes its vmalloc region to dodge the count, and strips its own
+ftrace records — hooking three unrelated kernel subsystems instead of one
+linked list. Each additional channel raises that cost.
 
 **Also worth collecting.** Module base addresses (requires `CAP_SYSLOG`, see
-method 6), load order, and whether the module is signed. Debian's stock kernel
-ships with module signature checking available; an unsigned out-of-tree module
-is not proof of anything by itself, but it is a strong prior.
+method 6) and whether the module is signed. Debian's stock kernel ships with
+module signature checking available; an unsigned out-of-tree module is not
+proof of anything by itself, but it is a strong prior — and is exactly what
+the taint channel already reports without needing addresses at all.
 
-**Evidence for the reading.**
-[`step0/08-modules-user-vs-root.txt`](step0/08-modules-user-vs-root.txt) —
-70 modules, addresses masked unprivileged.
+**Evidence.**
+[`step0-phase2/clean/05-module-three-lists.txt`](step0-phase2/clean/05-module-three-lists.txt),
+[`step0-phase2/clean/08-taint-accounting.txt`](step0-phase2/clean/08-taint-accounting.txt),
+[`step0-phase2/clean/07-vmallocinfo-modules.txt`](step0-phase2/clean/07-vmallocinfo-modules.txt),
+[`step0-phase2/clean/06-ftrace-module-tags.txt`](step0-phase2/clean/06-ftrace-module-tags.txt).
 
 ---
 

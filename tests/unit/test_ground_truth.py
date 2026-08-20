@@ -17,6 +17,7 @@ import json
 from pathlib import Path
 
 from kdetect.analysis.crossview import diff_all
+from kdetect.analysis.models import Confidence, FindingKind
 from kdetect.models import Snapshot
 
 SNAP = Path(__file__).parent.parent / "fixtures" / "snapshots"
@@ -33,3 +34,53 @@ def test_clean_phase2_has_zero_findings():
     # not in /proc/modules, taint is clear, and ftrace is a subset of the
     # listing.
     assert diff_all(_load("clean-phase2.json")) == []
+
+
+# --- Real ground truth: Diamorphine loaded on kernel 6.1.0-52 ---
+#
+# Diamorphine hides its own module with a list_del in its init, so /proc/modules
+# never lists it - but its taint bits, its vmalloc region and its ftrace records
+# all outlive that unlinking. Three independent channels each catch the hidden
+# module, and corroborate to HIGH.
+#
+# Its PROCESS-hiding syscall hooks did NOT engage on this kernel (see limitation
+# L16): sending SIGINVIS killed the target with SIGSYS instead of hiding it, so
+# no process was actually hidden. The infected capture therefore also proves the
+# differ does NOT invent a hidden_process on an infected box - a real negative.
+
+
+def test_infected_diamorphine_detects_hidden_module():
+    findings = diff_all(_load("infected-diamorphine.json"))
+    kinds = {f.kind for f in findings}
+    assert FindingKind.MODULE_TAINT_MISMATCH in kinds
+    assert FindingKind.UNEXPLAINED_MODULE_REGION in kinds
+    assert FindingKind.FTRACE_ORPHAN_MODULE in kinds
+
+
+def test_infected_ftrace_channel_names_diamorphine():
+    findings = diff_all(_load("infected-diamorphine.json"))
+    orphans = [f for f in findings if f.kind is FindingKind.FTRACE_ORPHAN_MODULE]
+    assert len(orphans) == 1
+    assert "diamorphine" in orphans[0].subject
+
+
+def test_infected_module_findings_are_high_confidence():
+    # All three independent channels agree, so corroboration is 3 -> HIGH.
+    findings = diff_all(_load("infected-diamorphine.json"))
+    module_findings = [
+        f for f in findings
+        if f.kind in {
+            FindingKind.MODULE_TAINT_MISMATCH,
+            FindingKind.UNEXPLAINED_MODULE_REGION,
+            FindingKind.FTRACE_ORPHAN_MODULE,
+        }
+    ]
+    assert module_findings
+    assert all(f.confidence is Confidence.HIGH for f in module_findings)
+
+
+def test_infected_capture_raises_no_false_hidden_process():
+    # Nothing was actually hidden (L16), so the sandwich must stay silent on the
+    # process view even on an infected machine - the threads still fold away.
+    findings = diff_all(_load("infected-diamorphine.json"))
+    assert not any(f.kind is FindingKind.HIDDEN_PROCESS for f in findings)
