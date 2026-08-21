@@ -113,7 +113,11 @@ def cmd_baseline(args) -> int:
     except (OSError, json.JSONDecodeError, IncompatibleSnapshot) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_ERROR
-    write_baseline(snapshot, Path(args.out), load_private_key(Path(args.sign_key)))
+    try:
+        write_baseline(snapshot, Path(args.out), load_private_key(Path(args.sign_key)))
+    except (OSError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_ERROR
     print(f"{args.out}\n{args.out}.sig")
     return EXIT_OK
 
@@ -164,6 +168,9 @@ def cmd_analyze(args) -> int:
             baseline = load_baseline(Path(args.baseline), load_public_key(Path(args.verify_key)))
         except BaselineTampered as exc:
             print(f"error: baseline verification failed: {exc}", file=sys.stderr)
+            return EXIT_ERROR
+        except (OSError, ValueError) as exc:
+            print(f"error: {exc}", file=sys.stderr)
             return EXIT_ERROR
 
     findings = diff_all(snapshot, baseline)

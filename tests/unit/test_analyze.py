@@ -133,4 +133,6 @@ def test_analyze_with_tampered_baseline_exits_1(tmp_path, capsys, monkeypatch):
     rc = main(["analyze", str(snap), "--baseline", str(base),
                "--verify-key", str(key_b_pub)])
     assert rc == 1
-    assert "baseline" in capsys.readouterr().err.lower()
+    captured = capsys.readouterr()
+    assert "baseline" in captured.err.lower()
+    assert "findings:" not in captured.out  # analysis never ran
