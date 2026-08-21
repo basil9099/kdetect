@@ -12,6 +12,7 @@ venv/
 # Live captures — contain hostnames, paths, running processes
 /captures/
 /data/baselines/*.json
+/data/baselines/*.json.sig
 !/data/baselines/.gitkeep
 
 # Kernel build artifacts

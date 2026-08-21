@@ -32,3 +32,11 @@ def test_wrong_key_is_refused(tmp_path):
     other = Ed25519PrivateKey.generate().public_key()
     with pytest.raises(BaselineTampered):
         load_baseline(tmp_path / "clean.json", other)
+
+def test_missing_sig_is_refused(tmp_path):
+    key = Ed25519PrivateKey.generate()
+    out = tmp_path / "clean.json"
+    write_baseline(_snap(), out, key)
+    (tmp_path / "clean.json.sig").unlink()
+    with pytest.raises(BaselineTampered):
+        load_baseline(out, key.public_key())
