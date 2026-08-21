@@ -109,3 +109,28 @@ def test_analyze_json_mode(tmp_path):
 def test_analyze_clean_fixture_still_exits_0():
     r = run(["analyze", str(FIXTURE)])   # phase 1 clean-vm.json, one collector
     assert r.returncode == 0             # no sweep -> no findings
+
+
+def test_analyze_with_tampered_baseline_exits_1(tmp_path, capsys, monkeypatch):
+    # a baseline whose signature will not verify -> exit 1, no analysis
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    from cryptography.hazmat.primitives import serialization
+    from kdetect.baseline.store import write_baseline
+    from kdetect.cli import main
+    # build a minimal valid snapshot file to analyze (reuse an existing fixture)
+    import shutil, pathlib
+    fixture = pathlib.Path("tests/fixtures/snapshots/clean-phase2.json")
+    snap = tmp_path / "snap.json"; shutil.copy(fixture, snap)
+    # a baseline signed by key A, verified with key B -> BaselineTampered
+    key_a = Ed25519PrivateKey.generate()
+    from kdetect.models import Snapshot
+    base = tmp_path / "base.json"
+    write_baseline(Snapshot.from_dict(__import__("json").loads(snap.read_text())),
+                   base, key_a)
+    key_b_pub = tmp_path / "b.pub.pem"
+    key_b_pub.write_bytes(Ed25519PrivateKey.generate().public_key().public_bytes(
+        serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo))
+    rc = main(["analyze", str(snap), "--baseline", str(base),
+               "--verify-key", str(key_b_pub)])
+    assert rc == 1
+    assert "baseline" in capsys.readouterr().err.lower()

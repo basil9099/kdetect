@@ -12,9 +12,11 @@ from pathlib import Path
 
 from kdetect import __version__, hostfacts
 from kdetect.analysis.crossview import diff_all
+from kdetect.collectors.kernel_hooks import KernelHookCollector
 from kdetect.collectors.modules import ModuleEvidenceCollector, ProcfsModuleCollector
 from kdetect.collectors.procfs import ProcfsProcessCollector
 from kdetect.collectors.sources import (
+    LiveKernelHookSource,
     LiveModuleSource,
     LiveProcSource,
     LiveSignalSource,
@@ -62,12 +64,14 @@ def cmd_capture(args) -> int:
         )
 
     procs, signals, mods = LiveProcSource(), LiveSignalSource(), LiveModuleSource()
+    hooks = LiveKernelHookSource()
     observations = [
         ProcfsProcessCollector(pass_label="A").collect(procs),   # bread
         SweepProcessCollector().collect(signals),                # filling
         ProcfsProcessCollector(pass_label="B").collect(procs),   # bread
         ProcfsModuleCollector().collect(mods),
         ModuleEvidenceCollector().collect(mods),
+        KernelHookCollector().collect(hooks),
     ]
 
     now = datetime.now(timezone.utc)
@@ -98,6 +102,19 @@ def cmd_capture(args) -> int:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(payload + "\n", encoding="utf-8")
     print(path)
+    return EXIT_OK
+
+
+def cmd_baseline(args) -> int:
+    from kdetect.baseline.store import load_private_key, write_baseline
+    try:
+        raw = json.loads(Path(args.snapshot).read_text(encoding="utf-8"))
+        snapshot = Snapshot.from_dict(raw)
+    except (OSError, json.JSONDecodeError, IncompatibleSnapshot) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_ERROR
+    write_baseline(snapshot, Path(args.out), load_private_key(Path(args.sign_key)))
+    print(f"{args.out}\n{args.out}.sig")
     return EXIT_OK
 
 
@@ -137,7 +154,19 @@ def cmd_analyze(args) -> int:
             stats = "  ".join(f"{k}={v}" for k, v in sorted(obs.stats.items()))
             print(f"{' ' * 21}{stats}")
 
-    findings = diff_all(snapshot)
+    baseline = None
+    if getattr(args, "baseline", None):
+        from kdetect.baseline.store import BaselineTampered, load_baseline, load_public_key
+        if not args.verify_key:
+            print("error: --baseline requires --verify-key", file=sys.stderr)
+            return EXIT_ERROR
+        try:
+            baseline = load_baseline(Path(args.baseline), load_public_key(Path(args.verify_key)))
+        except BaselineTampered as exc:
+            print(f"error: baseline verification failed: {exc}", file=sys.stderr)
+            return EXIT_ERROR
+
+    findings = diff_all(snapshot, baseline)
 
     if getattr(args, "json", False):
         print(json.dumps([f.to_dict() for f in findings], indent=2, sort_keys=True))
@@ -178,6 +207,13 @@ def main(argv=None) -> int:
     analyze.add_argument("snapshot", help="Path to a snapshot JSON file.")
     analyze.add_argument("--json", action="store_true",
                          help="Emit findings as JSON; suppress the summary.")
+    analyze.add_argument("--baseline", help="Signed baseline to diff against.")
+    analyze.add_argument("--verify-key", help="ed25519 public key (PEM) for --baseline.")
+
+    baseline = subparsers.add_parser("baseline", help="Sign a snapshot as a baseline.")
+    baseline.add_argument("snapshot")
+    baseline.add_argument("--out", required=True)
+    baseline.add_argument("--sign-key", required=True)
 
     args = parser.parse_args(argv)
 
@@ -190,6 +226,9 @@ def main(argv=None) -> int:
 
     if args.command == "analyze":
         return cmd_analyze(args)
+
+    if args.command == "baseline":
+        return cmd_baseline(args)
 
     return EXIT_USAGE
 

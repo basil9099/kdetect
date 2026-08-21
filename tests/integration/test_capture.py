@@ -41,6 +41,13 @@ def test_capture_contains_its_own_pid(tmp_path):
     assert any("python" in c for c in comms)
 
 
+def test_capture_emits_kernel_hooks_observation(tmp_path):
+    r = run(["capture", "--out", "-"], tmp_path)
+    snap = Snapshot.from_dict(json.loads(r.stdout))
+    assert len(snap.observations) == 6
+    assert snap.observations[5].collector == "kernel.hooks"
+
+
 def test_host_facts_are_populated(tmp_path):
     r = run(["capture", "--out", "-"], tmp_path)
     h = Snapshot.from_dict(json.loads(r.stdout)).host
