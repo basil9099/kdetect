@@ -27,17 +27,20 @@ def parse_enabled_functions(text: str) -> list[HookRow]:
 
     A hooked function is a line that starts in column 0: "name (count)".
     Indented lines beneath it describe the ops/callback; we keep the first
-    callback symbol we see. Format confirmed in docs/step0-phase3/hooked/.
+    callback symbol we see. If the callback line carries a [module] bracket tag,
+    owner_module is set to the module name; otherwise it stays None.
+    Format confirmed in docs/step0-phase3/hooked/.
     """
     rows: list[HookRow] = []
     function: str | None = None
     callback: str | None = None
+    owner_module: str | None = None
 
     def flush() -> None:
-        nonlocal function, callback
+        nonlocal function, callback, owner_module
         if function is not None:
-            rows.append(HookRow(function, "ftrace", callback, None))
-        function, callback = None, None
+            rows.append(HookRow(function, "ftrace", callback, owner_module))
+        function, callback, owner_module = None, None, None
 
     for line in text.splitlines():
         if not line.strip():
@@ -51,6 +54,11 @@ def parse_enabled_functions(text: str) -> list[HookRow]:
                 callback = line[line.index("(") + 1 : line.rindex(")")].split("+")[0]
             elif "->" in line:
                 callback = line.split("->", 1)[1].split("+")[0].strip()
+
+            # Check for [module] bracket tag in the callback line
+            stripped = line.rstrip()
+            if stripped.endswith("]") and "[" in stripped:
+                owner_module = stripped[stripped.rindex("[") + 1 : -1]
     flush()
     return rows
 
@@ -59,7 +67,7 @@ def parse_kprobes(text: str) -> list[HookRow]:
     """Parse /sys/kernel/debug/kprobes/list.
 
     Columns: <addr> <type> <symbol>+<offset> [flags...]. We keep the symbol,
-    dropping the address (L4). Type letter is 'k'/'r' (kprobe/kretprobe)."""
+    dropping the address (L4). Type is 'k' for kprobe."""
     rows: list[HookRow] = []
     for line in text.splitlines():
         if not line.strip():
