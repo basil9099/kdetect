@@ -1,0 +1,2 @@
+__x64_sys_newuname (1)
+	 tramp: 0xffffffffc0451000 (kdetect_callback+0x0/0x10)

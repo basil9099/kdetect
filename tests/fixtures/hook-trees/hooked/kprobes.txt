@@ -1,0 +1,2 @@
+ffffffff81234560  k  do_int3+0x0    [DISABLED]
+ffffffffc0451000  k  __x64_sys_newuname+0x0

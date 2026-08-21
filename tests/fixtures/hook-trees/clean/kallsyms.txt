@@ -1,0 +1,2 @@
+ffffffff81000000 T commit_creds
+0000000000000000 t e1000_hook	[e1000]
