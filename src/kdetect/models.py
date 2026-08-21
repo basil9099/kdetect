@@ -235,6 +235,35 @@ class ModuleEntity:
         )
 
 
+@dataclass(frozen=True)
+class HookEntity:
+    """One hooked kernel function, as observed on a hook surface (spec §4.2).
+
+    Evidence only (P1): the function, the surface it came from, the callback the
+    surface names, and the module that callback attributes to (or None). Whether
+    that makes it an ORPHAN hook is a conclusion the differ draws (P4), so there
+    is deliberately no `attributable` field here.
+    """
+
+    function: str
+    hook_type: str                 # "ftrace" | "kprobe"
+    callback: str | None
+    owner_module: str | None
+
+    def to_dict(self) -> dict:
+        return {
+            "function": self.function, "hook_type": self.hook_type,
+            "callback": self.callback, "owner_module": self.owner_module,
+        }
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "HookEntity":
+        return cls(
+            function=d["function"], hook_type=d["hook_type"],
+            callback=d["callback"], owner_module=d["owner_module"],
+        )
+
+
 #: Which entity type each collector stores. Collectors that record only
 #: existence (kernel.module_evidence) have no per-entity detail.
 _ENTITY_TYPES = {
@@ -242,11 +271,12 @@ _ENTITY_TYPES = {
     "syscall_sweep.processes": SweepEntity,
     "procfs.modules": ModuleEntity,
     "kernel.module_evidence": None,
+    "kernel.hooks": HookEntity,
 }
 
 #: Collectors whose entity ids are names, not pids. Their entity_ids and
 #: entities keys stay strings; every other collector casts keys back to int.
-_STRING_ID_COLLECTORS = frozenset({"procfs.modules"})
+_STRING_ID_COLLECTORS = frozenset({"procfs.modules", "kernel.hooks"})
 
 
 @dataclass(frozen=True)
