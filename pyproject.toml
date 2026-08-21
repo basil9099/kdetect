@@ -7,7 +7,7 @@ name = "kdetect"
 version = "0.1.0"
 description = "Linux kernel rootkit detection via cross-view comparison"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = ["cryptography>=42"]
 
 [project.scripts]
 kdetect = "kdetect.cli:cli_entry"
