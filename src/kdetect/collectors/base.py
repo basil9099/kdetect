@@ -111,6 +111,20 @@ class ModuleSource(ABC):
     def read_ftrace_functions(self) -> str | None: ...
 
 
+class KernelHookSource(ABC):
+    """The hook-surface channels (spec §4). enabled_functions and kprobes are
+    what modern LKM rootkits light up; kallsyms attributes a callback symbol to
+    a module. A channel that cannot be read returns None, and the collector
+    records its absence rather than treating it as agreement."""
+
+    @abstractmethod
+    def read_enabled_functions(self) -> str | None: ...
+    @abstractmethod
+    def read_kprobes(self) -> str | None: ...
+    @abstractmethod
+    def read_kallsyms_index(self) -> str | None: ...
+
+
 class Collector(ABC):
     """Produces one Observation - one whole view of one kind of entity."""
 

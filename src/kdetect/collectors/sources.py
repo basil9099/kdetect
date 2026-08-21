@@ -13,6 +13,7 @@ from pathlib import Path
 
 from kdetect.collectors.base import (
     Denied,
+    KernelHookSource,
     ModuleSource,
     ProcSource,
     ProcSourceError,
@@ -258,3 +259,53 @@ class FixtureModuleSource(ModuleSource):
 
     def read_ftrace_functions(self) -> str | None:
         return self._read("ftrace.txt")
+
+
+class LiveKernelHookSource(KernelHookSource):
+    _ENABLED = ("/sys/kernel/tracing/enabled_functions",
+                "/sys/kernel/debug/tracing/enabled_functions")
+    _KPROBES = ("/sys/kernel/debug/kprobes/list",
+                "/sys/kernel/tracing/kprobes/list")
+
+    @staticmethod
+    def _try(paths) -> str | None:
+        for p in paths:
+            try:
+                with open(p, encoding="utf-8", errors="replace") as fh:
+                    return fh.read()
+            except OSError:
+                continue
+        return None
+
+    def read_enabled_functions(self) -> str | None:
+        return self._try(self._ENABLED)
+
+    def read_kprobes(self) -> str | None:
+        return self._try(self._KPROBES)
+
+    def read_kallsyms_index(self) -> str | None:
+        try:
+            with open("/proc/kallsyms", encoding="utf-8", errors="replace") as fh:
+                return fh.read()
+        except OSError:
+            return None
+
+
+class FixtureKernelHookSource(KernelHookSource):
+    """Replays a captured hook tree; a missing file replays 'unreadable'."""
+
+    def __init__(self, root) -> None:
+        self._root = Path(root)
+
+    def _read(self, name: str) -> str | None:
+        p = self._root / name
+        return p.read_text(encoding="utf-8") if p.exists() else None
+
+    def read_enabled_functions(self) -> str | None:
+        return self._read("enabled_functions.txt")
+
+    def read_kprobes(self) -> str | None:
+        return self._read("kprobes.txt")
+
+    def read_kallsyms_index(self) -> str | None:
+        return self._read("kallsyms.txt")
