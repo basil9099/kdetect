@@ -114,5 +114,64 @@ def diff_modules(snapshot: Snapshot) -> list[Finding]:
     return findings
 
 
-def diff_all(snapshot: Snapshot) -> list[Finding]:
-    return diff_processes(snapshot) + diff_modules(snapshot)
+def _hook_ids(snapshot: Snapshot) -> set[str]:
+    obs = _observations(snapshot, "kernel.hooks")
+    return set(obs[0].entity_ids) if obs else set()
+
+
+def diff_hooks(snapshot: Snapshot, baseline: Snapshot | None = None) -> list[Finding]:
+    """UNEXPECTED_HOOK: a hooked function whose callback belongs to no listed
+    module (orphan, intra-snapshot), and/or a hook absent from the baseline.
+
+    attributable is DERIVED here (P4): owner_module None, or set but not among
+    the modules procfs.modules lists, means the hook is an orphan. That signal
+    only means something when the hook carries a callback to attribute in the
+    first place: kprobe hooks always report callback=None (and so
+    owner_module=None too, since the kprobe parser never captures a callback
+    symbol), so a hook with no callback must not be flagged as an orphan on
+    that basis alone -- it can still surface via the baseline-drift channel.
+    """
+    hook_obs = _observations(snapshot, "kernel.hooks")
+    if not hook_obs:
+        return []
+    hooks = hook_obs[0]
+
+    module_obs = _observations(snapshot, "procfs.modules")
+    listed = set(module_obs[0].entity_ids) if module_obs else set()
+    baseline_hooks = _hook_ids(baseline) if baseline is not None else None
+
+    findings: list[Finding] = []
+    for key in hooks.entity_ids:
+        ent = hooks.entities[key]
+        orphan = ent.callback is not None and (
+            ent.owner_module is None or ent.owner_module not in listed)
+        drift = baseline_hooks is not None and key not in baseline_hooks
+        corroboration = sum([orphan, drift])
+        if corroboration == 0:
+            continue
+        agree, dissent = [], []
+        if orphan:
+            agree.append("kernel.hooks callback attribution")
+            dissent.append("procfs.modules listing")
+        if drift:
+            agree.append("baseline (hook absent when clean)")
+        findings.append(Finding(
+            FindingKind.UNEXPECTED_HOOK, f"{ent.hook_type} hook on {ent.function}",
+            _confidence(corroboration), agree, dissent,
+            {"function": ent.function, "hook_type": ent.hook_type,
+             "callback": ent.callback, "owner_module": ent.owner_module,
+             "in_listing": ent.owner_module in listed if ent.owner_module else False,
+             "new_vs_baseline": bool(drift)},
+            f"{ent.hook_type} hook on {ent.function} "
+            f"({'callback in no listed module' if orphan else 'new since baseline'})",
+        ))
+    return sorted(findings, key=lambda f: f.subject)
+
+
+def diff_all(snapshot: Snapshot, baseline: Snapshot | None = None) -> list[Finding]:
+    findings = (diff_processes(snapshot) + diff_modules(snapshot)
+                + diff_hooks(snapshot, baseline))
+    if baseline is not None:
+        from kdetect.analysis import baseline_diff       # Task 8
+        findings += baseline_diff.diff(snapshot, baseline)
+    return findings

@@ -15,6 +15,8 @@ class FindingKind(str, Enum):
     MODULE_TAINT_MISMATCH = "module_taint_mismatch"
     UNEXPLAINED_MODULE_REGION = "unexplained_module_region"
     FTRACE_ORPHAN_MODULE = "ftrace_orphan_module"
+    UNEXPECTED_HOOK = "unexpected_hook"
+    BASELINE_DRIFT = "baseline_drift"
 
 
 class Confidence(str, Enum):
