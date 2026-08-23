@@ -1,0 +1,1 @@
+__x64_sys_newuname (1) R I  	tramp: 0xffffffffc0665000 (kdetect_callback+0x0/0x5 [kdetect_hooktest]) ->kdetect_callback+0x0/0x5 [kdetect_hooktest]
