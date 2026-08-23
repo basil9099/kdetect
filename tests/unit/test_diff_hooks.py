@@ -42,11 +42,19 @@ def test_attributable_hook_does_not_fire():
     assert diff_hooks(_snap(ents, listed_modules=["ext4"])) == []
 
 def test_orphan_plus_baseline_drift_is_medium():
-    ents = {"ftrace:sys_x": HookEntity("sys_x", "ftrace", "evil", None)}
+    # callback attributes to a named-but-unlisted module (orphan) AND the hook
+    # is absent from the baseline (drift) -> two channels -> MEDIUM.
+    ents = {"ftrace:sys_x": HookEntity("sys_x", "ftrace", "evil", "hidden_mod")}
     current = _snap(ents, listed_modules=["ext4"])
     baseline = _snap({}, listed_modules=["ext4"])   # hook absent when clean
     findings = diff_hooks(current, baseline)
     assert findings[0].confidence is Confidence.MEDIUM   # orphan + drift
+
+def test_core_kernel_callback_is_not_orphan():
+    # A legit core-kernel ftrace op: callback set, but owner_module None (no
+    # module tag). Must NOT fire without a baseline -> else clean-machine FP.
+    ents = {"ftrace:sys_x": HookEntity("sys_x", "ftrace", "ftrace_ops_list_func", None)}
+    assert diff_hooks(_snap(ents, listed_modules=["ext4"])) == []
 
 def test_kprobe_without_callback_is_not_orphan():
     # a kprobe (callback=None, owner_module=None), no baseline -> no finding

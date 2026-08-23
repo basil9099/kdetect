@@ -120,16 +120,21 @@ def _hook_ids(snapshot: Snapshot) -> set[str]:
 
 
 def diff_hooks(snapshot: Snapshot, baseline: Snapshot | None = None) -> list[Finding]:
-    """UNEXPECTED_HOOK: a hooked function whose callback belongs to no listed
-    module (orphan, intra-snapshot), and/or a hook absent from the baseline.
+    """UNEXPECTED_HOOK: a hooked function whose callback belongs to a module that
+    exists but is NOT in /proc/modules (orphan, intra-snapshot), and/or a hook
+    absent from the baseline.
 
-    attributable is DERIVED here (P4): owner_module None, or set but not among
-    the modules procfs.modules lists, means the hook is an orphan. That signal
-    only means something when the hook carries a callback to attribute in the
-    first place: kprobe hooks always report callback=None (and so
-    owner_module=None too, since the kprobe parser never captures a callback
-    symbol), so a hook with no callback must not be flagged as an orphan on
-    that basis alone -- it can still surface via the baseline-drift channel.
+    attributable is DERIVED here (P4). The orphan signal fires only when the
+    callback attributes to a *named* module that the /proc/modules listing does
+    not contain -- the Diamorphine analog: a hidden module's hook still names its
+    module (via the ftrace [module] tag or kallsyms), yet the module has unlinked
+    itself from the listing. Two cases deliberately do NOT orphan on this basis:
+      - owner_module is None. A legitimate core-kernel ftrace op has a callback
+        in the core kernel with no module tag; flagging it would false-positive
+        on any host with function tracing active (docs/limitations.md). Such a
+        hook, if truly malicious, still surfaces via baseline drift.
+      - kprobe hooks, which always report callback/owner_module None (the kprobe
+        parser captures no callback symbol) -- covered by the same None guard.
     """
     hook_obs = _observations(snapshot, "kernel.hooks")
     if not hook_obs:
@@ -143,8 +148,7 @@ def diff_hooks(snapshot: Snapshot, baseline: Snapshot | None = None) -> list[Fin
     findings: list[Finding] = []
     for key in hooks.entity_ids:
         ent = hooks.entities[key]
-        orphan = ent.callback is not None and (
-            ent.owner_module is None or ent.owner_module not in listed)
+        orphan = ent.owner_module is not None and ent.owner_module not in listed
         drift = baseline_hooks is not None and key not in baseline_hooks
         corroboration = sum([orphan, drift])
         if corroboration == 0:
@@ -163,7 +167,8 @@ def diff_hooks(snapshot: Snapshot, baseline: Snapshot | None = None) -> list[Fin
              "in_listing": ent.owner_module in listed if ent.owner_module else False,
              "new_vs_baseline": bool(drift)},
             f"{ent.hook_type} hook on {ent.function} "
-            f"({'callback in no listed module' if orphan else 'new since baseline'})",
+            f"({'callback attributes to unlisted module ' + str(ent.owner_module)
+                if orphan else 'new since baseline'})",
         ))
     return sorted(findings, key=lambda f: f.subject)
 

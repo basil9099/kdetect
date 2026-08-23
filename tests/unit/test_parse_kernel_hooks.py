@@ -4,40 +4,48 @@ from kdetect.parsers.kernel_hooks import (
     parse_enabled_functions, parse_kprobes, reduce_kallsyms,
 )
 
-# Verbatim from docs/step0-phase3/hooked/01-enabled_functions.txt
-ENABLED = """\
-__x64_sys_newuname (1)
-	 tramp: 0xffffffffc0451000 (kdetect_callback+0x0/0x10)
-	  ->ftrace_ops_list_func+0x0/0x1a0
-"""
+# Verbatim from docs/step0-phase3/hooked/01-enabled_functions.txt — the REAL
+# single-line format on kernel 6.1.0-52: function, flags, tramp, callback, and
+# the owning [module] all on one line. Captured with kdetect_hooktest loaded.
+ENABLED = (
+    "__x64_sys_newuname (1) R I\ttramp: 0xffffffffc0665000 "
+    "(kdetect_callback+0x0/0x5 [kdetect_hooktest]) "
+    "->kdetect_callback+0x0/0x5 [kdetect_hooktest]\n"
+)
 
-def test_parse_enabled_functions_extracts_function_and_callback():
+def test_parse_enabled_functions_extracts_function_callback_and_module():
     rows = parse_enabled_functions(ENABLED)
     assert len(rows) == 1
     r = rows[0]
     assert r.function == "__x64_sys_newuname"
     assert r.hook_type == "ftrace"
-    assert "kdetect_callback" in r.callback
+    assert r.callback == "kdetect_callback"       # offset/address dropped (L4)
+    assert r.owner_module == "kdetect_hooktest"   # inline [module] tag read
 
 def test_parse_enabled_functions_empty_is_no_rows():
     assert parse_enabled_functions("") == []
 
-def test_parse_enabled_functions_extracts_owner_module_from_bracket_tag():
-    """Callback with [module] tag sets owner_module; without tag leaves it None."""
-    ENABLED_WITH_TAG = """\
-evil_hook (1)
-	 tramp: 0xffffffffc0451000 (evil_callback+0x0/0x10) [rootkit]
-	  ->ftrace_ops_list_func+0x0/0x1a0
-"""
-    rows = parse_enabled_functions(ENABLED_WITH_TAG)
-    assert len(rows) == 1
-    r = rows[0]
-    assert r.function == "evil_hook"
-    assert r.owner_module == "rootkit"
+def test_parse_enabled_functions_core_kernel_callback_has_no_module():
+    """A callback in the core kernel carries no [module] tag -> owner_module None
+    (the collector then leaves it unattributed; the differ decides what that
+    means). Uses the same single-line shape without a bracket."""
+    core = "some_syscall (1) R I\t->ftrace_ops_list_func+0x0/0x1a0\n"
+    rows = parse_enabled_functions(core)
+    assert rows[0].function == "some_syscall"
+    assert rows[0].callback == "ftrace_ops_list_func"
+    assert rows[0].owner_module is None
 
-    # Without bracket tag, owner_module stays None
-    rows_no_tag = parse_enabled_functions(ENABLED)
-    assert rows_no_tag[0].owner_module is None
+def test_parse_enabled_functions_multiline_layout_still_read():
+    """Defensive: an older/other layout that puts the callback on an indented
+    continuation line is still parsed."""
+    multiline = (
+        "evil_hook (1)\n"
+        "\t tramp: 0xffffffffc0451000 (evil_callback+0x0/0x10) [rootkit]\n"
+    )
+    rows = parse_enabled_functions(multiline)
+    assert rows[0].function == "evil_hook"
+    assert rows[0].callback == "evil_callback"
+    assert rows[0].owner_module == "rootkit"
 
 # Verbatim from docs/step0-phase3/clean/02-kprobes.txt
 KPROBES = """\
