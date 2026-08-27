@@ -16,11 +16,25 @@ Both fixtures are redacted of session secrets before commit (limitation L13).
 import json
 from pathlib import Path
 
+import pytest
+
 from kdetect.analysis.crossview import diff_all
 from kdetect.analysis.models import Confidence, FindingKind
 from kdetect.models import Snapshot
 
 SNAP = Path(__file__).parent.parent / "fixtures" / "snapshots"
+
+# Phase-3a fixtures are captured on the VM and committed separately (they are
+# real root captures, redacted via tools/redact_snapshot.py per L13). Until they
+# land, these guards skip; once the JSON is present the assertions run for real.
+needs_clean3a = pytest.mark.skipif(
+    not (SNAP / "clean-phase3a.json").exists(),
+    reason="clean-phase3a.json fixture not captured yet",
+)
+needs_hooktest = pytest.mark.skipif(
+    not (SNAP / "infected-hooktest.json").exists(),
+    reason="infected-hooktest.json fixture not captured yet",
+)
 
 
 def _load(name: str) -> Snapshot:
@@ -83,4 +97,49 @@ def test_infected_capture_raises_no_false_hidden_process():
     # Nothing was actually hidden (L16), so the sandwich must stay silent on the
     # process view even on an infected machine - the threads still fold away.
     findings = diff_all(_load("infected-diamorphine.json"))
+    assert not any(f.kind is FindingKind.HIDDEN_PROCESS for f in findings)
+
+
+# --- Phase 3a ground truth: kdetect_hooktest (hidden) on kernel 6.1.0-52 ---
+#
+# The benign test module (kmod/kdetect_hooktest.c) registers an ftrace hook on
+# __x64_sys_newuname and list_del's itself, so /proc/modules never lists it - the
+# same hiding technique as Diamorphine, now carrying a hook. It was caught live
+# with NO baseline: the phase-3a kernel.hooks channel attributes the hook's
+# callback to a module absent from the listing, and the phase-2 taint and
+# vmalloc-region channels corroborate. See docs/detection-methods.md #10.
+
+
+@needs_clean3a
+def test_clean_phase3a_has_zero_findings():
+    # A clean root capture that INCLUDES the kernel.hooks collector must still
+    # yield nothing: enabled_functions/kprobes are empty on an idle host, so the
+    # orphan-hook check has nothing to attribute (limitation L19). Requires a
+    # taint=0 boot (L17), i.e. captured before any out-of-tree module was loaded.
+    assert diff_all(_load("clean-phase3a.json")) == []
+
+
+@needs_hooktest
+def test_infected_hooktest_detects_orphan_hook_and_module():
+    findings = diff_all(_load("infected-hooktest.json"))
+    kinds = {f.kind for f in findings}
+    assert FindingKind.UNEXPECTED_HOOK in kinds          # phase-3a hook channel
+    assert FindingKind.MODULE_TAINT_MISMATCH in kinds    # phase-2 corroboration
+    assert FindingKind.UNEXPLAINED_MODULE_REGION in kinds
+
+
+@needs_hooktest
+def test_infected_hooktest_hook_names_the_unlisted_module():
+    findings = diff_all(_load("infected-hooktest.json"))
+    hooks = [f for f in findings if f.kind is FindingKind.UNEXPECTED_HOOK]
+    assert len(hooks) == 1
+    assert "__x64_sys_newuname" in hooks[0].subject
+    assert hooks[0].evidence.get("owner_module") == "kdetect_hooktest"
+
+
+@needs_hooktest
+def test_infected_hooktest_no_false_hidden_process():
+    # As with Diamorphine, the module hides itself but no PROCESS is hidden, so
+    # the process sandwich must not invent a hidden_process on the infected box.
+    findings = diff_all(_load("infected-hooktest.json"))
     assert not any(f.kind is FindingKind.HIDDEN_PROCESS for f in findings)
