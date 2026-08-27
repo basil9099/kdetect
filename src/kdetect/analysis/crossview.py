@@ -159,6 +159,13 @@ def diff_hooks(snapshot: Snapshot, baseline: Snapshot | None = None) -> list[Fin
             dissent.append("procfs.modules listing")
         if drift:
             agree.append("baseline (hook absent when clean)")
+        # Computed on its own line, not inside the f-string: a multi-line
+        # expression inside an f-string replacement field is a Python 3.12+
+        # feature (PEP 701) and is a SyntaxError on 3.11, which the lab VM runs.
+        if orphan:
+            reason = f"callback attributes to unlisted module {ent.owner_module}"
+        else:
+            reason = "new since baseline"
         findings.append(Finding(
             FindingKind.UNEXPECTED_HOOK, f"{ent.hook_type} hook on {ent.function}",
             _confidence(corroboration), agree, dissent,
@@ -166,9 +173,7 @@ def diff_hooks(snapshot: Snapshot, baseline: Snapshot | None = None) -> list[Fin
              "callback": ent.callback, "owner_module": ent.owner_module,
              "in_listing": ent.owner_module in listed if ent.owner_module else False,
              "new_vs_baseline": bool(drift)},
-            f"{ent.hook_type} hook on {ent.function} "
-            f"({'callback attributes to unlisted module ' + str(ent.owner_module)
-                if orphan else 'new since baseline'})",
+            f"{ent.hook_type} hook on {ent.function} ({reason})",
         ))
     return sorted(findings, key=lambda f: f.subject)
 
