@@ -343,25 +343,56 @@ the taint channel already reports without needing addresses at all.
 
 ---
 
-## 10. Symbol and syscall table integrity [planned — phase 3]
+## 10. Hook-surface integrity [implemented — phase 3a]
 
-**Observes.** Hashes of critical kernel text regions and the addresses stored in
-the syscall table, compared against a stored baseline.
+**Observes.** What is currently hooked in the kernel, through three root-readable
+surfaces that need no kernel-memory reads (so L4/L15 do not gate them): registered
+ftrace ops in `/sys/kernel/tracing/enabled_functions`, kprobes in
+`/sys/kernel/debug/kprobes/list`, and the symbol→module attribution in
+`/proc/kallsyms`. The `kernel.hooks` collector records each hooked function, its
+callback, and the module that callback belongs to; it never judges (P1/P4).
 
-**Why it works.** Function hooking has to change something: either a pointer in
-a dispatch table, or the first bytes of a function (a trampoline). Both are
-detectable by comparison against a known-good record — provided the baseline was
-taken while the system was genuinely clean, which is the whole reason
-[`lab-setup.md`](lab-setup.md) insists on a verified installer.
+**Why hooks, not the syscall table.** The original phase-3 plan named syscall-table
+hashing. Phase-2 ground truth redirected it (L16): Diamorphine's syscall-table
+hooking never engaged on kernel 6.1, and modern LKM rootkits hook via ftrace or
+kprobes instead. Those mechanisms leave records in the surfaces above, so kdetect
+targets the hooking that is actually in use rather than a technique that no longer
+fires — and does so without needing the kernel addresses L4/L15 deny it.
 
-Since kernel 5.7, `kallsyms_lookup_name` is no longer exported, so modern
-rootkits resolve symbols via kprobes instead. That changes how a rootkit finds
-its target, not whether the modification is visible afterwards.
+**The signals.** The differ draws two conclusions, each citing its evidence (P5):
 
-**Defeated by.** A rootkit that hooks the comparison itself. Detection from
-inside a compromised kernel is fundamentally limited — the honest mitigation is
-out-of-band memory analysis (phase 5, Volatility against a VM memory image),
-where the observer is not running on the observed kernel.
+- `unexpected_hook` (orphan) — a hook whose callback attributes to a module that
+  is **not** in `/proc/modules`. A hidden module unlinks itself from the listing,
+  but its registered ftrace op still names it, so the hook betrays the module the
+  list no longer admits. Fires intra-snapshot, no baseline required. Only a
+  *named, unlisted* module counts; a core-kernel or kprobe callback with no module
+  is not orphaned (L19).
+- `baseline_drift` / `unexpected_hook` (drift) — a module or hook present now but
+  absent from a signed baseline. This is the only route by which a core-kernel or
+  kprobe hook is caught.
+
+**Verified.** On the lab VM (6.1.0-52), a benign test module
+([`kmod/kdetect_hooktest.c`](../kmod/kdetect_hooktest.c)) that registers an ftrace
+hook on `__x64_sys_newuname` and `list_del`s itself was caught **with no
+baseline**: `unexpected_hook` on `__x64_sys_newuname` ("callback attributes to
+unlisted module kdetect_hooktest"), corroborated by the phase-2
+`module_taint_mismatch` and `unexplained_module_region` channels — the module hid
+from `/proc/modules` (72 listed) yet left 73 `load_module` regions and its taint
+word behind. Notably the phase-2 ftrace channel (`available_filter_functions`) did
+**not** catch it: the module marks its callback `notrace`, so it never appears
+there — but the phase-3a `enabled_functions` channel did, because a *registered*
+op is visible even when its callback is untraceable. The two ftrace surfaces are
+complementary. A clean capture, and a *visible* (listed) load of the same module,
+both produced zero findings — no false positive on a legitimately-loaded hooking
+module.
+
+**Defeated by.** A rootkit that also forges these surfaces, or hooks the
+comparison itself. Detection from inside a compromised kernel is fundamentally
+limited — the honest mitigation is out-of-band memory analysis (phase 5,
+Volatility against a VM memory image), where the observer is not running on the
+observed kernel.
+
+**Evidence.** [`step0-phase3/`](step0-phase3/) (clean and hooked captures).
 
 ---
 

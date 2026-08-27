@@ -142,6 +142,46 @@ channels, which track currently-loaded state rather than sticky history, are
 the robust ones. Treat a lone `module_taint_mismatch` as a prompt to
 investigate, not proof.
 
+## Phase 3a — baseline store and hook surfaces
+
+**L18 — On-host baseline signing detects forgery only from an attacker without
+the signing key.** kdetect signs a baseline with an ed25519 private key and
+verifies it on load with the public key (`baseline/store.py`, spec §6). Keeping
+the public (verify) key on the inspected host and the private (sign) key
+**off-host** means a baseline cannot be forged on the host, only verified: an
+attacker at root can read and rewrite files (A2) but cannot mint a baseline that
+certifies their own compromise. If the private key is left on the inspected host,
+or the attacker obtains it, the guarantee degrades to detecting accidental
+corruption. The honest strengthening is off-host key storage (A3), a phase-5
+concern. Phase 3a delivers the mechanism and states its boundary; it does not
+claim to have closed A3.
+
+**L19 — The intra-snapshot orphan-hook check fires only on a hook whose callback
+attributes to a *named, currently-unlisted* module.** `diff_hooks` reports
+`unexpected_hook` (orphan) when a registered ftrace op's callback resolves — via
+the ftrace `[module]` tag or `/proc/kallsyms` — to a module that is not in
+`/proc/modules`. This is the Diamorphine analog and what caught the phase-3a test
+module. Two classes are deliberately **not** orphaned on this basis, to avoid
+clean-machine false positives: (a) a legitimate core-kernel ftrace op, whose
+callback is in the core kernel with no module tag (`owner_module` None) — flagging
+it would fire on any host running function tracing; (b) kprobes, which the parser
+records with no callback symbol (`owner_module` None). Both are caught only via
+the **baseline-drift** channel, never intra-snapshot. Calibration on the clean lab
+VM (6.1.0-52, idle): `enabled_functions` and `kprobes/list` are both **empty**, so
+on a clean idle host the orphan check has nothing to attribute and yields no
+finding; the `owner_module`-must-be-named rule keeps a tracing-active host from
+false-positiving on core-kernel ops. Composing an orphan hook with the module-view
+channels into a single HIGH finding is deferred to phase 3b.
+
+**L20 — Development runs Python 3.12; the lab VM runs Python 3.11.** Some 3.12
+syntax parses on the Windows dev box but is a `SyntaxError` on the VM — notably a
+multi-line expression inside an f-string replacement field (PEP 701). Such a
+construct passes the entire Windows unit suite and only fails when kdetect is
+imported on the VM. Observed once during phase 3a, in a `diff_hooks` summary
+string. Guarded by `tests/unit/test_python311_compat.py`, which enforces 3.11
+grammar and rejects multi-line f-string fields at the token level even while
+running on 3.12. The ultimate backstop is running the suite on the VM.
+
 ## Verified properties
 
 **V1 — The unit suite runs without Linux.** Measured 2026-08-18: 55 passed,
