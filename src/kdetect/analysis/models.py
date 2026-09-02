@@ -15,6 +15,7 @@ class FindingKind(str, Enum):
     HIDDEN_MODULE = "hidden_module"                       # NEW (phase 3b)
     SUSPECTED_HIDDEN_MODULE = "suspected_hidden_module"   # NEW (phase 3b)
     BASELINE_DRIFT = "baseline_drift"
+    HIDDEN_CONNECTION = "hidden_connection"
 
 
 class Confidence(str, Enum):

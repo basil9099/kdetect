@@ -264,6 +264,39 @@ class HookEntity:
         )
 
 
+@dataclass(frozen=True)
+class SocketEntity:
+    """One socket, keyed by inode (spec §4.2). Evidence only (P1/P4):
+    in_table (did some /proc/net/* family list it) and owner_pids (which walked
+    pids hold it as an fd) are facts; "hidden connection" is the differ's call.
+    state/local/remote/uid are None for an fd-only inode with no table row.
+    """
+
+    inode: int
+    kind: str                 # "tcp" | "tcp6" | "udp" | ... | "unix" | ... | "unknown"
+    state: str | None
+    local: str | None
+    remote: str | None
+    uid: int | None
+    in_table: bool
+    owner_pids: list[int]
+
+    def to_dict(self) -> dict:
+        return {
+            "inode": self.inode, "kind": self.kind, "state": self.state,
+            "local": self.local, "remote": self.remote, "uid": self.uid,
+            "in_table": self.in_table, "owner_pids": sorted(self.owner_pids),
+        }
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "SocketEntity":
+        return cls(
+            inode=d["inode"], kind=d["kind"], state=d["state"],
+            local=d["local"], remote=d["remote"], uid=d["uid"],
+            in_table=d["in_table"], owner_pids=list(d["owner_pids"]),
+        )
+
+
 #: Which entity type each collector stores. Collectors that record only
 #: existence (kernel.module_evidence) have no per-entity detail.
 _ENTITY_TYPES = {
@@ -272,11 +305,12 @@ _ENTITY_TYPES = {
     "procfs.modules": ModuleEntity,
     "kernel.module_evidence": None,
     "kernel.hooks": HookEntity,
+    "procfs.sockets": SocketEntity,
 }
 
 #: Collectors whose entity ids are names, not pids. Their entity_ids and
 #: entities keys stay strings; every other collector casts keys back to int.
-_STRING_ID_COLLECTORS = frozenset({"procfs.modules", "kernel.hooks"})
+_STRING_ID_COLLECTORS = frozenset({"procfs.modules", "kernel.hooks", "procfs.sockets"})
 
 
 @dataclass(frozen=True)
@@ -304,7 +338,7 @@ class Observation:
     status: Status
     duration_ms: int
     entity_ids: list[int]
-    entities: dict[int | str, ProcessEntity | SweepEntity | ModuleEntity]
+    entities: dict[int | str, ProcessEntity | SweepEntity | ModuleEntity | HookEntity | SocketEntity]
     stats: dict[str, object]
     errors: list[CollectionError]
     pass_: str | None = None          # JSON key "pass"; distinguishes A/B walks
