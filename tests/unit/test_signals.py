@@ -4,10 +4,11 @@ from pathlib import Path
 from kdetect.analysis.models import Suspect
 from kdetect.analysis.signals import (
     signals_modules, signals_hooks, signals_processes, signals_baseline, all_signals,
+    signals_sockets,
 )
 from kdetect.models import (
     CaptureMeta, HostFacts, ModuleEntity, Observation, SCHEMA_VERSION, Snapshot,
-    Status, TrustLevel,
+    SocketEntity, Status, TrustLevel,
 )
 
 SNAP = Path(__file__).parent.parent / "fixtures" / "snapshots"
@@ -72,3 +73,45 @@ def test_hidden_module_does_not_show_in_listing_drift():
     # infected-hooktest and clean-phase3a have identical procfs.modules listings;
     # the hidden module is caught by hiding channels, not by listing-based drift.
     assert signals_baseline(_load("infected-hooktest.json"), _load("clean-phase3a.json")) == []
+
+
+def _sock_snap(sockets, listed_pids):
+    socks = Observation(
+        collector="procfs.sockets", collector_version="1", view="sockets",
+        trust_level=TrustLevel.LOW, status=Status.OK, duration_ms=1,
+        entity_ids=sorted(sockets), entities=sockets, stats={}, errors=[])
+    procs = Observation(
+        collector="procfs.processes", collector_version="1", view="processes",
+        trust_level=TrustLevel.LOW, status=Status.OK, duration_ms=1,
+        entity_ids=sorted(listed_pids),
+        entities={}, stats={}, errors=[], pass_="A")
+    host = HostFacts("t", "6.1", "x86_64", "b", 1, 100)
+    return Snapshot(SCHEMA_VERSION, "id", "t", host, CaptureMeta("0.1.0", 0),
+                    [procs, socks])
+
+
+def test_hidden_socket_fires_on_untabled_owned_inode():
+    socks = {"999": SocketEntity(999, "unknown", None, None, None, None,
+                                 in_table=False, owner_pids=[4171])}
+    sigs = signals_sockets(_sock_snap(socks, listed_pids=[1, 4171]))
+    assert len(sigs) == 1
+    assert sigs[0].channel == "hidden_socket"
+    assert sigs[0].suspect == Suspect("socket", "999")
+
+def test_socket_visible_fires_for_unlisted_owner_of_table_socket():
+    socks = {"12345": SocketEntity(12345, "tcp", "LISTEN", "0.0.0.0:22",
+                                   "0.0.0.0:0", 0, in_table=True, owner_pids=[31337])}
+    sigs = signals_sockets(_sock_snap(socks, listed_pids=[1]))   # 31337 not listed
+    assert len(sigs) == 1
+    assert sigs[0].channel == "socket_visible"
+    assert sigs[0].suspect == Suspect("process", "31337")
+
+def test_normal_owned_table_socket_is_silent():
+    socks = {"12345": SocketEntity(12345, "tcp", "ESTABLISHED", "a", "b", 0,
+                                   in_table=True, owner_pids=[812])}
+    assert signals_sockets(_sock_snap(socks, listed_pids=[1, 812])) == []
+
+def test_unowned_table_socket_emits_nothing():
+    socks = {"12345": SocketEntity(12345, "tcp", "TIME_WAIT", "a", "b", 0,
+                                   in_table=True, owner_pids=[])}
+    assert signals_sockets(_sock_snap(socks, listed_pids=[1])) == []

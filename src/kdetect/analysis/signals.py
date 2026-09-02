@@ -15,6 +15,7 @@ from kdetect.models import Snapshot
 _MODULE_DISSENT = "procfs.modules listing"
 _PROCESS_DISSENT = "procfs readdir (all passes)"
 _BASELINE_DISSENT = "signed baseline"
+_NET_DISSENT = "/proc/net tables"
 
 
 def _observations(snapshot: Snapshot, collector: str):
@@ -104,6 +105,35 @@ def signals_processes(snapshot: Snapshot) -> list[Signal]:
     return out
 
 
+def signals_sockets(snapshot: Snapshot) -> list[Signal]:
+    sock_obs = _observations(snapshot, "procfs.sockets")
+    if not sock_obs:
+        return []
+    sockets = sock_obs[0]
+
+    listed: set[int] = set()
+    for obs in _observations(snapshot, "procfs.processes"):
+        listed |= set(obs.entity_ids)
+
+    out: list[Signal] = []
+    for key in sockets.entity_ids:
+        e = sockets.entities[key]
+        if e.owner_pids and not e.in_table:
+            out.append(Signal("hidden_socket", Suspect("socket", str(e.inode)),
+                              _NET_DISSENT,
+                              {"inode": e.inode, "kind": e.kind,
+                               "owner_pids": list(e.owner_pids),
+                               "local": e.local, "remote": e.remote}))
+        if e.in_table:
+            for pid in e.owner_pids:
+                if pid not in listed:
+                    out.append(Signal("socket_visible", Suspect("process", str(pid)),
+                                      _PROCESS_DISSENT,
+                                      {"inode": e.inode, "local": e.local,
+                                       "remote": e.remote, "state": e.state}))
+    return sorted(out, key=lambda s: (s.channel, s.suspect.name or ""))
+
+
 def signals_baseline(current: Snapshot, baseline: Snapshot) -> list[Signal]:
     now = _module_ids(current)
     was = _module_ids(baseline)
@@ -114,7 +144,8 @@ def signals_baseline(current: Snapshot, baseline: Snapshot) -> list[Signal]:
 
 
 def all_signals(snapshot: Snapshot, baseline: Snapshot | None = None) -> list[Signal]:
-    sigs = signals_processes(snapshot) + signals_modules(snapshot) + signals_hooks(snapshot)
+    sigs = (signals_processes(snapshot) + signals_modules(snapshot)
+            + signals_hooks(snapshot) + signals_sockets(snapshot))
     if baseline is not None:
         sigs += signals_baseline(snapshot, baseline)
     return sigs
