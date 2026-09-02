@@ -104,26 +104,9 @@ def signals_processes(snapshot: Snapshot) -> list[Signal]:
     return out
 
 
-def _named_modules(snapshot: Snapshot) -> set[str]:
-    """Every module identity known for this snapshot: the procfs listing, plus
-    any module a same-snapshot signal can name despite it hiding from that
-    listing (ftrace_orphan, unexpected_hook). A hidden module is by definition
-    absent from procfs in BOTH baseline and current captures, so diffing the
-    listing alone can never surface it as drift (spec §5.1) -- the other
-    channels' attribution is what lets baseline comparison see it at all.
-    """
-    names = _module_ids(snapshot)
-    for sig in signals_modules(snapshot):
-        if sig.suspect.name is not None:
-            names.add(sig.suspect.name)
-    for sig in signals_hooks(snapshot):
-        names.add(sig.suspect.name)
-    return names
-
-
 def signals_baseline(current: Snapshot, baseline: Snapshot) -> list[Signal]:
-    now = _named_modules(current)
-    was = _named_modules(baseline)
+    now = _module_ids(current)
+    was = _module_ids(baseline)
     # Additions are the signal; removals are benign (a rootkit adds capability).
     return [Signal("baseline_drift", Suspect("module", name), _BASELINE_DISSENT,
                    {"direction": "added"})
