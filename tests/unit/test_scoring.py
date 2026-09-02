@@ -51,3 +51,24 @@ def test_process_two_channels_is_medium():
     assert findings[0].kind is FindingKind.HIDDEN_PROCESS
     assert findings[0].confidence is Confidence.MEDIUM
     assert findings[0].subject == "pid 1234"
+
+def test_socket_visible_lifts_hidden_process_to_high():
+    p = Suspect("process", "1234")
+    sigs = [
+        Signal("syscall_kill", p, "procfs readdir (all passes)", {"tgid": 1234}),
+        Signal("direct_status", p, "procfs readdir (all passes)", {"tgid": 1234}),
+        Signal("socket_visible", p, "procfs readdir (all passes)", {"inode": 999}),
+    ]
+    findings = score(sigs)
+    assert len(findings) == 1
+    assert findings[0].kind is FindingKind.HIDDEN_PROCESS
+    assert findings[0].confidence is Confidence.HIGH        # 3 channels
+
+def test_hidden_socket_is_a_low_hidden_connection():
+    s = Suspect("socket", "999")
+    findings = score([Signal("hidden_socket", s, "/proc/net tables",
+                             {"inode": 999, "owner_pids": [4171]})])
+    assert len(findings) == 1
+    assert findings[0].kind is FindingKind.HIDDEN_CONNECTION
+    assert findings[0].subject == "socket inode 999"
+    assert findings[0].confidence is Confidence.LOW

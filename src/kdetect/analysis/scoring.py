@@ -16,7 +16,7 @@ from kdetect.models import Snapshot
 #: Channels that indicate concealment. Everything except baseline_drift, which
 #: alone means only "new since the baseline", not "hidden".
 _HIDING = {"taint", "vmalloc_region", "ftrace_orphan", "unexpected_hook",
-           "syscall_kill", "direct_status"}
+           "syscall_kill", "direct_status", "hidden_socket", "socket_visible"}
 #: Named hiding channels -- the ones that can make a module "hidden_named" and so
 #: attract the anonymous taint/region signals.
 _HIDING_NAMED = {"ftrace_orphan", "unexpected_hook"}
@@ -31,6 +31,10 @@ def _classify(suspect: Suspect, channels: list[str]) -> tuple[FindingKind, str, 
         return (FindingKind.HIDDEN_PROCESS, f"pid {suspect.name}",
                 f"pid {suspect.name} answers the syscall sweep but appears in no "
                 f"/proc readdir pass")
+    if suspect.kind == "socket":
+        return (FindingKind.HIDDEN_CONNECTION, f"socket inode {suspect.name}",
+                f"socket inode {suspect.name} is held by a process but appears in "
+                f"no /proc/net table")
     if suspect.name is None:
         return (FindingKind.SUSPECTED_HIDDEN_MODULE, "unattributed hidden module",
                 "hidden-module indicators fired but no channel can name the module")
