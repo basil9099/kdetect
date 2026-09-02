@@ -12,17 +12,40 @@ from enum import Enum
 
 class FindingKind(str, Enum):
     HIDDEN_PROCESS = "hidden_process"
+    HIDDEN_MODULE = "hidden_module"                       # NEW (phase 3b)
+    SUSPECTED_HIDDEN_MODULE = "suspected_hidden_module"   # NEW (phase 3b)
+    BASELINE_DRIFT = "baseline_drift"
+    # Retired in phase 3b Task 5 once the old differ and its tests are gone:
     MODULE_TAINT_MISMATCH = "module_taint_mismatch"
     UNEXPLAINED_MODULE_REGION = "unexplained_module_region"
     FTRACE_ORPHAN_MODULE = "ftrace_orphan_module"
     UNEXPECTED_HOOK = "unexpected_hook"
-    BASELINE_DRIFT = "baseline_drift"
 
 
 class Confidence(str, Enum):
     LOW = "LOW"
     MEDIUM = "MEDIUM"
     HIGH = "HIGH"
+
+
+@dataclass(frozen=True)
+class Suspect:
+    """What a Signal is about. name is None for an anonymous hidden-module
+    indicator (taint, vmalloc region) that no channel can name (spec §4)."""
+
+    kind: str            # "module" | "process"
+    name: str | None
+
+
+@dataclass(frozen=True)
+class Signal:
+    """One channel's raw indication that a suspect is anomalous (P8). Carries no
+    confidence and no composition -- the scorer draws those (spec §3)."""
+
+    channel: str
+    suspect: Suspect
+    dissent: str
+    evidence: dict
 
 
 @dataclass(frozen=True)
