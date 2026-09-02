@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from kdetect import __version__, hostfacts
-from kdetect.analysis.crossview import diff_all
+from kdetect.analysis.scoring import analyze
 from kdetect.collectors.kernel_hooks import KernelHookCollector
 from kdetect.collectors.modules import ModuleEvidenceCollector, ProcfsModuleCollector
 from kdetect.collectors.procfs import ProcfsProcessCollector
@@ -173,7 +173,7 @@ def cmd_analyze(args) -> int:
             print(f"error: {exc}", file=sys.stderr)
             return EXIT_ERROR
 
-    findings = diff_all(snapshot, baseline)
+    findings = analyze(snapshot, baseline)
 
     if getattr(args, "json", False):
         print(json.dumps([f.to_dict() for f in findings], indent=2, sort_keys=True))
