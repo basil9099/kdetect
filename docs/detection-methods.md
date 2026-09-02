@@ -419,6 +419,10 @@ now **channels composed into one finding**: `taint`, `vmalloc_region`,
 `ftrace_orphan`, and `unexpected_hook` all corroborate a single `hidden_module`
 finding when they name (or can be attributed to, see below) the same module.
 Confidence: one channel is `LOW`, two is `MEDIUM`, three or more is `HIGH`.
+(A lone `baseline_drift` — a module that is new since the baseline but still
+listed — is one channel and so `LOW` under this per-suspect count, where
+phase 3a's `baseline_diff` stamped it `MEDIUM`; a deliberate consequence of
+counting distinct corroborating channels rather than a regression.)
 
 **Anonymous attribution.** `taint` and `vmalloc_region` cannot name a module
 (L15, L21) — the scorer attributes them to the single named hidden module only

@@ -168,8 +168,12 @@ deliberately **not** orphaned on this basis, to avoid clean-machine false
 positives: (a) a legitimate core-kernel ftrace op, whose callback is in the
 core kernel with no module tag (`owner_module` None) — flagging it would fire
 on any host running function tracing; (b) kprobes, which the parser records
-with no callback symbol (`owner_module` None). Both are caught only via the
-**baseline-drift** channel, never intra-snapshot. Calibration on the clean lab
+with no callback symbol (`owner_module` None). Such a hook is not caught
+intra-snapshot; the module-view baseline-drift channel does not cover the hook
+view either, so a new-since-baseline hook whose callback names no unlisted
+module is not currently detected. Restoring a hook-view baseline-drift signal
+is deferred (it needs a function-keyed suspect the per-suspect scorer does not
+yet have) — see L22. Calibration on the clean lab
 VM (6.1.0-52, idle): `enabled_functions` and `kprobes/list` are both **empty**, so
 on a clean idle host the orphan check has nothing to attribute and yields no
 finding; the `owner_module`-must-be-named rule keeps a tracing-active host from
@@ -194,6 +198,14 @@ addresses are hash-obfuscated (L15), so `taint` and `vmalloc_region` indicate
 suspect only when exactly one module is hidden; with two or more hidden modules
 they collapse into a single `suspected_hidden_module` finding that counts the
 anonymous channels but names no module.
+
+**L22 — Phase 3b dropped the hook-view baseline-drift channel that phase 3a's
+`diff_hooks` had.** `signals_baseline` diffs only the `procfs.modules` listing,
+so a hook that is new since the baseline but whose callback names no
+currently-unlisted module (a core-kernel ftrace op, or a kprobe — both
+`owner_module` None) is not detected. Deferred: a hook-view baseline-drift
+signal needs a function-keyed suspect kind, out of phase-3b's scoring-only
+scope.
 
 ## Verified properties
 
