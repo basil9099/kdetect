@@ -443,6 +443,73 @@ finding kinds — they survive only as **channel names** inside a composed
 
 ---
 
+## 12. Network socket cross-view [implemented — phase 4a]
+
+**Observes.** The same "which sockets exist" question through two `/proc`
+surfaces: the kernel socket **tables** (`/proc/net/{tcp,tcp6,udp,udp6,unix,
+netlink,packet,raw,raw6}` — all nine families, so a unix or netlink socket
+isn't mistaken for hidden just because it's absent from `tcp`) and per-process
+**ownership** (`socket:[inode]` targets under `/proc/<pid>/fd/`). The
+`procfs.sockets` collector (`src/kdetect/collectors/sockets.py`, trust `LOW`)
+records one `SocketEntity` per inode seen in either view — `in_table` and
+`owner_pids` are facts, not conclusions (P1).
+
+Per **P10**, the collector walks fds over the pid union `cli.py` supplies at
+capture time (`observations[0].entity_ids | observations[1].entity_ids` — the
+readdir listing plus the syscall sweep), not a list it trusts itself. That is
+what lets it attribute sockets to a pid `/proc`'s readdir already hides.
+
+**Why it works.** Sockets are the project's central technique again: two
+channels of differing trust answering the same question, compared. A hooked
+`/proc/net` table can omit a row; per-process fd ownership is a second,
+independent read. `signals_sockets` (`src/kdetect/analysis/signals.py`) emits
+two channels:
+
+- **`hidden_socket`** → a `SocketEntity` a process owns (`owner_pids`
+  non-empty) that appears in no table — a connection the tables won't admit.
+  Composes into a `HIDDEN_CONNECTION` finding keyed on the socket inode.
+- **`socket_visible`** → a table-visible, owned socket whose owner pid is
+  **absent** from the readdir listing — the network stack confirms a process
+  `/proc` hides. This is the third, independent channel that lifts a
+  swept-but-unlisted pid (already `syscall_kill` + `direct_status`, MEDIUM)
+  to a **HIGH** `hidden_process`, the identity channel deferred since phase 2
+  for want of exactly this kind of independent confirmation.
+
+A lone `hidden_socket` is one channel → LOW, the same honesty as a lone
+`module_taint_mismatch` (L17): the capture isn't atomic (L8), so a single
+untabled fd can be a mid-capture race rather than proof.
+
+**Deliberately not emitted — the standalone orphan socket** (a table entry
+with no owning pid at all). `TIME_WAIT`/`CLOSE_WAIT` sockets, kernel-internal
+sockets, and sockets whose owner's fds simply couldn't be read all present
+this way on a clean, idle host; emitting them would fire on every clean
+machine, the paramount false-positive guard this project holds throughout. An
+unowned table socket only becomes signal once its owner turns out to be a
+hidden pid — which is exactly `socket_visible`.
+
+**Defeated by.** A rootkit that hooks both the `/proc/net` table read and the
+per-pid fd walk consistently, so the two views agree and lie together — the
+same limit as every cross-view technique here (method 8's "defeated by").
+Module↔socket correlation is out of scope (L23): an in-kernel socket has no
+owning userspace pid, and an unowned listening socket is exactly the dropped
+orphan case, so attributing a mystery port to a hidden module would be a
+guess, not a cross-view fact.
+
+**Status.** The `/proc/net/*` row formats and the clean-machine calibration
+this method depends on (how many untabled-fd and unowned-table sockets an
+idle host legitimately carries) are a step-0 gate pending a VM capture; until
+then the `hidden_socket` guard is "in no table" with no further exclusion.
+Ground truth is synthetic (L24): no available rootkit hides a socket on
+kernel 6.1, so both signals are validated by hand-built snapshots and doctored
+`/proc/net` fixtures rather than a live capture.
+
+**Evidence / spec.**
+[`superpowers/specs/2026-09-03-kdetect-phase4a-design.md`](superpowers/specs/2026-09-03-kdetect-phase4a-design.md)
+§4–§6 (source/collector/entity, signals and FP calibration, correlation and
+the HIGH `hidden_process` path).
+
+---
+
 ## References
 
 - `man 5 proc` — field definitions for everything under `/proc/[pid]/`

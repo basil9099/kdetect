@@ -207,6 +207,24 @@ currently-unlisted module (a core-kernel ftrace op, or a kprobe — both
 signal needs a function-keyed suspect kind, out of phase-3b's scoring-only
 scope.
 
+## Phase 4a — network sockets
+
+**L23 — Module↔socket correlation is not attempted.** A kernel backdoor listening
+on an in-kernel socket has no owning userspace pid, and an unowned listening
+socket is indistinguishable on a clean host from legitimate kernel services
+(the orphan-socket false-positive class, §5). kdetect correlates sockets to
+processes, not to modules; a hidden module opening a raw kernel socket is not
+detected via the socket view.
+
+**L24 — Socket detection is validated synthetically, not against a live
+socket-hiding rootkit.** No available rootkit hides a socket on kernel 6.1
+(Diamorphine's hooks did not engage, L16; the benign test LKM hides a module,
+not a connection). The `hidden_socket` and HIGH `hidden_process` paths are
+validated by hand-built snapshots and doctored `/proc/net` fixtures. As with the
+phase-2 process detection, "the differ detects this" rests on synthetic ground
+truth plus the clean-baseline zero-findings guard, not on a live capture of the
+technique.
+
 ## Verified properties
 
 **V1 — The unit suite runs without Linux.** Measured 2026-08-18: 55 passed,

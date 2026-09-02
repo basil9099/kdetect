@@ -297,5 +297,17 @@ misalignment of every subsequent field, not an exception. The parser locates the
 | `src/kdetect/analysis/models.py` | `Suspect`, `Signal`, `Finding`, `FindingKind`, `Confidence` |
 | `src/kdetect/analysis/signals.py` | Detectors: `Snapshot -> list[Signal]` (pure) |
 | `src/kdetect/analysis/scoring.py` | `score`/`analyze`: `list[Signal] -> list[Finding]` (pure) |
+| `src/kdetect/parsers/sockets.py` | Pure parsers: `/proc/net/*` table rows, `socket:[inode]` fd targets |
+| `src/kdetect/collectors/sockets.py` | `SocketCollector` — `procfs.sockets` (LOW), walks a supplied pid set |
 | `src/kdetect/cli.py` | `capture` and `analyze` |
 | `tools/capture_fixture.py` | Lab utility that builds a fixture tree |
+
+**Socket collector wiring (phase 4a, P10).** `SocketCollector` does not
+enumerate pids itself — it walks whatever set `cli.py`'s `cmd_capture` hands
+it, so it can attribute a hidden pid's sockets by reading its `/proc/<pid>/fd`
+directly. `cmd_capture` builds that set as the union of the readdir listing
+(pass A) and the syscall sweep's task ids, the same two observations the
+process differ already computed, and runs `SocketCollector(pids)` as the
+sixth-plus observation, after the module and hook collectors. See
+[`superpowers/specs/2026-09-03-kdetect-phase4a-design.md`](superpowers/specs/2026-09-03-kdetect-phase4a-design.md)
+§2 (P10), §4 (source/collector/entity), §7 (CLI wiring).
