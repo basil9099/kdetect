@@ -8,7 +8,7 @@ from kdetect.analysis.signals import (
 )
 from kdetect.models import (
     CaptureMeta, HostFacts, ModuleEntity, Observation, SCHEMA_VERSION, Snapshot,
-    SocketEntity, Status, TrustLevel,
+    SocketEntity, Status, SweepEntity, TrustLevel,
 )
 
 SNAP = Path(__file__).parent.parent / "fixtures" / "snapshots"
@@ -115,3 +115,35 @@ def test_unowned_table_socket_emits_nothing():
     socks = {"12345": SocketEntity(12345, "tcp", "TIME_WAIT", "a", "b", 0,
                                    in_table=True, owner_pids=[])}
     assert signals_sockets(_sock_snap(socks, listed_pids=[1])) == []
+
+
+def test_socket_visible_folds_thread_tid_to_listed_tgid():
+    # A clean multi-threaded process (leader tgid 812) owns a table socket
+    # via one of its threads (tid 900). The readdir listing only ever shows
+    # the leader tgid 812 -- tid 900 is never a top-level /proc entry. Before
+    # the tid->tgid fold, this false-fired socket_visible on pid 900, which
+    # is not in the readdir listing, producing a false HIDDEN_PROCESS on a
+    # perfectly clean host.
+    socks = {"12345": SocketEntity(12345, "tcp", "ESTABLISHED", "a", "b", 0,
+                                   in_table=True, owner_pids=[812, 900])}
+    procs = Observation(
+        collector="procfs.processes", collector_version="1", view="processes",
+        trust_level=TrustLevel.LOW, status=Status.OK, duration_ms=1,
+        entity_ids=[812], entities={}, stats={}, errors=[], pass_="A")
+    sweep = Observation(
+        collector="syscall_sweep.processes", collector_version="1", view="processes",
+        trust_level=TrustLevel.MEDIUM, status=Status.OK, duration_ms=1,
+        entity_ids=[812, 900],
+        entities={
+            812: SweepEntity(tgid=812, status_readable=True),
+            900: SweepEntity(tgid=812, status_readable=True),
+        },
+        stats={}, errors=[])
+    sockobs = Observation(
+        collector="procfs.sockets", collector_version="1", view="sockets",
+        trust_level=TrustLevel.LOW, status=Status.OK, duration_ms=1,
+        entity_ids=sorted(socks), entities=socks, stats={}, errors=[])
+    host = HostFacts("t", "6.1", "x86_64", "b", 1, 100)
+    snap = Snapshot(SCHEMA_VERSION, "id", "t", host, CaptureMeta("0.1.0", 0),
+                    [procs, sweep, sockobs])
+    assert signals_sockets(snap) == []

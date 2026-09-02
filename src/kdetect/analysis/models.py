@@ -29,7 +29,7 @@ class Suspect:
     """What a Signal is about. name is None for an anonymous hidden-module
     indicator (taint, vmalloc region) that no channel can name (spec §4)."""
 
-    kind: str            # "module" | "process"
+    kind: str            # "module" | "process" | "socket"
     name: str | None
 
 

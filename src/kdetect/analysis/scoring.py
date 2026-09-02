@@ -29,8 +29,7 @@ def _confidence(n: int) -> Confidence:
 def _classify(suspect: Suspect, channels: list[str]) -> tuple[FindingKind, str, str]:
     if suspect.kind == "process":
         return (FindingKind.HIDDEN_PROCESS, f"pid {suspect.name}",
-                f"pid {suspect.name} answers the syscall sweep but appears in no "
-                f"/proc readdir pass")
+                f"pid {suspect.name} is hidden from the /proc readdir listing but seen by other channels")
     if suspect.kind == "socket":
         return (FindingKind.HIDDEN_CONNECTION, f"socket inode {suspect.name}",
                 f"socket inode {suspect.name} is held by a process but appears in "

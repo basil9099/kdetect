@@ -82,6 +82,7 @@ def test_infected_hooktest_no_false_hidden_process():
     assert not any(f.kind is FindingKind.HIDDEN_PROCESS for f in findings)
 
 
+@needs_clean3a
 def test_clean_fixtures_have_no_socket_findings():
     for name in ("clean-phase2.json", "clean-phase3a.json"):
         findings = analyze(_load(name))

@@ -115,6 +115,18 @@ def signals_sockets(snapshot: Snapshot) -> list[Signal]:
     for obs in _observations(snapshot, "procfs.processes"):
         listed |= set(obs.entity_ids)
 
+    # Threads share their process's fd table, so a socket's owner_pids can
+    # include non-leader task ids (tids). The readdir listing only has TGIDs,
+    # so an unfolded tid would false-fire socket_visible for any thread of a
+    # perfectly normal multi-threaded process. Fold tid -> tgid via the sweep
+    # before comparing against the readdir listing.
+    tid_to_tgid: dict[int, int] = {}
+    sweeps = _observations(snapshot, "syscall_sweep.processes")
+    if sweeps:
+        sweep = sweeps[0]
+        for task_id in sweep.entity_ids:
+            tid_to_tgid[task_id] = sweep.entities[task_id].tgid
+
     out: list[Signal] = []
     for key in sockets.entity_ids:
         e = sockets.entities[key]
@@ -125,12 +137,16 @@ def signals_sockets(snapshot: Snapshot) -> list[Signal]:
                                "owner_pids": list(e.owner_pids),
                                "local": e.local, "remote": e.remote}))
         if e.in_table:
+            reported_tgids: set[int] = set()
             for pid in e.owner_pids:
-                if pid not in listed:
-                    out.append(Signal("socket_visible", Suspect("process", str(pid)),
-                                      _PROCESS_DISSENT,
-                                      {"inode": e.inode, "local": e.local,
-                                       "remote": e.remote, "state": e.state}))
+                tgid = tid_to_tgid.get(pid, pid)
+                if tgid in listed or tgid in reported_tgids:
+                    continue
+                reported_tgids.add(tgid)
+                out.append(Signal("socket_visible", Suspect("process", str(tgid)),
+                                  _PROCESS_DISSENT,
+                                  {"inode": e.inode, "local": e.local,
+                                   "remote": e.remote, "state": e.state}))
     return sorted(out, key=lambda s: (s.channel, s.suspect.name or ""))
 
 
