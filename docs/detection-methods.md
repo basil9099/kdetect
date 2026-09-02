@@ -396,6 +396,49 @@ observed kernel.
 
 ---
 
+## 11. Scoring: per-suspect composition across passes [implemented — phase 3b]
+
+**Observes.** Nothing new — this is how findings from methods 8, 9, and 10 above
+are combined, not a new channel.
+
+**Why it changed.** Through phase 3a, each channel (`module_taint_mismatch`,
+`unexplained_module_region`, `ftrace_orphan_module`, `unexpected_hook`) reported
+its own `Finding` with its own confidence, corroborated only within its own pass.
+A single hidden module caught by both the phase-2 module channels and the
+phase-3a hook channel therefore produced *several* separate findings at
+*separate* confidences, rather than the one HIGH-confidence verdict the combined
+evidence actually supports.
+
+Phase 3b splits analysis into two pure stages: detectors
+(`src/kdetect/analysis/signals.py`) emit `Signal`s naming a channel and a
+suspect, drawing no conclusion; `score()`/`analyze()`
+(`src/kdetect/analysis/scoring.py`) groups signals **by suspect**, and confidence
+is the count of distinct corroborating channels for that suspect, spanning every
+detection pass rather than one view. The former per-channel finding kinds are
+now **channels composed into one finding**: `taint`, `vmalloc_region`,
+`ftrace_orphan`, and `unexpected_hook` all corroborate a single `hidden_module`
+finding when they name (or can be attributed to, see below) the same module.
+Confidence: one channel is `LOW`, two is `MEDIUM`, three or more is `HIGH`.
+
+**Anonymous attribution.** `taint` and `vmalloc_region` cannot name a module
+(L15, L21) — the scorer attributes them to the single named hidden module only
+when exactly one exists; with zero or two-or-more, they compose into a
+`suspected_hidden_module` finding instead, which counts the anonymous channels
+but names no module.
+
+**Retired finding kinds.** `module_taint_mismatch`, `unexplained_module_region`,
+`ftrace_orphan_module`, and `unexpected_hook` are no longer emitted as top-level
+finding kinds — they survive only as **channel names** inside a composed
+`hidden_module` (or `suspected_hidden_module`) finding. `crossview.py`,
+`baseline_diff.py`, and `diff_all` are gone; `cli.py` calls
+`analysis.scoring.analyze()`.
+
+**Evidence / spec.**
+[`docs/superpowers/specs/2026-08-30-kdetect-phase3b-design.md`](superpowers/specs/2026-08-30-kdetect-phase3b-design.md)
+§4–§5 (Signal/Suspect model, scoring and attribution rules, worked examples).
+
+---
+
 ## References
 
 - `man 5 proc` — field definitions for everything under `/proc/[pid]/`

@@ -73,6 +73,40 @@ table can only hold one answer.
 Phase 1 emits only `LOW`. The full enum exists now so later phases add values
 rather than change meanings.
 
+## Analysis: detect → score (phase 3b)
+
+The analysis layer is a second two-stage pipeline sitting on top of the
+snapshot, split the same way collection is split from parsing:
+
+```
+Snapshot (+ optional baseline)
+   │
+   ├─ detectors (pure, src/kdetect/analysis/signals.py) ──> list[Signal]
+   │     signals_processes / signals_modules / signals_hooks / signals_baseline
+   │
+   └─ score(signals) (pure, src/kdetect/analysis/scoring.py) ─> list[Finding]
+         group by suspect → attribute anonymous → count channels → compose
+```
+
+Each detector in `signals.py` observes one view and emits `Signal`s — a channel
+name, a `Suspect` (`kind` + optional `name`), and evidence — drawing no
+confidence and composing nothing. `score()` in `scoring.py` groups signals by
+suspect, counts the distinct corroborating channels per suspect for confidence,
+and composes one `Finding` per suspect; `analyze(snapshot, baseline=None)` is
+`score(all_signals(...))`. `cli.py`'s `analyze` command calls `analyze()`.
+
+This replaced an earlier design (phases 2–3a) of independent per-channel
+differs, each computing its own finding and confidence from a corroboration
+count scoped to its own view — `crossview.py` and `baseline_diff.py`, calling
+into a `diff_all()` entry point. That model could not compose evidence for one
+suspect across passes: a module caught by both a module-listing channel and a
+hook-surface channel produced two separate low/medium findings instead of one
+high-confidence one. Both files are gone; their logic lives in `signals.py`'s
+detector functions. See
+[`superpowers/specs/2026-08-30-kdetect-phase3b-design.md`](superpowers/specs/2026-08-30-kdetect-phase3b-design.md)
+§3–§5 for the full data flow, the `Suspect`/`Signal` model, and the scoring and
+attribution rules.
+
 ## The snapshot format
 
 ### A complete snapshot, with two views
@@ -260,5 +294,8 @@ misalignment of every subsequent field, not an exception. The parser locates the
 | `src/kdetect/collectors/sources.py` | `LiveProcSource`, `FixtureProcSource` |
 | `src/kdetect/collectors/procfs.py` | `ProcfsProcessCollector` |
 | `src/kdetect/hostfacts.py` | Host context gathering |
+| `src/kdetect/analysis/models.py` | `Suspect`, `Signal`, `Finding`, `FindingKind`, `Confidence` |
+| `src/kdetect/analysis/signals.py` | Detectors: `Snapshot -> list[Signal]` (pure) |
+| `src/kdetect/analysis/scoring.py` | `score`/`analyze`: `list[Signal] -> list[Finding]` (pure) |
 | `src/kdetect/cli.py` | `capture` and `analyze` |
 | `tools/capture_fixture.py` | Lab utility that builds a fixture tree |

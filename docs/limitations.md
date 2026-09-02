@@ -182,6 +182,14 @@ string. Guarded by `tests/unit/test_python311_compat.py`, which enforces 3.11
 grammar and rejects multi-line f-string fields at the token level even while
 running on 3.12. The ultimate backstop is running the suite on the VM.
 
+**L21 — Anonymous hidden-module signals cannot be attributed when more than one
+module is hidden.** The taint word is a single global bit set, and vmalloc region
+addresses are hash-obfuscated (L15), so `taint` and `vmalloc_region` indicate
+*that* a module is hidden, never *which*. The scorer folds them into a named
+suspect only when exactly one module is hidden; with two or more hidden modules
+they collapse into a single `suspected_hidden_module` finding that counts the
+anonymous channels but names no module.
+
 ## Verified properties
 
 **V1 — The unit suite runs without Linux.** Measured 2026-08-18: 55 passed,
