@@ -15,11 +15,6 @@ class FindingKind(str, Enum):
     HIDDEN_MODULE = "hidden_module"                       # NEW (phase 3b)
     SUSPECTED_HIDDEN_MODULE = "suspected_hidden_module"   # NEW (phase 3b)
     BASELINE_DRIFT = "baseline_drift"
-    # Retired in phase 3b Task 5 once the old differ and its tests are gone:
-    MODULE_TAINT_MISMATCH = "module_taint_mismatch"
-    UNEXPLAINED_MODULE_REGION = "unexplained_module_region"
-    FTRACE_ORPHAN_MODULE = "ftrace_orphan_module"
-    UNEXPECTED_HOOK = "unexpected_hook"
 
 
 class Confidence(str, Enum):
