@@ -125,6 +125,17 @@ class KernelHookSource(ABC):
     def read_kallsyms_index(self) -> str | None: ...
 
 
+class SocketSource(ABC):
+    """The socket-view channels (spec §4): the /proc/net/* tables and per-process
+    fd ownership. A table that cannot be read returns None; an unreadable pid's
+    fds return {} (a hidden pid contributes nothing, not an error)."""
+
+    @abstractmethod
+    def read_net_table(self, name: str) -> str | None: ...
+    @abstractmethod
+    def list_fds(self, pid: int) -> dict[int, list[str]]: ...
+
+
 class Collector(ABC):
     """Produces one Observation - one whole view of one kind of entity."""
 

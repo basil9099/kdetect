@@ -18,6 +18,7 @@ from kdetect.collectors.base import (
     ProcSource,
     ProcSourceError,
     SignalSource,
+    SocketSource,
     Unreadable,
     Vanished,
 )
@@ -309,3 +310,49 @@ class FixtureKernelHookSource(KernelHookSource):
 
     def read_kallsyms_index(self) -> str | None:
         return self._read("kallsyms.txt")
+
+
+class LiveSocketSource(SocketSource):
+    def read_net_table(self, name: str) -> str | None:
+        try:
+            with open(f"/proc/net/{name}", encoding="utf-8", errors="replace") as fh:
+                return fh.read()
+        except OSError:
+            return None
+
+    def list_fds(self, pid: int) -> dict[int, list[str]]:
+        out: dict[int, list[str]] = {}
+        base = f"/proc/{pid}/fd"
+        try:
+            names = os.listdir(base)
+        except OSError:
+            return {}
+        for n in names:
+            try:
+                target = os.readlink(f"{base}/{n}")
+            except OSError:
+                continue
+            if target.startswith("socket:["):
+                inode = int(target[len("socket:["):-1])
+                out.setdefault(inode, []).append(f"{base}/{n}")
+        return out
+
+
+class FixtureSocketSource(SocketSource):
+    """Replays a captured socket tree: net/<name>.txt tables and an fds.json
+    mapping {pid: [inode, ...]}."""
+
+    def __init__(self, root) -> None:
+        self._root = Path(root)
+        fds_path = self._root / "fds.json"
+        self._fds = (
+            {int(k): v for k, v in json.loads(fds_path.read_text()).items()}
+            if fds_path.exists() else {}
+        )
+
+    def read_net_table(self, name: str) -> str | None:
+        p = self._root / "net" / f"{name}.txt"
+        return p.read_text(encoding="utf-8") if p.exists() else None
+
+    def list_fds(self, pid: int) -> dict[int, list[str]]:
+        return {int(inode): [f"/proc/{pid}/fd/0"] for inode in self._fds.get(pid, [])}
