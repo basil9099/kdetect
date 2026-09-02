@@ -80,3 +80,11 @@ def test_infected_hooktest_is_one_high_hidden_module():
 def test_infected_hooktest_no_false_hidden_process():
     findings = analyze(_load("infected-hooktest.json"))
     assert not any(f.kind is FindingKind.HIDDEN_PROCESS for f in findings)
+
+
+def test_clean_fixtures_have_no_socket_findings():
+    for name in ("clean-phase2.json", "clean-phase3a.json"):
+        findings = analyze(_load(name))
+        kinds = {f.kind for f in findings}
+        assert FindingKind.HIDDEN_CONNECTION not in kinds
+        assert not any(f.subject.startswith("socket ") for f in findings)

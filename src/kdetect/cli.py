@@ -15,11 +15,13 @@ from kdetect.analysis.scoring import analyze
 from kdetect.collectors.kernel_hooks import KernelHookCollector
 from kdetect.collectors.modules import ModuleEvidenceCollector, ProcfsModuleCollector
 from kdetect.collectors.procfs import ProcfsProcessCollector
+from kdetect.collectors.sockets import SocketCollector
 from kdetect.collectors.sources import (
     LiveKernelHookSource,
     LiveModuleSource,
     LiveProcSource,
     LiveSignalSource,
+    LiveSocketSource,
 )
 from kdetect.collectors.syscall_sweep import SweepProcessCollector
 from kdetect.models import (
@@ -73,6 +75,8 @@ def cmd_capture(args) -> int:
         ModuleEvidenceCollector().collect(mods),
         KernelHookCollector().collect(hooks),
     ]
+    pids = set(observations[0].entity_ids) | set(observations[1].entity_ids)
+    observations.append(SocketCollector(pids).collect(LiveSocketSource()))
 
     now = datetime.now(timezone.utc)
     snapshot = Snapshot(

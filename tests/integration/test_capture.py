@@ -44,8 +44,15 @@ def test_capture_contains_its_own_pid(tmp_path):
 def test_capture_emits_kernel_hooks_observation(tmp_path):
     r = run(["capture", "--out", "-"], tmp_path)
     snap = Snapshot.from_dict(json.loads(r.stdout))
-    assert len(snap.observations) == 6
+    assert len(snap.observations) == 7
     assert snap.observations[5].collector == "kernel.hooks"
+
+
+def test_capture_emits_sockets_observation(tmp_path):
+    r = run(["capture", "--out", "-"], tmp_path)
+    snap = Snapshot.from_dict(json.loads(r.stdout))
+    assert len(snap.observations) == 7
+    assert snap.observations[6].collector == "procfs.sockets"
 
 
 def test_host_facts_are_populated(tmp_path):
