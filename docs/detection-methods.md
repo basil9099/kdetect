@@ -434,7 +434,7 @@ finding kinds — they survive only as **channel names** inside a composed
 `analysis.scoring.analyze()`.
 
 **Evidence / spec.**
-[`docs/superpowers/specs/2026-08-30-kdetect-phase3b-design.md`](superpowers/specs/2026-08-30-kdetect-phase3b-design.md)
+[`superpowers/specs/2026-08-30-kdetect-phase3b-design.md`](superpowers/specs/2026-08-30-kdetect-phase3b-design.md)
 §4–§5 (Signal/Suspect model, scoring and attribution rules, worked examples).
 
 ---

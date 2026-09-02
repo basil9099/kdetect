@@ -118,9 +118,11 @@ syscall-hooking for process and file hiding never took effect: sending
 SIGINVIS (signal 31) to a target delivered it as `SIGSYS` ("Bad system call")
 and killed the process instead of hiding it. So kdetect's cross-view process
 detection could not be exercised against this rootkit on this kernel; it
-remains validated by the synthetic differ tests
-(`tests/unit/test_diff_processes.py`) and by the clean-baseline zero-findings
-guard. This is a property of classic m0nad/Diamorphine syscall-table hooking on
+remains validated by the synthetic detector and scorer tests
+(`tests/unit/test_signals.py`'s `signals_processes` cases and
+`tests/unit/test_scoring.py`'s two-channel → MEDIUM `hidden_process`
+composition) and by the clean-baseline zero-findings guard. This is a property
+of classic m0nad/Diamorphine syscall-table hooking on
 modern (6.x) kernels, not of kdetect. The module-hiding detection **was**
 exercised against real ground truth and succeeded — three channels, `HIGH`
 confidence. Rootkits not surviving kernel updates is itself a documentable
@@ -157,21 +159,24 @@ concern. Phase 3a delivers the mechanism and states its boundary; it does not
 claim to have closed A3.
 
 **L19 — The intra-snapshot orphan-hook check fires only on a hook whose callback
-attributes to a *named, currently-unlisted* module.** `diff_hooks` reports
-`unexpected_hook` (orphan) when a registered ftrace op's callback resolves — via
-the ftrace `[module]` tag or `/proc/kallsyms` — to a module that is not in
-`/proc/modules`. This is the Diamorphine analog and what caught the phase-3a test
-module. Two classes are deliberately **not** orphaned on this basis, to avoid
-clean-machine false positives: (a) a legitimate core-kernel ftrace op, whose
-callback is in the core kernel with no module tag (`owner_module` None) — flagging
-it would fire on any host running function tracing; (b) kprobes, which the parser
-records with no callback symbol (`owner_module` None). Both are caught only via
-the **baseline-drift** channel, never intra-snapshot. Calibration on the clean lab
+attributes to a *named, currently-unlisted* module.** `signals_hooks`
+(`src/kdetect/analysis/signals.py`) emits `unexpected_hook` (orphan) when a
+registered ftrace op's callback resolves — via the ftrace `[module]` tag or
+`/proc/kallsyms` — to a module that is not in `/proc/modules`. This is the
+Diamorphine analog and what caught the phase-3a test module. Two classes are
+deliberately **not** orphaned on this basis, to avoid clean-machine false
+positives: (a) a legitimate core-kernel ftrace op, whose callback is in the
+core kernel with no module tag (`owner_module` None) — flagging it would fire
+on any host running function tracing; (b) kprobes, which the parser records
+with no callback symbol (`owner_module` None). Both are caught only via the
+**baseline-drift** channel, never intra-snapshot. Calibration on the clean lab
 VM (6.1.0-52, idle): `enabled_functions` and `kprobes/list` are both **empty**, so
 on a clean idle host the orphan check has nothing to attribute and yields no
 finding; the `owner_module`-must-be-named rule keeps a tracing-active host from
-false-positiving on core-kernel ops. Composing an orphan hook with the module-view
-channels into a single HIGH finding is deferred to phase 3b.
+false-positiving on core-kernel ops. **Resolved in phase 3b:** the per-suspect
+scorer (`src/kdetect/analysis/scoring.py`) composes an orphan hook with the
+module-view channels into one `hidden_module` finding — see L21 and
+[`detection-methods.md`](detection-methods.md) §11.
 
 **L20 — Development runs Python 3.12; the lab VM runs Python 3.11.** Some 3.12
 syntax parses on the Windows dev box but is a `SyntaxError` on the VM — notably a
