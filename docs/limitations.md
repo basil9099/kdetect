@@ -40,8 +40,22 @@ root captures are an explicit, interactive act.
 root, or `CAP_SYSLOG`, for any address-based detection.**
 Evidence: `docs/step0/09-kallsyms-user-vs-root.txt`
 
-**L5 — `comm` truncates at 15 characters.** It cannot identify longer process
-names, and two differently-named processes can share a `comm`.
+**L5 — `comm` is a weak identifier: settable, collidable, and only 15 characters
+of it are a process's own.** A process can set its own `comm` freely
+(`prctl(PR_SET_NAME)` or writing `/proc/self/comm`), the kernel keeps only
+`TASK_COMM_LEN - 1` = 15 characters of what it sets, and two differently-named
+processes can therefore share a `comm`. None of that makes it a reliable name.
+
+What `comm` is **not** is uniformly 15 characters long on the way out, which this
+limitation previously claimed. What `/proc/<pid>/status`'s `Name:` line reports is
+composed by the kernel, and for workqueue workers it appends the worker's current
+work description, so a read can return more than 15 characters — observed live on
+kernel 6.1.0-52: `/proc/8/status` gives `Name: kworker/0:0H-events_highpri` (27
+characters) and the longest in a clean 119-task capture was
+`kworker/u256:3-events_unbound` at 29, with 13 of 116 distinct names over 15.
+Consumers must not assume a 15-character bound: a `process_name` IOC or a report's
+`comm:` line can legitimately be longer. The forgery argument above is unaffected —
+an attacker still only controls 15 characters of it.
 
 **L6 — The observer appears in the observation.** kdetect's own process and
 threads are in every capture, as are the VS Code Remote-SSH `node` processes.

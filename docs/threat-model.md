@@ -197,8 +197,8 @@ needs root or `CAP_SYSLOG` (L4), and `exe` needs root to be meaningful (L12).
 This makes kdetect a program that routinely runs as root while parsing
 attacker-influenced input — see §6.
 
-**`comm` truncates at 15 characters** (L5), so process names are not reliable
-identifiers and are trivially collided.
+**A process sets its own `comm`, and the kernel keeps only 15 characters of it**
+(L5), so process names are not reliable identifiers and are trivially collided.
 
 ---
 

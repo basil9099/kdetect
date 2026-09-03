@@ -40,7 +40,7 @@ it is the easiest surface to forge. Its value is as one term in a comparison.
 | Source | Held by | Forged how | Difficulty |
 |---|---|---|---|
 | `cmdline` | process memory | rewrite the `argv` region, or `exec -a` | trivial, unprivileged |
-| `comm` | kernel `task_struct` | `prctl(PR_SET_NAME)`, or write `/proc/self/comm` | easy, unprivileged, but truncates at 15 chars |
+| `comm` | kernel `task_struct` | `prctl(PR_SET_NAME)`, or write `/proc/self/comm` | easy, unprivileged; the kernel keeps only 15 chars of what a process sets (L5) |
 | `exe` | kernel, points at the real inode | cannot be forged from userspace | requires kernel-level access |
 
 A process claiming to be one thing in `cmdline` while `exe` says otherwise is
@@ -526,9 +526,9 @@ array is exactly `analyze --json`'s output, re-presented, not recomputed.
 **The report is secret-free by construction.** Every finding is about something
 *hidden*: a hidden process has no `ProcessEntity` in the snapshot, and therefore
 no `cmdline` for the report to carry. The only identity a report adds for a
-hidden process is `comm` (low-secret — world-readable and truncated at 15
-characters, L5) and the socket endpoints it owns. So the report path needs no
-redaction flag; it never has `cmdline` to redact.
+hidden process is `comm` (low-secret — world-readable, and a process controls at
+most 15 characters of its own, L5) and the socket endpoints it owns. So the report
+path needs no redaction flag; it never has `cmdline` to redact.
 
 **Indicators of Compromise.** `iocs.extract(findings)` pulls the **portable**
 indicators out of findings — the ones worth sharing across hosts, unlike a pid or
