@@ -1,19 +1,7 @@
 #!/usr/bin/env python3
-"""Redact a capture before committing it as a test fixture (limitation L13).
+"""Redact a capture before committing it as a test fixture (L13).
 
-`/proc/[pid]/cmdline` is captured verbatim, so a snapshot can carry any
-credential a process was handed as an argument -- VS Code Remote-SSH tokens,
-database passwords, bearer tokens. A snapshot must therefore be scrubbed before
-it lands in the repo as a fixture.
-
-Cross-view findings depend on pids, tgids, and module/hook data -- never on
-cmdline -- so replacing every process cmdline wholesale removes the secrets
-without changing anything the differ concludes. The output is re-serialised
-through the real Snapshot model, which both canonicalises it and proves the
-redacted file is still schema-valid.
-
-Usage:
-    python tools/redact_snapshot.py <in.json> <out.json>
+Thin wrapper over kdetect.reporting.redact; see that module and `kdetect redact`.
 """
 from __future__ import annotations
 
@@ -22,17 +10,7 @@ import sys
 from pathlib import Path
 
 from kdetect.models import Snapshot
-
-_PLACEHOLDER = ["[redacted]"]
-
-
-def redact_dict(snap: dict) -> dict:
-    """Replace every process entity's cmdline with a placeholder, in place."""
-    for obs in snap.get("observations", []):
-        for entity in obs.get("entities", {}).values():
-            if isinstance(entity, dict) and "cmdline" in entity:
-                entity["cmdline"] = list(_PLACEHOLDER)
-    return snap
+from kdetect.reporting.redact import redact_snapshot
 
 
 def main(argv: list[str]) -> int:
@@ -40,7 +18,7 @@ def main(argv: list[str]) -> int:
         print("usage: redact_snapshot.py <in.json> <out.json>", file=sys.stderr)
         return 2
     raw = json.loads(Path(argv[1]).read_text(encoding="utf-8"))
-    snapshot = Snapshot.from_dict(redact_dict(raw))     # also validates schema
+    snapshot = Snapshot.from_dict(redact_snapshot(raw))
     Path(argv[2]).write_text(snapshot.to_json(pretty=True) + "\n", encoding="utf-8")
     print(argv[2])
     return 0
