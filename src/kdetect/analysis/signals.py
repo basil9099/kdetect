@@ -94,6 +94,7 @@ def signals_processes(snapshot: Snapshot) -> list[Signal]:
         reported.add(tgid)
         evidence = {
             "tgid": tgid, "seen_by_sweep": True, "status_readable": True,
+            "comm": ent.comm,
             "in_procfs_passes": sorted(o.pass_ or "?" for o in procfs
                                        if tgid in set(o.entity_ids)),
         }

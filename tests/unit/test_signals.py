@@ -139,3 +139,22 @@ def test_socket_visible_folds_thread_tid_to_listed_tgid():
     snap = Snapshot(SCHEMA_VERSION, "id", "t", host, CaptureMeta("0.1.0", 0),
                     [procs, sweep, sockobs])
     assert signals_sockets(snap) == []
+
+
+def test_signals_processes_carries_comm_in_evidence():
+    from kdetect.analysis.signals import signals_processes
+    procs = Observation(
+        collector="procfs.processes", collector_version="1", view="processes",
+        trust_level=TrustLevel.LOW, status=Status.OK, duration_ms=1,
+        entity_ids=[1], entities={}, stats={}, errors=[], pass_="A")
+    sweep = Observation(
+        collector="syscall_sweep.processes", collector_version="1", view="processes",
+        trust_level=TrustLevel.MEDIUM, status=Status.OK, duration_ms=1,
+        entity_ids=[31337],
+        entities={31337: SweepEntity(tgid=31337, status_readable=True, comm="evil")},
+        stats={}, errors=[])
+    host = HostFacts("t", "6.1", "x86_64", "b", 1, 100)
+    snap = Snapshot(SCHEMA_VERSION, "id", "t", host, CaptureMeta("0.1.0", 0),
+                    [procs, sweep])
+    sigs = signals_processes(snap)
+    assert sigs and all(s.evidence.get("comm") == "evil" for s in sigs)
