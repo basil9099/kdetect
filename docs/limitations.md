@@ -90,8 +90,16 @@ than derived from `exe` and `cmdline`.
 argument is in the snapshot: database passwords, API keys, bearer tokens. The
 phase 1 fixture had to have a VS Code Remote-SSH session token redacted before
 it could be committed. This is a property of `/proc`, not of kdetect, and it
-means **a snapshot must be treated as sensitive by default**. Phase 4's
-reporting will need a redaction pass before any report is shareable.
+means **a snapshot must be treated as sensitive by default**. **Resolved in
+phase 4b** (spec §7): the *report* needs no redaction pass — it is cmdline-free
+by construction, since every finding is about a hidden thing and a hidden
+process has no `ProcessEntity`/`cmdline` in the snapshot. It is the *snapshot*
+that needs scrubbing before sharing, which `kdetect redact` now does —
+replacing every process's `cmdline` with a placeholder. Redaction is scoped to
+that one field: it does **not** remove `exe` paths (which can carry a
+username and home-directory layout), the hostname, the boot id, per-process
+uid/gid, or socket local/remote addresses — a redacted snapshot still carries
+all of those.
 
 **L14 — A baseline inherits its installer's choices, not only its packages.**
 Comparing the vendor image against the rebuilt VM: the old one carried five
@@ -253,6 +261,16 @@ property of the process being hidden, not of the report: the richer identity
 lives on the very readdir path the rootkit suppressed. Recovering it would need a
 channel that reads process identity outside readdir (a future collector, or the
 out-of-band memory analysis of phase 5).
+
+The recorded `comm` is also not guaranteed to be the *process's* name: the
+sweep dedups by `tgid` after its first hit on any task id belonging to that
+group (`signals_processes`), so for a multi-threaded process the `comm` that
+ends up in the finding — and in the report's `process_name` IOC — may belong
+to whichever **thread** the sweep reached first, not the thread-group leader.
+Threads can `prctl(PR_SET_NAME)` independently of the leader, so this is a real
+possibility, not a corner case kdetect can rule out. The report labels it a
+bare `comm:` because that is exactly what was observed; it is not claimed to
+be the leader's name.
 
 ## Verified properties
 

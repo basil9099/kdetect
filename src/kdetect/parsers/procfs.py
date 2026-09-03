@@ -32,9 +32,11 @@ def parse_cmdline(text: str) -> list[str]:
     return [part for part in text.split("\x00") if part]
 
 def parse_status(text: str) -> StatusFields:
-    """Extract the Uid, Gid, and Tgid lines from /proc/[pid]/status.
+    """Extract the Uid, Gid, Tgid, and Name lines from /proc/[pid]/status.
 
     Uid and Gid are each four values: real, effective, saved, filesystem.
+    Name is comm (see §3 of the phase-4b design): optional, None when the
+    line is absent.
     """
     uid = None
     gid = None
