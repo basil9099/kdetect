@@ -261,12 +261,14 @@ def cmd_report(args) -> int:
     else:
         text = report_mod.render_markdown(snapshot, findings, iocs, baseline_name)
 
+    # The two sinks must emit identical bytes, so settle the trailing newline
+    # here rather than letting them disagree: render_markdown already ends in
+    # one (its final out.append("")), render_json does not, and print() adds
+    # its own. Normalise once, then neither branch appends anything.
+    if not text.endswith("\n"):
+        text += "\n"
+
     if args.out:
-        # `text` is the renderer's complete, unmodified return value --
-        # render_markdown already ends its own output with a newline
-        # (its final out.append("")). Adding another one here doubled the
-        # file's trailing newline versus what --out's caller actually
-        # rendered; write it as-is.
         try:
             Path(args.out).write_text(text, encoding="utf-8")
         except OSError as exc:
@@ -274,7 +276,7 @@ def cmd_report(args) -> int:
             return EXIT_ERROR
         print(args.out)
     else:
-        print(text)
+        print(text, end="")
     return 3 if findings else EXIT_OK
 
 

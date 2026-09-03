@@ -1,6 +1,9 @@
 import json
 from pathlib import Path
 import shutil
+
+import pytest
+
 from kdetect.cli import main
 
 FIX = Path(__file__).resolve().parent.parent / "fixtures" / "snapshots"
@@ -33,6 +36,26 @@ def test_report_writes_out_file(tmp_path):
     assert rc == 0
     assert out.exists()
     assert "kdetect report" in out.read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize("fmt", ["md", "json"])
+def test_out_file_is_identical_to_stdout(tmp_path, capsys, fmt):
+    """--out and stdout must be the same document, byte for byte.
+
+    They came apart once: render_markdown ends in a newline and render_json
+    does not, so whichever sink appended its own decided the trailing bytes.
+    """
+    snapshot = str(FIX / "clean-phase2.json")
+    dst = tmp_path / f"r.{fmt}"
+
+    assert main(["report", snapshot, "--format", fmt, "--out", str(dst)]) == 0
+    capsys.readouterr()                     # discard the echoed --out path
+    assert main(["report", snapshot, "--format", fmt]) == 0
+    stdout = capsys.readouterr().out
+
+    assert dst.read_text(encoding="utf-8") == stdout
+    assert stdout.endswith("\n")
+    assert not stdout.endswith("\n\n")      # exactly one, not doubled
 
 
 def test_report_unwritable_out_dir_prints_error_not_traceback(tmp_path, capsys):
