@@ -1,3 +1,4 @@
+import copy
 import json
 from pathlib import Path
 from kdetect.reporting.redact import redact_snapshot
@@ -18,4 +19,6 @@ def test_redacted_snapshot_still_loads():
 
 def test_no_cmdline_is_a_noop():
     snap = {"observations": [{"entities": {"1": {"inode": 5}}}]}
-    assert redact_snapshot(snap) == snap
+    before = copy.deepcopy(snap)
+    assert redact_snapshot(snap) == before
+    assert snap == before
