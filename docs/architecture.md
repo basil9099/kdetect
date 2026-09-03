@@ -107,6 +107,58 @@ detector functions. See
 §3–§5 for the full data flow, the `Suspect`/`Signal` model, and the scoring and
 attribution rules.
 
+## Reporting: a pure layer over `analyze` (phase 4b)
+
+A third stage sits above analysis, turning `Finding`s into something shareable.
+It is deliberately not a third pipeline stage in the detect → score sense above
+— it adds no signal and draws no conclusion (P11, phase 4b spec §2):
+
+```
+Snapshot (+ optional baseline)
+   │
+   ├─ analyze(snapshot, baseline)                       ─> list[Finding]    (existing)
+   ├─ iocs.extract(findings)                             ─> list[IOC]
+   └─ report.render_markdown | render_json(snapshot, findings, iocs)  ─> str
+```
+
+`reporting/iocs.py` pulls the **portable** indicators out of findings — a module
+name, a hooked function, a C2/backdoor endpoint, the malware's own process
+name — leaving host-local artifacts (pids, inodes, region counts) as report
+context rather than IOCs. `reporting/report.py` renders that same
+`(snapshot, findings, iocs)` triple as Markdown or JSON; the JSON `findings` key
+is `Finding.to_dict()`, unchanged. Every unit here is pure — dict/list in,
+string or list out — so only `cli.py`'s `report` command touches the filesystem.
+
+`reporting/redact.py` is a separate concern: not part of the report path (a
+report never carries `cmdline` — see below), but the L13 snapshot scrub,
+promoted from `tools/redact_snapshot.py` into a proper module with the tool now
+a thin wrapper over it. `kdetect redact <in.json> <out.json>` runs it as a
+first-class command; it replaces every process entity's `cmdline` with
+`["[redacted]"]` and re-serialises through `Snapshot`.
+
+**Why the report needs no redaction flag.** Every finding is about a *hidden*
+thing. A hidden process has no `ProcessEntity` in the snapshot and therefore no
+`cmdline` for a report to carry; the only identity the report adds is `comm`
+(low-secret) and socket endpoints. So the report path is secret-free by
+construction — redaction acts on the snapshot, which holds every *visible*
+process's `cmdline`, not on the report.
+
+**`comm` now flows through the sweep.** A hidden process previously had no name
+at all in a report — the collector that records `comm` never saw it, by
+definition. The sweep already reads `/proc/<tid>/status` for `Tgid`; that same
+file carries `Name:`, so `parse_status` now also extracts it, `SignalSource`'s
+`read_status(task_id)` returns `(tgid, comm)` in place of the old tgid-only
+`read_tgid`, `SweepEntity` gained an optional `comm: str | None`, and
+`signals_processes` copies it into a `hidden_process` finding's evidence. Schema
+stays 1.1 — additive, so a snapshot captured before this change loads with
+`comm=None`. `exe` and `cmdline` remain genuinely unavailable for a hidden
+process (L26): they live on the readdir path the rootkit suppressed, not on the
+`status` file.
+
+See
+[`superpowers/specs/2026-09-03-kdetect-phase4b-design.md`](superpowers/specs/2026-09-03-kdetect-phase4b-design.md)
+§3 (`comm`), §4 (module layout), §5–§7 (report content, IOCs, redaction).
+
 ## The snapshot format
 
 ### A complete snapshot, with two views
@@ -299,8 +351,12 @@ misalignment of every subsequent field, not an exception. The parser locates the
 | `src/kdetect/analysis/scoring.py` | `score`/`analyze`: `list[Signal] -> list[Finding]` (pure) |
 | `src/kdetect/parsers/sockets.py` | Pure parsers: `/proc/net/*` table rows, `socket:[inode]` fd targets |
 | `src/kdetect/collectors/sockets.py` | `SocketCollector` — `procfs.sockets` (LOW), walks a supplied pid set |
-| `src/kdetect/cli.py` | `capture` and `analyze` |
+| `src/kdetect/reporting/redact.py` | `redact_snapshot(dict) -> dict` — the L13 snapshot scrub |
+| `src/kdetect/reporting/iocs.py` | `IOC` + `extract(findings) -> list[IOC]` |
+| `src/kdetect/reporting/report.py` | `render_markdown`/`render_json(snapshot, findings, iocs) -> str` |
+| `src/kdetect/cli.py` | `capture`, `analyze`, `baseline`, `report`, `redact` |
 | `tools/capture_fixture.py` | Lab utility that builds a fixture tree |
+| `tools/redact_snapshot.py` | Thin CLI wrapper over `reporting/redact.py` |
 
 **Socket collector wiring (phase 4a, P10).** `SocketCollector` does not
 enumerate pids itself — it walks whatever set `cli.py`'s `cmd_capture` hands

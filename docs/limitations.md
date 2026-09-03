@@ -241,6 +241,19 @@ connection needs an independent enumeration of *all* socket families — the
 `sock_diag` netlink API (how `ss` works, `AF_VSOCK` included) — deferred as a
 future channel; "in no table" from `/proc/net` alone is not it.
 
+## Phase 4b — reporting
+
+**L26 — A hidden process's `exe` and `cmdline` are unavailable to reports.** A
+process hidden from `/proc` readdir has no `ProcessEntity` — the collector that
+records `comm`/`cmdline`/`exe` never saw it. The sweep recovers `comm` from
+`/proc/<tid>/status` (§3), but `exe` (a readdir-path symlink) and `cmdline` are
+not captured for a hidden process, so a report identifies it by `comm`, `tgid`,
+and the sockets it owns, and states `exe`/`cmdline` are unavailable. This is a
+property of the process being hidden, not of the report: the richer identity
+lives on the very readdir path the rootkit suppressed. Recovering it would need a
+channel that reads process identity outside readdir (a future collector, or the
+out-of-band memory analysis of phase 5).
+
 ## Verified properties
 
 **V1 — The unit suite runs without Linux.** Measured 2026-08-18: 55 passed,

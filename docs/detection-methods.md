@@ -505,6 +505,62 @@ the HIGH `hidden_process` path), amended by L25.
 
 ---
 
+## Reporting & IOCs [implemented — phase 4b]
+
+Not a detection technique — nothing above this line changes. This section exists
+because `kdetect report` is the layer that turns methods 1–12's findings into
+something a human or a pipeline can act on, and it is worth stating plainly what
+that layer does and does not do.
+
+**Observes.** Nothing new. `kdetect report <snapshot>` loads the snapshot, calls
+the existing `analyze(snapshot, baseline)` (method 11), extracts IOCs from the
+resulting findings, and renders Markdown (default) or JSON.
+
+**P11 — the report concludes nothing; it presents `analyze`'s findings.**
+Rendering, IOC extraction, and redaction are pure transforms over data the
+detection layer already produced: `(snapshot, findings, iocs) -> str`. A report
+draws no new confidence and re-interprets nothing — every line in it traces back
+to a `Finding` or a recorded snapshot fact. `report --format json`'s `findings`
+array is exactly `analyze --json`'s output, re-presented, not recomputed.
+
+**The report is secret-free by construction.** Every finding is about something
+*hidden*: a hidden process has no `ProcessEntity` in the snapshot, and therefore
+no `cmdline` for the report to carry. The only identity a report adds for a
+hidden process is `comm` (low-secret — world-readable and truncated at 15
+characters, L5) and the socket endpoints it owns. So the report path needs no
+redaction flag; it never has `cmdline` to redact.
+
+**Indicators of Compromise.** `iocs.extract(findings)` pulls the **portable**
+indicators out of findings — the ones worth sharing across hosts, unlike a pid or
+an inode:
+
+| IOC type | Source | Why it's portable |
+|---|---|---|
+| `kernel_module` | a `hidden_module` finding's module name | the same name identifies the rootkit on another host |
+| `hooked_function` | a hooked function in a `hidden_module`'s evidence | the technique indicator — which syscall/function it hooks |
+| `network_endpoint` | a `hidden_process`'s socket evidence — remote `addr:port` for ESTABLISHED (a C2 candidate), local `addr:port` for LISTEN (a backdoor port) | an address another host could also see traffic to/from |
+| `process_name` | a `hidden_process`'s `comm` | the malware's own name, unlike its pid which is host-specific |
+
+Host-local artifacts — pids, inodes, region counts, taint words — stay as report
+**context**, never IOCs; that portable-vs-local line is the whole point of a
+separate IOC section. Output is deduplicated and sorted by `(type, value)`, so
+the same findings always produce the same IOC list.
+
+**Redaction is a separate concern from the report.** The report never carries
+`cmdline`, but a **snapshot** does — every visible process's `cmdline`,
+credentials and all (L13). `kdetect redact <in.json> <out.json>` scrubs a
+snapshot for sharing, replacing every process entity's `cmdline` with
+`["[redacted]"]` and re-serialising it through `Snapshot` (canonicalises and
+proves schema-valid). Cross-view findings never key on `cmdline`, so redacting a
+snapshot before sharing it removes the secrets without changing any conclusion
+`analyze` would draw from it.
+
+**Evidence / spec.**
+[`superpowers/specs/2026-09-03-kdetect-phase4b-design.md`](superpowers/specs/2026-09-03-kdetect-phase4b-design.md)
+§2 (P11), §5–§7 (report content, IOC extraction, redaction).
+
+---
+
 ## References
 
 - `man 5 proc` — field definitions for everything under `/proc/[pid]/`
