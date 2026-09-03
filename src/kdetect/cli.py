@@ -33,7 +33,8 @@ from kdetect.models import (
 
 #: Exit codes. 3 means "analyze produced at least one finding" (any
 #: confidence) - distinct from 1 (error) so scripts can branch on detection
-#: vs. failure.
+#: vs. failure. `report` shares this convention (spec §8): 3 on findings,
+#: 0 on none, 1 on error.
 EXIT_OK = 0
 EXIT_ERROR = 1
 EXIT_USAGE = 2
@@ -127,22 +128,11 @@ def cmd_baseline(args) -> int:
 
 
 def cmd_analyze(args) -> int:
+    loaded = _load_snapshot(args.snapshot)
+    if loaded is None:
+        return EXIT_ERROR
+    snapshot, _raw = loaded
     path = Path(args.snapshot)
-
-    try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
-    except OSError as exc:
-        print(f"error: cannot read {path}: {exc}", file=sys.stderr)
-        return EXIT_ERROR
-    except json.JSONDecodeError as exc:
-        print(f"error: {path} is not valid JSON: {exc}", file=sys.stderr)
-        return EXIT_ERROR
-
-    try:
-        snapshot = Snapshot.from_dict(raw)
-    except IncompatibleSnapshot as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        return EXIT_ERROR
 
     if not getattr(args, "json", False):
         host = snapshot.host
@@ -162,20 +152,10 @@ def cmd_analyze(args) -> int:
             stats = "  ".join(f"{k}={v}" for k, v in sorted(obs.stats.items()))
             print(f"{' ' * 21}{stats}")
 
-    baseline = None
-    if getattr(args, "baseline", None):
-        from kdetect.baseline.store import BaselineTampered, load_baseline, load_public_key
-        if not args.verify_key:
-            print("error: --baseline requires --verify-key", file=sys.stderr)
-            return EXIT_ERROR
-        try:
-            baseline = load_baseline(Path(args.baseline), load_public_key(Path(args.verify_key)))
-        except BaselineTampered as exc:
-            print(f"error: baseline verification failed: {exc}", file=sys.stderr)
-            return EXIT_ERROR
-        except (OSError, ValueError) as exc:
-            print(f"error: {exc}", file=sys.stderr)
-            return EXIT_ERROR
+    try:
+        baseline = _load_verified_baseline(args)
+    except _BaselineLoadError:
+        return EXIT_ERROR
 
     findings = analyze(snapshot, baseline)
 
@@ -212,12 +192,51 @@ def _load_snapshot(path_str: str) -> tuple[Snapshot, dict] | None:
     except json.JSONDecodeError as exc:
         print(f"error: {path} is not valid JSON: {exc}", file=sys.stderr)
         return None
+    except UnicodeDecodeError as exc:
+        # A ValueError subclass, not an OSError -- read_text() raises this
+        # for non-UTF-8 input, distinctly from the two cases above.
+        print(f"error: {path} is not valid UTF-8: {exc}", file=sys.stderr)
+        return None
     try:
         snapshot = Snapshot.from_dict(raw)
     except IncompatibleSnapshot as exc:
         print(f"error: {exc}", file=sys.stderr)
         return None
     return snapshot, raw
+
+
+class _BaselineLoadError(Exception):
+    """Marks that _load_verified_baseline already printed its error.
+
+    The caller's only job on catching this is `return EXIT_ERROR` -- the
+    message is already on stderr.
+    """
+
+
+def _load_verified_baseline(args):
+    """Load and signature-verify --baseline/--verify-key, shared by
+    `analyze` and `report` so the two commands can't drift on this
+    security-relevant check (they must accept/reject the same baselines).
+
+    Returns None if --baseline was not given at all (baseline diffing is
+    optional). Raises _BaselineLoadError, having already printed an
+    `error: ...` line to stderr, on any failure -- a missing --verify-key,
+    a tampered signature, or an I/O/parse problem loading either file.
+    """
+    if not getattr(args, "baseline", None):
+        return None
+    from kdetect.baseline.store import BaselineTampered, load_baseline, load_public_key
+    if not args.verify_key:
+        print("error: --baseline requires --verify-key", file=sys.stderr)
+        raise _BaselineLoadError
+    try:
+        return load_baseline(Path(args.baseline), load_public_key(Path(args.verify_key)))
+    except BaselineTampered as exc:
+        print(f"error: baseline verification failed: {exc}", file=sys.stderr)
+        raise _BaselineLoadError
+    except (OSError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        raise _BaselineLoadError
 
 
 def cmd_report(args) -> int:
@@ -229,22 +248,11 @@ def cmd_report(args) -> int:
         return EXIT_ERROR
     snapshot, _raw = loaded
 
-    baseline = None
-    baseline_name = None
-    if getattr(args, "baseline", None):
-        from kdetect.baseline.store import BaselineTampered, load_baseline, load_public_key
-        if not args.verify_key:
-            print("error: --baseline requires --verify-key", file=sys.stderr)
-            return EXIT_ERROR
-        try:
-            baseline = load_baseline(Path(args.baseline), load_public_key(Path(args.verify_key)))
-        except BaselineTampered as exc:
-            print(f"error: baseline verification failed: {exc}", file=sys.stderr)
-            return EXIT_ERROR
-        except (OSError, ValueError) as exc:
-            print(f"error: {exc}", file=sys.stderr)
-            return EXIT_ERROR
-        baseline_name = Path(args.baseline).name
+    try:
+        baseline = _load_verified_baseline(args)
+    except _BaselineLoadError:
+        return EXIT_ERROR
+    baseline_name = Path(args.baseline).name if getattr(args, "baseline", None) else None
 
     findings = analyze(snapshot, baseline)
     iocs = extract(findings)
@@ -254,7 +262,16 @@ def cmd_report(args) -> int:
         text = report_mod.render_markdown(snapshot, findings, iocs, baseline_name)
 
     if args.out:
-        Path(args.out).write_text(text + "\n", encoding="utf-8")
+        # `text` is the renderer's complete, unmodified return value --
+        # render_markdown already ends its own output with a newline
+        # (its final out.append("")). Adding another one here doubled the
+        # file's trailing newline versus what --out's caller actually
+        # rendered; write it as-is.
+        try:
+            Path(args.out).write_text(text, encoding="utf-8")
+        except OSError as exc:
+            print(f"error: cannot write {args.out}: {exc}", file=sys.stderr)
+            return EXIT_ERROR
         print(args.out)
     else:
         print(text)
@@ -270,7 +287,11 @@ def cmd_redact(args) -> int:
     _snapshot, raw = loaded
 
     out = Snapshot.from_dict(redact_snapshot(raw))
-    Path(args.outfile).write_text(out.to_json(pretty=True) + "\n", encoding="utf-8")
+    try:
+        Path(args.outfile).write_text(out.to_json(pretty=True) + "\n", encoding="utf-8")
+    except OSError as exc:
+        print(f"error: cannot write {args.outfile}: {exc}", file=sys.stderr)
+        return EXIT_ERROR
     print(args.outfile)
     return EXIT_OK
 
@@ -312,7 +333,9 @@ def main(argv=None) -> int:
     report_p.add_argument("--baseline", help="Signed baseline to diff against.")
     report_p.add_argument("--verify-key", help="ed25519 public key (PEM) for --baseline.")
 
-    redact_p = subparsers.add_parser("redact", help="Scrub a snapshot for sharing.")
+    redact_p = subparsers.add_parser(
+        "redact", help="Replace every process cmdline with a placeholder (L13)."
+    )
     redact_p.add_argument("infile")
     redact_p.add_argument("outfile")
 
