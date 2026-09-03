@@ -69,6 +69,46 @@ def test_findings_render_most_severe_first():
     assert md.index("[HIGH]") < md.index("[LOW]")
 
 
+def test_findings_tiebreak_by_subject_when_confidence_matches():
+    # Same confidence for both -- only the subject tiebreak can order these.
+    # Input order is the reverse of the expected (subject-sorted) output
+    # order, so this fails on an implementation that does no tiebreak at all.
+    b = Finding(FindingKind.HIDDEN_PROCESS, "subject-b", Confidence.MEDIUM,
+                [], [], {}, "")
+    a = Finding(FindingKind.HIDDEN_PROCESS, "subject-a", Confidence.MEDIUM,
+                [], [], {}, "")
+    md = report.render_markdown(_snap(), [b, a], [])
+    assert md.index("subject-a") < md.index("subject-b")
+
+
+def test_markdown_baseline_name_appears_in_header():
+    f = _hidden_module()
+    md = report.render_markdown(_snap(), [f], extract([f]),
+                                baseline_name="prod-baseline")
+    assert "**Baseline:** prod-baseline" in md
+
+
+def test_markdown_baseline_none_renders_none_in_header():
+    md = report.render_markdown(_snap(), [], [], baseline_name=None)
+    assert "**Baseline:** none" in md
+
+
+def test_json_baseline_object_shape_when_verified():
+    # baseline_name is only ever passed by a caller that has already
+    # verified the baseline's signature (see report.py's module docstring),
+    # which is why this object unconditionally reports verified: true.
+    f = _hidden_module()
+    payload = json.loads(report.render_json(_snap(), [f], extract([f]),
+                                             baseline_name="prod-baseline"))
+    assert payload["baseline"] == {"name": "prod-baseline", "verified": True}
+
+
+def test_json_baseline_is_none_when_not_provided():
+    f = _hidden_module()
+    payload = json.loads(report.render_json(_snap(), [f], extract([f])))
+    assert payload["baseline"] is None
+
+
 def test_json_report_shape():
     f = _hidden_module()
     payload = json.loads(report.render_json(_snap(), [f], extract([f])))

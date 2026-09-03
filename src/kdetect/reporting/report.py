@@ -4,6 +4,13 @@ Presents analyze()'s findings; concludes nothing (P11). Markdown for a human,
 JSON for a pipeline. A hidden process shows its comm and owned socket endpoints;
 its exe/cmdline are unavailable because it was hidden from the readdir path that
 records them (L26).
+
+baseline_name is a caller contract, not something this module checks: pass it
+only once the named baseline's signature has already been verified (the `kdetect
+report --baseline` path requires --verify-key and load_baseline() raises
+BaselineTampered -- refusing to reach the renderer at all -- on a bad signature).
+That is why a non-None baseline_name renders "verified": true unconditionally
+here; a caller that has not verified a baseline must pass baseline_name=None.
 """
 from __future__ import annotations
 
