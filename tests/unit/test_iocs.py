@@ -45,6 +45,44 @@ def test_listen_socket_skips_placeholder_local():
     vals = {(i.type, i.value) for i in extract([f])}
     assert all(t != "network_endpoint" for t, v in vals)
 
+def test_syn_sent_socket_uses_remote_not_local():
+    # Regression test for the bug fixed in review: the old code did
+    # `remote if state == "ESTABLISHED" else local`, which for SYN_SENT
+    # (the state most likely to catch a C2 beacon mid-connect) published
+    # this host's own address and threw the attacker's away. This must
+    # fail against that old behaviour: local is a real, non-placeholder
+    # address, so the old code would have emitted it as the IOC instead
+    # of (or as well as) remote.
+    f = _f(FindingKind.HIDDEN_PROCESS, "pid 4",
+           {"socket_visible": [{"state": "SYN_SENT",
+                                "local": "192.168.1.5:51000",
+                                "remote": "203.0.113.9:4444"}]})
+    vals = {(i.type, i.value) for i in extract([f])}
+    assert ("network_endpoint", "203.0.113.9:4444") in vals
+    assert ("network_endpoint", "192.168.1.5:51000") not in vals
+
+
+def test_udp_close_state_with_placeholder_remote_yields_local_only():
+    # UDP rows report CLOSE (from /proc/net/udp's st=07) and normally
+    # carry a real local address with a 0.0.0.0:0 remote placeholder.
+    f = _f(FindingKind.HIDDEN_PROCESS, "pid 5",
+           {"socket_visible": [{"state": "CLOSE",
+                                "local": "10.0.0.7:53000",
+                                "remote": "0.0.0.0:0"}]})
+    vals = {(i.type, i.value) for i in extract([f])}
+    assert vals == {("network_endpoint", "10.0.0.7:53000")}
+
+
+def test_close_state_with_both_real_yields_both():
+    f = _f(FindingKind.HIDDEN_PROCESS, "pid 6",
+           {"socket_visible": [{"state": "CLOSE",
+                                "local": "10.0.0.7:53000",
+                                "remote": "198.51.100.2:9999"}]})
+    vals = {(i.type, i.value) for i in extract([f])}
+    assert vals == {("network_endpoint", "10.0.0.7:53000"),
+                    ("network_endpoint", "198.51.100.2:9999")}
+
+
 def test_iocs_deduped_and_sorted():
     f1 = _f(FindingKind.HIDDEN_MODULE, "module m", {})
     f2 = _f(FindingKind.HIDDEN_MODULE, "module m", {})
