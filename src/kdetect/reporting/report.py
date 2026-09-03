@@ -103,6 +103,8 @@ def render_markdown(snapshot: Snapshot, findings: list[Finding], iocs: list[IOC]
         out.append("None.")
     for f in _ranked(findings):
         out.append(f"### [{f.confidence.value}] {f.kind.value} — {f.subject}")
+        if f.summary:
+            out.append(f.summary)
         if f.channels_agree:
             out.append(f"- Seen by: {', '.join(f.channels_agree)}")
         if f.channels_dissent:

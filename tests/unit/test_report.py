@@ -31,6 +31,8 @@ def test_markdown_has_sections_and_verdict():
     # Weak "HIGH" in md could match anywhere; pin it to the finding's own
     # heading line, which carries the confidence tag by construction.
     assert "[HIGH] hidden_module — module diamorphine" in md
+    # Finding.summary (the one-sentence "why it fired") must render too.
+    assert "module diamorphine is concealed" in md
 
 
 def test_markdown_hidden_process_shows_comm_and_exe_unavailable():
