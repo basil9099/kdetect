@@ -1,0 +1,44 @@
+# comm is NOT capped at 15 characters on read: kernel threads report a full name
+# command: kdetect capture (root); cat /proc/<pid>/comm; grep ^Name: /proc/<pid>/status
+# captured: 2026-09-03T13:02:36.393Z  kernel 6.1.0-52-amd64
+
+Corrects L5, which claimed comm truncates at 15 characters.
+
+What a process can SET is capped: prctl(PR_SET_NAME) and writes to
+/proc/self/comm keep TASK_COMM_LEN-1 = 15 characters. That bound is what makes
+comm forgeable-but-collidable, and it still holds.
+
+What /proc REPORTS is a different value. Kernel threads (PF_KTHREAD) carry a
+full name that is not bounded by TASK_COMM_LEN, and both /proc/<pid>/comm and
+the Name: line of /proc/<pid>/status return it in full. For workqueue workers
+that full name includes the current work description, which is why they are the
+longest, but plain kthreads exceed 15 too.
+
+The split is exact on this host -- every task in /proc, not just the capture:
+  tasks with comm > 15 chars, PF_KTHREAD set: 15
+  tasks with comm > 15 chars, userland:       0
+
+From the root capture: 119 swept task ids, 116 distinct comms, 13 over 15 chars.
+
+longest observed:
+  29  kworker/u256:3-events_unbound
+  27  kworker/0:0H-events_highpri
+  27  kworker/1:0H-events_highpri
+  24  kworker/u256:0-flush-8:0
+  23  kworker/1:2-cgroup_free
+  23  rcu_tasks_trace_kthread
+  22  kworker/0:2-mpt_poll_0
+  22  rcu_tasks_rude_kthread
+
+read straight from /proc, bypassing kdetect:
+  $ grep ^Name: /proc/8/status
+  Name:	kworker/0:0H-events_highpri   (27 chars)
+  $ cat /proc/8/comm
+  kworker/0:0H-events_highpri
+  $ grep ^Name: /proc/13/status
+  Name:	rcu_tasks_trace_kthread   (23 chars)
+  $ cat /proc/13/comm
+  rcu_tasks_trace_kthread
+
+Consequence for phase 4b: a process_name IOC, and a report comm: line, can
+legitimately exceed 15 characters. Nothing may assume the bound.

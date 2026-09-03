@@ -46,16 +46,21 @@ of it are a process's own.** A process can set its own `comm` freely
 `TASK_COMM_LEN - 1` = 15 characters of what it sets, and two differently-named
 processes can therefore share a `comm`. None of that makes it a reliable name.
 
-What `comm` is **not** is uniformly 15 characters long on the way out, which this
-limitation previously claimed. What `/proc/<pid>/status`'s `Name:` line reports is
-composed by the kernel, and for workqueue workers it appends the worker's current
-work description, so a read can return more than 15 characters — observed live on
-kernel 6.1.0-52: `/proc/8/status` gives `Name: kworker/0:0H-events_highpri` (27
-characters) and the longest in a clean 119-task capture was
-`kworker/u256:3-events_unbound` at 29, with 13 of 116 distinct names over 15.
-Consumers must not assume a 15-character bound: a `process_name` IOC or a report's
-`comm:` line can legitimately be longer. The forgery argument above is unaffected —
-an attacker still only controls 15 characters of it.
+What `comm` is **not** is bounded at 15 characters on the way *out*, which this
+limitation previously claimed. Kernel threads (`PF_KTHREAD`) carry a full name that
+`TASK_COMM_LEN` does not bound, and both `/proc/<pid>/comm` and the `Name:` line of
+`/proc/<pid>/status` return it whole; for workqueue workers that name also carries
+the current work description, which is why they are the longest. Measured on kernel
+6.1.0-52, the split is exact — of every task in `/proc`, 15 exceeded 15 characters
+and **all 15 were kernel threads; no userland process did**. `/proc/8/status` gives
+`Name: kworker/0:0H-events_highpri` (27), `/proc/13/status` gives
+`rcu_tasks_trace_kthread` (23), and the longest in a clean 119-task capture was
+`kworker/u256:3-events_unbound` at 29. Consumers must not assume the bound: a
+`process_name` IOC or a report's `comm:` line can legitimately be longer. The
+forgery argument above is unaffected — an attacker still only controls 15
+characters of what it sets.
+
+Evidence: `docs/step0-phase4/comm-length.txt`
 
 **L6 — The observer appears in the observation.** kdetect's own process and
 threads are in every capture, as are the VS Code Remote-SSH `node` processes.
