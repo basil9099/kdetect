@@ -91,8 +91,8 @@ class SignalSource(ABC):
         """Every id in 1..pid_max that exists, sorted. EPERM counts as exists."""
 
     @abstractmethod
-    def read_tgid(self, task_id: int) -> int | None:
-        """The Tgid from /proc/<id>/status, or None if it could not be read."""
+    def read_status(self, task_id: int) -> tuple[int, str | None] | None:
+        """(Tgid, Name) from /proc/<id>/status, or None if it could not be read."""
 
 
 class ModuleSource(ABC):

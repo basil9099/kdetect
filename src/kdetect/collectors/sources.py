@@ -179,11 +179,12 @@ class LiveSignalSource(SignalSource):
                 alive.append(task_id)
         return alive
 
-    def read_tgid(self, task_id: int) -> int | None:
+    def read_status(self, task_id: int) -> tuple[int, str | None] | None:
         try:
             with open(f"/proc/{task_id}/status", encoding="utf-8",
                       errors="replace") as fh:
-                return parse_status(fh.read()).tgid
+                fields = parse_status(fh.read())
+                return (fields.tgid, fields.name)
         except (OSError, ParseError):
             return None
 
@@ -196,6 +197,7 @@ class FixtureSignalSource(SignalSource):
         self._pid_max = data["pid_max"]
         self._alive = sorted(data["alive"])
         self._tgid = {int(k): v for k, v in data["tgid"].items()}
+        self._comm = {int(k): v for k, v in data.get("comm", {}).items()}
         self._unreadable = set(data.get("unreadable_status", []))
 
     def pid_max(self) -> int:
@@ -204,10 +206,10 @@ class FixtureSignalSource(SignalSource):
     def sweep(self, pid_max: int) -> list[int]:
         return [i for i in self._alive if i <= pid_max]
 
-    def read_tgid(self, task_id: int) -> int | None:
-        if task_id in self._unreadable:
+    def read_status(self, task_id: int) -> tuple[int, str | None] | None:
+        if task_id in self._unreadable or task_id not in self._tgid:
             return None
-        return self._tgid.get(task_id)
+        return (self._tgid[task_id], self._comm.get(task_id))
 
 
 class LiveModuleSource(ModuleSource):

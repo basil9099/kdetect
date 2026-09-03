@@ -11,12 +11,12 @@ def test_sweep_returns_recorded_alive_ids():
     assert s.sweep(s.pid_max()) == [1, 2, 501, 551, 31337]
 
 
-def test_read_tgid_folds_thread_to_leader():
+def test_read_status_folds_thread_to_leader():
     s = FixtureSignalSource(FIX)
-    assert s.read_tgid(551) == 501            # thread of 501
-    assert s.read_tgid(31337) == 31337        # its own leader
+    assert s.read_status(551) == (501, None)          # thread of 501
+    assert s.read_status(31337) == (31337, "evil")    # its own leader
 
 
-def test_read_tgid_none_when_status_unreadable():
+def test_read_status_none_when_status_unreadable():
     s = FixtureSignalSource(FIX)
-    assert s.read_tgid(2) is None             # kernel thread, status not read
+    assert s.read_status(2) is None            # kernel thread, status not read

@@ -17,3 +17,10 @@ def test_sweep_collector_records_tgid_evidence():
     assert obs.entities[2].status_readable is False   # unreadable status
     assert obs.stats["responded"] == 5
     assert obs.stats["pid_max"] == 4194304
+
+
+def test_sweep_records_comm():
+    obs = SweepProcessCollector().collect(FixtureSignalSource(FIX))
+    # the hidden pid in the fixture carries a comm
+    hidden = [e for e in obs.entities.values() if e.comm == "evil"]
+    assert hidden, "expected a swept entity with comm 'evil'"

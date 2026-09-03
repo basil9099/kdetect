@@ -193,13 +193,16 @@ class SweepEntity:
 
     tgid: int
     status_readable: bool
+    comm: str | None = None
 
     def to_dict(self) -> dict:
-        return {"tgid": self.tgid, "status_readable": self.status_readable}
+        return {"tgid": self.tgid, "status_readable": self.status_readable,
+                "comm": self.comm}
 
     @classmethod
     def from_dict(cls, d: dict) -> "SweepEntity":
-        return cls(tgid=d["tgid"], status_readable=d["status_readable"])
+        return cls(tgid=d["tgid"], status_readable=d["status_readable"],
+                   comm=d.get("comm"))
 
 
 @dataclass(frozen=True)

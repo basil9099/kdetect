@@ -122,6 +122,15 @@ def test_sweep_entity_roundtrip():
     assert back.entities[551].status_readable is True
 
 
+def test_sweep_entity_comm_roundtrips():
+    from kdetect.models import SweepEntity
+    e = SweepEntity(tgid=812, status_readable=True, comm="sshd")
+    assert SweepEntity.from_dict(e.to_dict()) == e
+    # legacy dict without comm loads as None
+    legacy = {"tgid": 812, "status_readable": True}
+    assert SweepEntity.from_dict(legacy).comm is None
+
+
 def test_module_entity_roundtrip_string_keys():
     obs = _obs(collector="procfs.modules", view="modules",
                trust_level=TrustLevel.LOW,

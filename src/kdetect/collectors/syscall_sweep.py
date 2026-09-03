@@ -25,11 +25,14 @@ class SweepProcessCollector:
 
         entities: dict[int, SweepEntity] = {}
         for task_id in alive:
-            tgid = source.read_tgid(task_id)
-            entities[task_id] = SweepEntity(
-                tgid=tgid if tgid is not None else task_id,
-                status_readable=tgid is not None,
-            )
+            res = source.read_status(task_id)
+            if res is None:
+                entities[task_id] = SweepEntity(
+                    tgid=task_id, status_readable=False, comm=None)
+            else:
+                tgid, comm = res
+                entities[task_id] = SweepEntity(
+                    tgid=tgid, status_readable=True, comm=comm)
 
         return Observation(
             collector=self.name, collector_version=self.version, view=self.view,
