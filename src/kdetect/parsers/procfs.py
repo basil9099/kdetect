@@ -20,6 +20,7 @@ class StatusFields:
     uid: list[int]
     gid: list[int]
     tgid: int
+    name: str | None = None
 
 def parse_cmdline(text: str) -> list[str]:
     """Split a NUL-separated /proc/[pid]/cmdline into its arguments.
@@ -38,6 +39,7 @@ def parse_status(text: str) -> StatusFields:
     uid = None
     gid = None
     tgid = None
+    name = None
 
     try:
         for line in text.splitlines():
@@ -52,13 +54,15 @@ def parse_status(text: str) -> StatusFields:
                 gid = [int(v) for v in value.split()]
             elif key == "Tgid":
                 tgid = int(value.strip())
+            elif key == "Name":
+                name = value.strip()
     except ValueError as exc:
         raise ParseError(f"non-numeric Uid/Gid/Tgid in status: {text!r}") from exc
 
     if uid is None or gid is None or tgid is None:
         raise ParseError(f"status missing Uid, Gid, or Tgid line: {text!r}")
 
-    return StatusFields(uid=uid, gid=gid, tgid=tgid)
+    return StatusFields(uid=uid, gid=gid, tgid=tgid, name=name)
 
 def parse_stat(text: str) -> StatFields:
     """Parse one line of /proc/[pid]/stat into typed fields.

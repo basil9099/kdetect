@@ -32,3 +32,15 @@ def test_missing_uid_line_raises():
 def test_parse_status_reads_tgid():
     text = "Name:\tbash\nTgid:\t501\nPid:\t551\nUid:\t0\t0\t0\t0\nGid:\t0\t0\t0\t0\n"
     assert parse_status(text).tgid == 501
+
+
+def test_parse_status_extracts_name():
+    text = ("Name:\tevil\nTgid:\t1234\nUid:\t0\t0\t0\t0\nGid:\t0\t0\t0\t0\n")
+    fields = parse_status(text)
+    assert fields.name == "evil"
+    assert fields.tgid == 1234
+
+
+def test_parse_status_name_absent_is_none():
+    text = ("Tgid:\t1\nUid:\t0\t0\t0\t0\nGid:\t0\t0\t0\t0\n")
+    assert parse_status(text).name is None
