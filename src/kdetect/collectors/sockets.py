@@ -1,9 +1,19 @@
-"""The socket-view collector (spec §4.2).
+"""The socket-view collector (spec §4.2, as amended after the phase-4a step-0).
 
-procfs.sockets (LOW) records one SocketEntity per inode seen in a /proc/net/*
-table or a walked /proc/<pid>/fd. It never concludes: in_table and owner_pids
-are evidence; the differ decides "hidden connection" and "confirms a hidden
-process". It walks fds only for the pids it is given (P10).
+procfs.sockets (LOW) records one SocketEntity per socket in the /proc/net TCP/UDP
+tables, and attributes each to the processes that hold it as an fd. It never
+concludes: in_table and owner_pids are evidence; the differ (signals_sockets)
+decides whether an in_table socket owned by a readdir-hidden pid confirms that
+process (socket_visible -> HIGH hidden_process). It walks fds only for the pids
+it is given (P10).
+
+Only the four rich families (tcp/tcp6/udp/udp6) are read: the phase-4a step-0
+calibration on a clean host showed that the "a held fd in no /proc/net table is
+hidden" direction false-positives on legitimate socket families /proc/net does
+not expose at all (AF_VSOCK from open-vm-tools, dbus sockets, ...), so that
+signal was dropped (docs/limitations.md L25). Sound hidden-connection detection
+needs an independent sock_diag channel, which is deferred. Consequently the
+collector no longer reads the inode-only families or records fd-only sockets.
 """
 from __future__ import annotations
 
@@ -11,11 +21,12 @@ import time
 
 from kdetect.collectors.base import SocketSource
 from kdetect.models import Observation, SocketEntity, Status, TrustLevel
-from kdetect.parsers.sockets import parse_net_inodes, parse_net_tcp
+from kdetect.parsers.sockets import parse_net_tcp
 
-#: Rich tables (shared tcp/udp layout) and the inode column for the rest.
+#: The families whose tables carry the detail socket_visible needs. A network
+#: backdoor listens on tcp/udp, so these are the ones that matter for the
+#: hidden-process correlation.
 _RICH = ("tcp", "tcp6", "udp", "udp6")
-_INODE_ONLY = {"unix": 6, "netlink": 9, "packet": 8, "raw": 9, "raw6": 9}
 
 
 class SocketCollector:
@@ -32,7 +43,6 @@ class SocketCollector:
         entities: dict[str, SocketEntity] = {}
         tables_read = 0
 
-        # Rich tcp/udp tables: full detail.
         for kind in _RICH:
             text = source.read_net_table(kind)
             if text is None:
@@ -43,35 +53,21 @@ class SocketCollector:
                     r.inode, r.kind, r.state, r.local, r.remote, r.uid,
                     in_table=True, owner_pids=[])
 
-        # Inode-only families: just mark in_table so their inodes aren't "hidden".
-        for name, idx in _INODE_ONLY.items():
-            text = source.read_net_table(name)
-            if text is None:
-                continue
-            tables_read += 1
-            for inode in parse_net_inodes(text, idx):
-                key = str(inode)
-                if key not in entities:
-                    entities[key] = SocketEntity(
-                        inode, name, None, None, None, None,
-                        in_table=True, owner_pids=[])
-
-        # Attribute ownership by walking the given pids' fds.
+        # Attribute ownership by walking the given pids' fds. Only inodes that
+        # are in a rich table matter; fd inodes of other families (unix, netlink,
+        # vsock, ...) are ignored -- they cannot be judged from /proc/net (L25).
         owners: dict[str, set[int]] = {}
         for pid in self._pids:
             for inode in source.list_fds(pid):
-                owners.setdefault(str(inode), set()).add(pid)
+                key = str(inode)
+                if key in entities:
+                    owners.setdefault(key, set()).add(pid)
 
         for key, pids in owners.items():
-            if key in entities:
-                e = entities[key]
-                entities[key] = SocketEntity(
-                    e.inode, e.kind, e.state, e.local, e.remote, e.uid,
-                    e.in_table, sorted(pids))
-            else:                            # fd inode in no table -> unknown, hidden
-                entities[key] = SocketEntity(
-                    int(key), "unknown", None, None, None, None,
-                    in_table=False, owner_pids=sorted(pids))
+            e = entities[key]
+            entities[key] = SocketEntity(
+                e.inode, e.kind, e.state, e.local, e.remote, e.uid,
+                e.in_table, sorted(pids))
 
         return Observation(
             collector=self.name, collector_version=self.version, view=self.view,

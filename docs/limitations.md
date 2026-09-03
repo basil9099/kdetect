@@ -217,13 +217,29 @@ processes, not to modules; a hidden module opening a raw kernel socket is not
 detected via the socket view.
 
 **L24 — Socket detection is validated synthetically, not against a live
-socket-hiding rootkit.** No available rootkit hides a socket on kernel 6.1
-(Diamorphine's hooks did not engage, L16; the benign test LKM hides a module,
-not a connection). The `hidden_socket` and HIGH `hidden_process` paths are
-validated by hand-built snapshots and doctored `/proc/net` fixtures. As with the
-phase-2 process detection, "the differ detects this" rests on synthetic ground
-truth plus the clean-baseline zero-findings guard, not on a live capture of the
-technique.
+socket-hiding rootkit.** No available rootkit hides a process's socket on kernel
+6.1 (Diamorphine's hooks did not engage, L16; the benign test LKM hides a module,
+not a connection). The `socket_visible` → HIGH `hidden_process` path is validated
+by hand-built snapshots (a swept, readdir-unlisted pid owning a table socket). As
+with the phase-2 process detection, "the differ detects this" rests on synthetic
+ground truth plus the clean-baseline zero-findings guard, not on a live capture.
+
+**L25 — The `hidden_socket` / hidden-connection direction was dropped; sound
+hidden-connection detection needs `sock_diag`.** Phase 4a first shipped a
+`hidden_socket` signal — an fd a process holds that is in no `/proc/net` table —
+meant to catch a connection hidden from the tables. The phase-4a step-0
+calibration on the clean lab VM disproved it: it fired on two legitimate sockets
+(`vmtoolsd`'s `AF_VSOCK` link to the VMware host, and a `dbus-daemon` socket),
+because several real socket families have **no `/proc/net` table at all**
+(`AF_VSOCK`, `AF_ALG`, …) and an fd carries no address family, so "in no table"
+cannot be distinguished from "hidden." There is no `/proc/net/vsock` to add, so
+the signal is unsound under a `/proc`-only design and was removed (along with the
+`HIDDEN_CONNECTION` finding kind and the inode-only family parsing). The socket
+view now emits only `socket_visible` (a table socket owned by a readdir-hidden
+pid → HIGH `hidden_process`), which is sound. Detecting a genuinely hidden
+connection needs an independent enumeration of *all* socket families — the
+`sock_diag` netlink API (how `ss` works, `AF_VSOCK` included) — deferred as a
+future channel; "in no table" from `/proc/net` alone is not it.
 
 ## Verified properties
 

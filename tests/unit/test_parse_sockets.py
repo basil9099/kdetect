@@ -1,6 +1,6 @@
 import pytest
 from kdetect.parsers.sockets import (
-    NetRow, SocketParseError, parse_net_tcp, parse_net_inodes,
+    NetRow, SocketParseError, parse_net_tcp,
 )
 
 TCP = (
@@ -35,14 +35,6 @@ def test_parse_tcp6_decodes_v6():
     assert rows[0].inode == 55555
     assert rows[0].local.endswith(":8080")
     assert ":" in rows[0].local           # a v6 address rendered
-
-def test_parse_net_inodes_pulls_column():
-    # /proc/net/unix: Num RefCount Protocol Flags Type St Inode Path
-    unix = (
-        "Num       RefCount Protocol Flags    Type St Inode Path\n"
-        "0000000000000000: 00000002 00000000 00010000 0001 01 24680 /run/foo.sock\n"
-    )
-    assert parse_net_inodes(unix, 6) == {24680}
 
 def test_parse_tcp_raises_on_short_row():
     with pytest.raises(SocketParseError):

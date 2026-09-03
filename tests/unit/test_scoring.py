@@ -64,11 +64,3 @@ def test_socket_visible_lifts_hidden_process_to_high():
     assert findings[0].kind is FindingKind.HIDDEN_PROCESS
     assert findings[0].confidence is Confidence.HIGH        # 3 channels
 
-def test_hidden_socket_is_a_low_hidden_connection():
-    s = Suspect("socket", "999")
-    findings = score([Signal("hidden_socket", s, "/proc/net tables",
-                             {"inode": 999, "owner_pids": [4171]})])
-    assert len(findings) == 1
-    assert findings[0].kind is FindingKind.HIDDEN_CONNECTION
-    assert findings[0].subject == "socket inode 999"
-    assert findings[0].confidence is Confidence.LOW

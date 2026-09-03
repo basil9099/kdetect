@@ -15,7 +15,6 @@ from kdetect.models import Snapshot
 _MODULE_DISSENT = "procfs.modules listing"
 _PROCESS_DISSENT = "procfs readdir (all passes)"
 _BASELINE_DISSENT = "signed baseline"
-_NET_DISSENT = "/proc/net tables"
 
 
 def _observations(snapshot: Snapshot, collector: str):
@@ -130,12 +129,6 @@ def signals_sockets(snapshot: Snapshot) -> list[Signal]:
     out: list[Signal] = []
     for key in sockets.entity_ids:
         e = sockets.entities[key]
-        if e.owner_pids and not e.in_table:
-            out.append(Signal("hidden_socket", Suspect("socket", str(e.inode)),
-                              _NET_DISSENT,
-                              {"inode": e.inode, "kind": e.kind,
-                               "owner_pids": list(e.owner_pids),
-                               "local": e.local, "remote": e.remote}))
         if e.in_table:
             reported_tgids: set[int] = set()
             for pid in e.owner_pids:

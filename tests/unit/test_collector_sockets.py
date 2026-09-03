@@ -18,16 +18,18 @@ def test_table_socket_attributed_to_owner():
     assert e.in_table is True and e.state == "LISTEN" and e.owner_pids == [812]
 
 
-def test_fd_only_socket_is_not_in_table():
+def test_fd_inode_outside_rich_tables_is_ignored():
+    # inode 55555 (owned by pid 4171 in the fixture) is in no tcp/udp table --
+    # it stands in for a unix/vsock/etc. socket, which /proc/net cannot classify.
+    # Only rich-table sockets become entities (L25), so it is dropped, not flagged.
     obs = _collect([812, 900, 4171])
-    e = obs.entities["55555"]
-    assert e.in_table is False and e.kind == "unknown" and e.owner_pids == [4171]
+    assert "55555" not in obs.entities
 
 
 def test_unwalked_pids_leave_socket_unowned():
     obs = _collect([])                       # walk no fds
     assert obs.entities["12345"].owner_pids == []   # still in_table from the table
-    assert "55555" not in obs.entities              # fd-only inode never seen
+    assert "55555" not in obs.entities              # fd inode never recorded
 
 
 def test_observation_round_trips():

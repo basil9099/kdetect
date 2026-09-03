@@ -90,14 +90,6 @@ def _sock_snap(sockets, listed_pids):
                     [procs, socks])
 
 
-def test_hidden_socket_fires_on_untabled_owned_inode():
-    socks = {"999": SocketEntity(999, "unknown", None, None, None, None,
-                                 in_table=False, owner_pids=[4171])}
-    sigs = signals_sockets(_sock_snap(socks, listed_pids=[1, 4171]))
-    assert len(sigs) == 1
-    assert sigs[0].channel == "hidden_socket"
-    assert sigs[0].suspect == Suspect("socket", "999")
-
 def test_socket_visible_fires_for_unlisted_owner_of_table_socket():
     socks = {"12345": SocketEntity(12345, "tcp", "LISTEN", "0.0.0.0:22",
                                    "0.0.0.0:0", 0, in_table=True, owner_pids=[31337])}

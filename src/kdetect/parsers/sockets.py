@@ -1,9 +1,10 @@
 """Pure parsers for the socket-view channels (spec §4).
 
-Text in, typed values out, no I/O. The /proc/net/{tcp,udp}[6] tables share a
-column layout; unix/netlink/packet/raw differ, but for those we need only the
-inode column (to decide an fd socket is "in some table", not hidden). Each case
-mirrors docs/step0-phase4/.
+Text in, typed values out, no I/O. Only the /proc/net/{tcp,udp}[6] tables are
+parsed -- they share a column layout, and they carry the detail the socket
+detector needs. (The inode-only families and the "held fd in no table" signal
+were dropped after the phase-4a step-0 calibration; see docs/limitations.md L25.)
+Each case mirrors docs/step0-phase4/.
 """
 from __future__ import annotations
 
@@ -71,18 +72,3 @@ def parse_net_tcp(text: str, kind: str) -> list[NetRow]:
         except (ValueError, IndexError) as exc:
             raise SocketParseError(f"bad {kind} row: {line!r}") from exc
     return rows
-
-
-def parse_net_inodes(text: str, inode_index: int) -> set[int]:
-    """The set of inode numbers in a table where inode is a fixed column.
-    Non-numeric/short lines (headers) are skipped."""
-    out: set[int] = set()
-    for line in text.splitlines():
-        parts = line.split()
-        if len(parts) <= inode_index:
-            continue
-        try:
-            out.add(int(parts[inode_index]))
-        except ValueError:
-            continue                       # header row
-    return out

@@ -86,6 +86,6 @@ def test_infected_hooktest_no_false_hidden_process():
 def test_clean_fixtures_have_no_socket_findings():
     for name in ("clean-phase2.json", "clean-phase3a.json"):
         findings = analyze(_load(name))
-        kinds = {f.kind for f in findings}
-        assert FindingKind.HIDDEN_CONNECTION not in kinds
+        # No socket-derived finding (no socket suspect, no socket_visible-only
+        # process finding) on a clean capture.
         assert not any(f.subject.startswith("socket ") for f in findings)

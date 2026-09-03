@@ -33,8 +33,6 @@ def test_new_finding_kinds_exist():
     assert FindingKind.HIDDEN_MODULE.value == "hidden_module"
     assert FindingKind.SUSPECTED_HIDDEN_MODULE.value == "suspected_hidden_module"
 
-def test_hidden_connection_kind_exists():
-    assert FindingKind.HIDDEN_CONNECTION.value == "hidden_connection"
 
 def test_socket_entity_roundtrips():
     e = SocketEntity(inode=12345, kind="tcp", state="LISTEN",
