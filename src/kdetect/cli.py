@@ -196,6 +196,85 @@ def cmd_analyze(args) -> int:
     return 3
 
 
+def _load_snapshot(path_str: str) -> tuple[Snapshot, dict] | None:
+    """Load and validate a snapshot, or print an error and return None.
+
+    Returns both the validated Snapshot and the raw parsed dict, so callers
+    that need to mutate the raw JSON (redact) don't have to re-read and
+    re-parse the same file a second time.
+    """
+    path = Path(path_str)
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except OSError as exc:
+        print(f"error: cannot read {path}: {exc}", file=sys.stderr)
+        return None
+    except json.JSONDecodeError as exc:
+        print(f"error: {path} is not valid JSON: {exc}", file=sys.stderr)
+        return None
+    try:
+        snapshot = Snapshot.from_dict(raw)
+    except IncompatibleSnapshot as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return None
+    return snapshot, raw
+
+
+def cmd_report(args) -> int:
+    from kdetect.reporting import report as report_mod
+    from kdetect.reporting.iocs import extract
+
+    loaded = _load_snapshot(args.snapshot)
+    if loaded is None:
+        return EXIT_ERROR
+    snapshot, _raw = loaded
+
+    baseline = None
+    baseline_name = None
+    if getattr(args, "baseline", None):
+        from kdetect.baseline.store import BaselineTampered, load_baseline, load_public_key
+        if not args.verify_key:
+            print("error: --baseline requires --verify-key", file=sys.stderr)
+            return EXIT_ERROR
+        try:
+            baseline = load_baseline(Path(args.baseline), load_public_key(Path(args.verify_key)))
+        except BaselineTampered as exc:
+            print(f"error: baseline verification failed: {exc}", file=sys.stderr)
+            return EXIT_ERROR
+        except (OSError, ValueError) as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return EXIT_ERROR
+        baseline_name = Path(args.baseline).name
+
+    findings = analyze(snapshot, baseline)
+    iocs = extract(findings)
+    if args.format == "json":
+        text = report_mod.render_json(snapshot, findings, iocs, baseline_name)
+    else:
+        text = report_mod.render_markdown(snapshot, findings, iocs, baseline_name)
+
+    if args.out:
+        Path(args.out).write_text(text + "\n", encoding="utf-8")
+        print(args.out)
+    else:
+        print(text)
+    return 3 if findings else EXIT_OK
+
+
+def cmd_redact(args) -> int:
+    from kdetect.reporting.redact import redact_snapshot
+
+    loaded = _load_snapshot(args.infile)
+    if loaded is None:
+        return EXIT_ERROR
+    _snapshot, raw = loaded
+
+    out = Snapshot.from_dict(redact_snapshot(raw))
+    Path(args.outfile).write_text(out.to_json(pretty=True) + "\n", encoding="utf-8")
+    print(args.outfile)
+    return EXIT_OK
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         prog="kdetect",
@@ -226,6 +305,17 @@ def main(argv=None) -> int:
     baseline.add_argument("--out", required=True)
     baseline.add_argument("--sign-key", required=True)
 
+    report_p = subparsers.add_parser("report", help="Render a shareable report.")
+    report_p.add_argument("snapshot")
+    report_p.add_argument("--format", choices=["md", "json"], default="md")
+    report_p.add_argument("--out", help="Write to a file instead of stdout.")
+    report_p.add_argument("--baseline", help="Signed baseline to diff against.")
+    report_p.add_argument("--verify-key", help="ed25519 public key (PEM) for --baseline.")
+
+    redact_p = subparsers.add_parser("redact", help="Scrub a snapshot for sharing.")
+    redact_p.add_argument("infile")
+    redact_p.add_argument("outfile")
+
     args = parser.parse_args(argv)
 
     if args.command is None:
@@ -240,6 +330,12 @@ def main(argv=None) -> int:
 
     if args.command == "baseline":
         return cmd_baseline(args)
+
+    if args.command == "report":
+        return cmd_report(args)
+
+    if args.command == "redact":
+        return cmd_redact(args)
 
     return EXIT_USAGE
 
