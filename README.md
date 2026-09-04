@@ -3,16 +3,15 @@
 Linux kernel rootkit detection via cross-view comparison.
 
 A rootkit hides by lying to whoever asks. kdetect asks the same question through
-several channels that a rootkit has to subvert *separately* — and treats their
-disagreement as the finding. It never asks "is this system compromised?"; it asks
-"do these two views of the system agree?", records both answers, and reports where
-they diverge.
+several channels that a rootkit has to subvert separately, then treats their
+disagreement as the finding. It asks whether two views of the system agree,
+records both answers, and reports where they diverge.
 
-That framing sets the rules the codebase follows, stated as principles in
+The architecture follows from that, via the principles in
 [`docs/architecture.md`](docs/architecture.md): snapshots hold evidence and never
-conclusions (P1), disagreement between collectors must be representable rather
-than resolved at capture time (P2), and every finding names both the channels that
-saw a thing and the channel that denied it.
+conclusions (P1), disagreement between collectors stays representable rather than
+resolved at capture time (P2), and every finding names both the channels that saw
+a thing and the channel that denied it.
 
 - [`docs/architecture.md`](docs/architecture.md) — how it is put together
 - [`docs/detection-methods.md`](docs/detection-methods.md) — what it detects and why
@@ -25,32 +24,30 @@ A hidden process is the clearest case. `/proc` readdir is the listing everything
 uses, and it is exactly what a process-hiding rootkit filters. So kdetect does not
 trust it alone:
 
-- walk `/proc` twice (**readdir**), recording what the listing offers
-- sweep every possible task id with `kill(pid, 0)` (**syscall**), which answers
+- **readdir**: walk `/proc` twice, recording what the listing offers
+- **syscall**: sweep every possible task id with `kill(pid, 0)`, which answers
   from the kernel's task table rather than the directory
-- read `/proc/<tid>/status` directly (**direct read**), bypassing the listing again
-- attribute open sockets to owning pids through `/proc/<pid>/fd` (**sockets**)
+- **direct read**: read `/proc/<tid>/status`, bypassing the listing again
+- **sockets**: attribute open sockets to owning pids through `/proc/<pid>/fd`
 
-A pid that the syscall sweep, a direct read, and a socket owner all confirm — but
-that never appears in the readdir listing — is hidden. One channel alone is LOW
-confidence; three independent channels agreeing is HIGH. The same shape applies to
-modules: `/proc/modules` is the listing, while kernel taint bits, unaccounted
-vmalloc regions, and ftrace hook ownership are channels a module must suppress
-separately.
+A pid confirmed by the syscall sweep, a direct read, and a socket owner, but
+absent from the readdir listing, is hidden. One channel alone is LOW confidence;
+three independent channels agreeing is HIGH. The same shape applies to modules:
+`/proc/modules` is the listing, while kernel taint bits, unaccounted vmalloc
+regions, and ftrace hook ownership are channels a module must suppress separately.
 
 ## Install
 
-Requires **Python 3.11+**. One runtime dependency, `cryptography`, used for
-ed25519 baseline signatures.
+Requires Python 3.11+. One runtime dependency, `cryptography`, used for ed25519
+baseline signatures.
 
 ```bash
 pip install -e .
 ```
 
-`kdetect capture` needs a live `/proc`, so it runs on Linux only. Everything else
-— `analyze`, `report`, `redact` — works on a captured JSON file on any platform,
-which is the point: you capture on the suspect host and analyse somewhere you
-trust.
+`kdetect capture` needs a live `/proc`, so it runs on Linux only. `analyze`,
+`report` and `redact` work on a captured JSON file on any platform, so you can
+capture on the suspect host and analyse somewhere you trust.
 
 ## Try it
 
@@ -76,9 +73,9 @@ findings:
            denied by: procfs.modules listing
 ```
 
-Three channels named the module; the listing denied it. Note what the evidence
-shows: 75 module regions in vmalloc against 74 listed, and taint bits 12 and 13
-set with no listed module accounting for them.
+Three channels named the module and the listing denied it: 75 module regions in
+vmalloc against 74 listed, and taint bits 12 and 13 set with no listed module
+accounting for them.
 
 For a shareable artifact rather than terminal triage:
 
@@ -105,8 +102,8 @@ module kdetect_hooktest is concealed from /proc/modules but named by taint, unex
 - kernel_module: `kdetect_hooktest` (HIGH)
 ```
 
-The report concludes nothing of its own — it presents what `analyze` found, and
-every line traces back to a finding or a recorded fact. IOCs are the *portable*
+The report concludes nothing of its own. It presents what `analyze` found, and
+every line traces back to a finding or a recorded fact. IOCs are the portable
 indicators worth carrying to another host: a module name, a hooked syscall, a C2
 endpoint, a process name. Host-local artifacts like pids and inodes stay as
 context.
@@ -125,15 +122,15 @@ context.
 - `kdetect redact <in.json> <out.json>` — scrub a snapshot's process command
   lines before sharing it.
 
-Exit codes are scriptable: **3** means findings were produced, **0** none, **1** an
-error (including a baseline whose signature fails), **2** a usage problem. A
-non-zero exit from `analyze` or `report` is a detection, not a crash.
+Exit codes are scriptable: 3 means findings were produced, 0 none, 1 an error
+(including a baseline whose signature fails), 2 a usage problem. A non-zero exit
+from `analyze` or `report` is a detection, not a crash.
 
 ## What it detects
 
 Ten of the twelve numbered detection methods are implemented, documented
-individually in [`docs/detection-methods.md`](docs/detection-methods.md) (one more
-is implemented as a constraint on what kdetect can read, and one is planned):
+individually in [`docs/detection-methods.md`](docs/detection-methods.md). One more
+is implemented as a constraint on what kdetect can read, and one is planned.
 
 | Finding | Channels that must disagree |
 |---|---|
@@ -146,31 +143,26 @@ Confidence is corroboration count, scoped per suspect: one channel is LOW, two
 MEDIUM, three or more HIGH. Baselines are ordinary snapshots plus a detached
 ed25519 signature, verified before parsing.
 
-Validated against real rootkits on Debian 12 / kernel 6.1.0-52 — Diamorphine's
+Validated against real rootkits on Debian 12 / kernel 6.1.0-52. Diamorphine's
 hidden module was caught three independent ways, and a purpose-built hiding module
 (`kmod/kdetect_hooktest.c`) is the committed ground truth for hook detection.
 
 ## What it cannot detect
 
-This matters more than the feature list, and the project treats it as a
-first-class deliverable: [`docs/limitations.md`](docs/limitations.md) records **26
-numbered limitations**, each one traced to captured evidence under `docs/step0*/`
-rather than asserted.
-
-The shape of them:
+[`docs/limitations.md`](docs/limitations.md) records 26 numbered limitations, each
+one traced to captured evidence under `docs/step0*/` rather than asserted. The
+shape of them:
 
 - **A rootkit that hides from every channel is invisible.** Cross-view finds
-  *inconsistency*, not malice. A rootkit that patches all views coherently, or one
-  operating below where kdetect can look, produces no disagreement — and no
-  finding.
+  inconsistency, not malice. A rootkit that patches all views coherently, or one
+  operating below where kdetect can look, produces no disagreement and no finding.
 - **kdetect runs on the machine it is inspecting**, parsing input a kernel-level
-  attacker can influence, so a sufficiently privileged rootkit can lie to it. On-host
-  signing bounds this but does not solve it; off-host verification is phase 5.
+  attacker can influence, so a sufficiently privileged rootkit can lie to it.
+  On-host signing bounds this but does not solve it; off-host verification is
+  phase 5.
 - **Some evidence needs root**, and some is unavailable regardless: a hidden
   process's `exe` and `cmdline` cannot be recovered, because the collector that
   records them is the readdir path the rootkit suppressed (L26).
-
-Findings are reported with the confidence the evidence supports and no more.
 
 ## Project status
 
@@ -196,9 +188,8 @@ pytest tests
 ```
 
 The unit and analysis tiers are pure and run anywhere. The integration tier is
-marked `needs_procfs` and skips silently off Linux, so a green run on a
-non-Linux workstation is not a full run — the suite is meaningfully complete only
-on a Linux host.
+marked `needs_procfs` and skips silently off Linux, so the suite is only
+meaningfully complete on a Linux host.
 
 Two constraints worth knowing before contributing:
 
@@ -208,13 +199,13 @@ Two constraints worth knowing before contributing:
   mistake across both `src/` and `tests/`.
 - **Snapshots are redacted before they become fixtures.** A capture holds every
   visible process's `cmdline`, which can carry credentials passed as arguments.
-  Run `kdetect redact` first — and note that it scrubs `cmdline` only, not `exe`
+  Run `kdetect redact` first, and note that it scrubs `cmdline` only, not `exe`
   paths, hostnames, or socket addresses.
 
 ## Lab safety
 
 Live rootkit work belongs on a disposable VM with a snapshot to revert to, never
 on a workstation. Rootkit source and binaries are deliberately excluded from this
-repository — `.gitignore` drops all of `lab/targets/**` — and only kdetect's own
+repository: `.gitignore` drops all of `lab/targets/**`, and only kdetect's own
 benign test module (`kmod/kdetect_hooktest.c`) is committed. Never push from a
 host while a rootkit is loaded.
