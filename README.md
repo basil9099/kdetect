@@ -13,10 +13,10 @@ conclusions (P1), disagreement between collectors stays representable rather tha
 resolved at capture time (P2), and every finding names both the channels that saw
 a thing and the channel that denied it.
 
-- [`docs/architecture.md`](docs/architecture.md) — how it is put together
-- [`docs/detection-methods.md`](docs/detection-methods.md) — what it detects and why
-- [`docs/limitations.md`](docs/limitations.md) — what it cannot detect
-- [`docs/threat-model.md`](docs/threat-model.md) — who it is defending against
+- [`docs/architecture.md`](docs/architecture.md): how it is put together
+- [`docs/detection-methods.md`](docs/detection-methods.md): what it detects and why
+- [`docs/limitations.md`](docs/limitations.md): what it cannot detect
+- [`docs/threat-model.md`](docs/threat-model.md): who it is defending against
 
 ## How cross-view detection works
 
@@ -110,16 +110,16 @@ context.
 
 ## Commands
 
-- `kdetect capture [--out PATH] [--pretty]` — snapshot the live system to a
+- `kdetect capture [--out PATH] [--pretty]`: snapshot the live system to a
   JSON file (default: a generated name under `captures/`).
-- `kdetect analyze <snapshot> [--json] [--baseline PATH --verify-key PATH]` —
+- `kdetect analyze <snapshot> [--json] [--baseline PATH --verify-key PATH]`:
   summarise a snapshot's findings on the terminal; exits 3 if any are present.
-- `kdetect baseline <snapshot> --out PATH --sign-key PATH` — sign a clean
+- `kdetect baseline <snapshot> --out PATH --sign-key PATH`: sign a clean
   snapshot as a baseline for future drift detection.
-- `kdetect report <snapshot> [--format md|json] [--out PATH] [--baseline PATH --verify-key PATH]` —
+- `kdetect report <snapshot> [--format md|json] [--out PATH] [--baseline PATH --verify-key PATH]`:
   render a shareable Markdown or JSON report of a snapshot's findings and
   indicators of compromise; exits 3 if any findings are present.
-- `kdetect redact <in.json> <out.json>` — scrub a snapshot's process command
+- `kdetect redact <in.json> <out.json>`: scrub a snapshot's process command
   lines before sharing it.
 
 Exit codes are scriptable: 3 means findings were produced, 0 none, 1 an error
