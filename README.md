@@ -1,5 +1,7 @@
 # kdetect
 
+[![tests](https://github.com/basil9099/kdetect/actions/workflows/tests.yml/badge.svg)](https://github.com/basil9099/kdetect/actions/workflows/tests.yml)
+
 Linux kernel rootkit detection via cross-view comparison.
 
 A rootkit hides by lying to whoever asks. kdetect asks the same question through
@@ -51,9 +53,12 @@ capture on the suspect host and analyse somewhere you trust.
 
 ## Try it
 
-The repository ships redacted snapshots taken from a real lab VM, so the example
-below runs with no VM and no root. `infected-hooktest.json` was captured while a
-purpose-built kernel module was loaded and hiding itself.
+The repository ships real captures from a lab VM, so the example below runs with
+no VM and no root. `infected-hooktest.json` was taken while a purpose-built kernel
+module was loaded and hiding itself, and every process command line in it has been
+replaced by `kdetect redact`. The three older fixtures predate that command and
+keep their command lines, with session tokens scrubbed in place;
+`tests/unit/test_analyze.py` asserts none of them carries a live token.
 
 ```bash
 kdetect analyze tests/fixtures/snapshots/infected-hooktest.json
@@ -209,3 +214,9 @@ on a workstation. Rootkit source and binaries are deliberately excluded from thi
 repository: `.gitignore` drops all of `lab/targets/**`, and only kdetect's own
 benign test module (`kmod/kdetect_hooktest.c`) is committed. Never push from a
 host while a rootkit is loaded.
+
+## Licence
+
+MIT, except the kernel module under `kmod/`, which is GPL-2.0 because a Linux
+kernel module must be GPL-compatible to use GPL-only kernel symbols. See
+[`LICENSE`](LICENSE).

@@ -1,7 +1,10 @@
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
+
+import pytest
 
 FIXTURE = Path(__file__).parent.parent / "fixtures" / "snapshots" / "clean-vm.json"
 
@@ -53,14 +56,54 @@ def test_fixture_round_trips_byte_identically():
     assert Snapshot.from_dict(json.loads(s.to_json())).to_json() == s.to_json()
 
 
-def test_fixture_contains_no_session_tokens():
-    """The fixture is the only capture that leaves the machine.
+#: Token-bearing argument names seen in real captures. A value following one of
+#: these is a credential unless it is a placeholder we put there.
+_TOKEN_FLAGS = re.compile(
+    r"--?(?:connection[-_]?token|access[-_]?token|auth[-_]?token|token)"
+    r"(?:[=\s]+)(\S+)", re.IGNORECASE)
 
-    /proc/[pid]/cmdline exposes whatever a process was invoked with, which can
-    include credentials. See docs/limitations.md L13.
+#: Values allowed to follow a token flag: our own scrub placeholders, and
+#: `remotessh`, the fixed literal VS Code Remote-SSH uses over an already
+#: authenticated transport. Anything else must be scrubbed before committing.
+_ALLOWED_TOKEN_VALUES = {"redacted", "remotessh"}
+
+#: A committed capture must not carry a high-entropy secret. Kept deliberately
+#: narrow: VS Code build ids are 40 hex characters and appear in cmdline *paths*,
+#: so entropy alone cannot be the rule -- only values in token position are.
+_SECRET_SHAPED = re.compile(r"^[A-Za-z0-9+/_-]{16,}={0,2}$")
+
+
+def _fixture_cmdlines(path):
+    snapshot = json.loads(path.read_text(encoding="utf-8"))
+    return [" ".join(entity["cmdline"])
+            for obs in snapshot.get("observations", [])
+            for entity in obs.get("entities", {}).values()
+            if isinstance(entity, dict) and entity.get("cmdline")]
+
+
+@pytest.mark.parametrize("path", sorted(FIXTURE.parent.glob("*.json")),
+                         ids=lambda p: p.name)
+def test_no_committed_fixture_carries_a_live_token(path):
+    """Committed captures are the only ones that leave the machine (L13).
+
+    /proc/[pid]/cmdline is recorded verbatim, so a capture can carry whatever a
+    process was handed as an argument. Every fixture is checked, not just one:
+    the point is to fail if a *future* capture is committed with a live token.
     """
-    text = FIXTURE.read_text()
-    assert "b9ecbcb9" not in text
+    offenders = []
+    for cmdline in _fixture_cmdlines(path):
+        for value in _TOKEN_FLAGS.findall(cmdline):
+            stripped = value.strip("\"'")
+            if stripped.lower().startswith(tuple(_ALLOWED_TOKEN_VALUES)):
+                continue
+            if _SECRET_SHAPED.match(stripped):
+                offenders.append(value)
+
+    assert not offenders, (
+        f"{path.name} carries {len(offenders)} unscrubbed token value(s) in a "
+        f"process cmdline: {offenders[:3]}. Scrub them before committing "
+        f"(docs/limitations.md L13)."
+    )
 
 
 def _write_hidden_snapshot(tmp_path):

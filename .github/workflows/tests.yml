@@ -1,0 +1,36 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.11 is the floor and the lab VM's version, so it is not optional:
+        # a 3.12-only construct once passed the whole suite on a 3.12 box and
+        # broke on import on 3.11 (docs/limitations.md L20).
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install pytest
+
+      - name: Run tests
+        # ubuntu-latest has a live /proc, so the needs_procfs integration tier
+        # runs here rather than skipping as it does on a non-Linux workstation.
+        run: pytest tests -q
