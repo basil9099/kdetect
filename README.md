@@ -38,6 +38,23 @@ three independent channels agreeing is HIGH. The same shape applies to modules:
 `/proc/modules` is the listing, while kernel taint bits, unaccounted vmalloc
 regions, and ftrace hook ownership are channels a module must suppress separately.
 
+## Architecture
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/architecture-diagram-dark.svg">
+  <img src="docs/architecture-diagram.svg" width="760"
+       alt="kdetect architecture. Kernel surfaces feed a Source layer, the only part of kdetect that performs I/O and the seam where a live reader is swapped for a fixture reader. Below it, pure parsers and collectors assemble a JSON snapshot, which analysis reads alongside an optional signed baseline: detectors emit signals, scoring composes one finding per suspect, and a reporting layer renders findings and IOCs as Markdown or JSON.">
+</picture>
+
+Two pure pipelines sit above one impure layer. `Source` is the only code that
+touches the operating system, and a collector receives its source as an argument
+rather than constructing one, so a fixture-driven test exercises the identical
+code path as a live capture. Everything below that seam is pure: parse, collect,
+detect, score, render.
+
+The full reasoning, including the three principles the layout follows and the
+snapshot format, is in [`docs/architecture.md`](docs/architecture.md).
+
 ## Install
 
 Requires Python 3.11+. One runtime dependency, `cryptography`, used for ed25519
