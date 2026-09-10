@@ -40,11 +40,8 @@ regions, and ftrace hook ownership are channels a module must suppress separatel
 
 ## Architecture
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/architecture-diagram-dark.svg">
-  <img src="docs/architecture-diagram.svg"
-       alt="kdetect architecture. Kernel surfaces feed a Source layer, the only part of kdetect that performs I/O and the seam where a live reader is swapped for a fixture reader. Below it, pure parsers and collectors assemble a JSON snapshot, which analysis reads alongside an optional signed baseline: detectors emit signals, scoring composes one finding per suspect, and a reporting layer renders findings and IOCs as Markdown or JSON.">
-</picture>
+<img src="docs/architecture-diagram.svg"
+     alt="kdetect architecture. Kernel surfaces feed a Source layer, the only part of kdetect that performs I/O and the seam where a live reader is swapped for a fixture reader. Below it, pure parsers and collectors assemble a JSON snapshot, which analysis reads alongside an optional signed baseline: detectors emit signals, scoring composes one finding per suspect, and a reporting layer renders findings and IOCs as Markdown or JSON.">
 
 Two pure pipelines sit above one impure layer. `Source` is the only code that
 touches the operating system, and a collector receives its source as an argument

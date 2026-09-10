@@ -8,13 +8,13 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --color-paper:      #fafbfc;
-      --color-paper-2:    #f7f8fa;
-      --color-ink:        #14181f;
-      --color-muted:      #5a6472;
-      --color-soft:       #8a93a1;
-      --color-rule:       #e2e5ea;
-      --color-accent:     #12694a;
+      --color-paper:      #1c2128;
+      --color-paper-2:    #262c36;
+      --color-ink:        #e6e9ee;
+      --color-muted:      #8792a3;
+      --color-soft:       #7d8899;
+      --color-rule:       #232a35;
+      --color-accent:     #3ddc84;
       --font-sans:  'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       --font-mono:  'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     }
@@ -77,253 +77,253 @@
 
       <defs>
         <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-          <polygon points="0 0, 8 3, 0 6" fill="#5a6472"/>
+          <polygon points="0 0, 8 3, 0 6" fill="#8792a3"/>
         </marker>
         <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-          <polygon points="0 0, 8 3, 0 6" fill="#12694a"/>
+          <polygon points="0 0, 8 3, 0 6" fill="#3ddc84"/>
         </marker>
         <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-          <polygon points="0 0, 8 3, 0 6" fill="#6b3fa0"/>
+          <polygon points="0 0, 8 3, 0 6" fill="#c792ea"/>
         </marker>
       </defs>
 
       <!-- ============ background ============ -->
-      <rect width="100%" height="100%" fill="#fafbfc"/>
+      <rect width="100%" height="100%" fill="#1c2128"/>
 
       <!-- ============ zones (drawn first) ============ -->
       <!-- Zone A: capture -->
       <rect x="48" y="144" width="608" height="384" rx="8"
-            fill="rgba(20,24,31,0.02)" stroke="rgba(20,24,31,0.10)" stroke-width="0.8"/>
-      <rect x="72" y="148" width="128" height="16" rx="2" fill="#fafbfc"/>
-      <text x="72" y="160" fill="rgba(20,24,31,0.45)" font-size="10"
+            fill="rgba(230,233,238,0.02)" stroke="rgba(230,233,238,0.10)" stroke-width="0.8"/>
+      <rect x="72" y="148" width="128" height="16" rx="2" fill="#1c2128"/>
+      <text x="72" y="160" fill="rgba(230,233,238,0.45)" font-size="10"
             font-family="'JetBrains Mono', monospace" letter-spacing="0.14em">KDETECT CAPTURE</text>
 
       <!-- Zone B: analysis -->
       <rect x="48" y="712" width="608" height="184" rx="8"
-            fill="rgba(20,24,31,0.02)" stroke="rgba(20,24,31,0.10)" stroke-width="0.8"/>
-      <rect x="72" y="716" width="128" height="16" rx="2" fill="#fafbfc"/>
-      <text x="72" y="728" fill="rgba(20,24,31,0.45)" font-size="10"
+            fill="rgba(230,233,238,0.02)" stroke="rgba(230,233,238,0.10)" stroke-width="0.8"/>
+      <rect x="72" y="716" width="128" height="16" rx="2" fill="#1c2128"/>
+      <text x="72" y="728" fill="rgba(230,233,238,0.45)" font-size="10"
             font-family="'JetBrains Mono', monospace" letter-spacing="0.14em">KDETECT ANALYZE</text>
 
       <!-- ============ arrows (drawn before boxes) ============ -->
 
       <!-- A1  kernel surfaces -> Source (lands over the LIVE cell) -->
-      <line x1="220" y1="112" x2="220" y2="192" stroke="#5a6472" stroke-width="1.2" marker-end="url(#arrow)"/>
-      <rect x="232" y="144" width="52" height="16" rx="2" fill="#fafbfc"/>
-      <text x="258" y="156" fill="#5a6472" font-size="12"
+      <line x1="220" y1="112" x2="220" y2="192" stroke="#8792a3" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="232" y="144" width="52" height="16" rx="2" fill="#1c2128"/>
+      <text x="258" y="156" fill="#8792a3" font-size="12"
             font-family="'JetBrains Mono', monospace" text-anchor="middle" letter-spacing="0.06em">READ</text>
 
       <!-- A2  Source -> Parsers -->
-      <line x1="198" y1="336" x2="198" y2="392" stroke="#5a6472" stroke-width="1.2" marker-end="url(#arrow)"/>
-      <rect x="210" y="348" width="84" height="16" rx="2" fill="#fafbfc"/>
-      <text x="252" y="360" fill="#5a6472" font-size="12"
+      <line x1="198" y1="336" x2="198" y2="392" stroke="#8792a3" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="210" y="348" width="84" height="16" rx="2" fill="#1c2128"/>
+      <text x="252" y="360" fill="#8792a3" font-size="12"
             font-family="'JetBrains Mono', monospace" text-anchor="middle" letter-spacing="0.06em">RAW TEXT</text>
 
       <!-- A3  Parsers -> Collectors -->
-      <line x1="308" y1="436" x2="396" y2="436" stroke="#5a6472" stroke-width="1.2" marker-end="url(#arrow)"/>
-      <rect x="324" y="412" width="56" height="16" rx="2" fill="#fafbfc"/>
-      <text x="352" y="424" fill="#5a6472" font-size="12"
+      <line x1="308" y1="436" x2="396" y2="436" stroke="#8792a3" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="324" y="412" width="56" height="16" rx="2" fill="#1c2128"/>
+      <text x="352" y="424" fill="#8792a3" font-size="12"
             font-family="'JetBrains Mono', monospace" text-anchor="middle" letter-spacing="0.06em">TYPED</text>
 
       <!-- A4  Collectors -> Snapshot  (elbow, r=8) -->
       <path d="M 506,480 V 548 Q 506,556 498,556 H 206 Q 198,556 198,564 V 576"
-            fill="none" stroke="#5a6472" stroke-width="1.2" marker-end="url(#arrow)"/>
-      <rect x="292" y="532" width="120" height="16" rx="2" fill="#fafbfc"/>
-      <text x="352" y="544" fill="#5a6472" font-size="12"
+            fill="none" stroke="#8792a3" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="292" y="532" width="120" height="16" rx="2" fill="#1c2128"/>
+      <text x="352" y="544" fill="#8792a3" font-size="12"
             font-family="'JetBrains Mono', monospace" text-anchor="middle" letter-spacing="0.06em">OBSERVATIONS</text>
 
       <!-- A5  Snapshot -> Detectors -->
-      <line x1="198" y1="664" x2="198" y2="760" stroke="#5a6472" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <line x1="198" y1="664" x2="198" y2="760" stroke="#8792a3" stroke-width="1.2" marker-end="url(#arrow)"/>
 
       <!-- A6  Baseline -> Detectors  (optional, dashed elbow) -->
       <path d="M 506,664 V 724 Q 506,732 498,732 H 280 Q 272,732 272,740 V 760"
-            fill="none" stroke="#5a6472" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
-      <rect x="348" y="708" width="84" height="16" rx="2" fill="#fafbfc"/>
-      <text x="390" y="720" fill="#5a6472" font-size="12"
+            fill="none" stroke="#8792a3" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+      <rect x="348" y="708" width="84" height="16" rx="2" fill="#1c2128"/>
+      <text x="390" y="720" fill="#8792a3" font-size="12"
             font-family="'JetBrains Mono', monospace" text-anchor="middle" letter-spacing="0.06em">OPTIONAL</text>
 
       <!-- A7  Detectors -> Scoring -->
-      <line x1="308" y1="804" x2="396" y2="804" stroke="#12694a" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
-      <rect x="320" y="780" width="64" height="16" rx="2" fill="#fafbfc"/>
-      <text x="352" y="792" fill="#12694a" font-size="12"
+      <line x1="308" y1="804" x2="396" y2="804" stroke="#3ddc84" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
+      <rect x="320" y="780" width="64" height="16" rx="2" fill="#1c2128"/>
+      <text x="352" y="792" fill="#3ddc84" font-size="12"
             font-family="'JetBrains Mono', monospace" text-anchor="middle" letter-spacing="0.06em">SIGNAL</text>
 
       <!-- A8  Scoring -> Reporting -->
-      <line x1="506" y1="848" x2="506" y2="944" stroke="#5a6472" stroke-width="1.2" marker-end="url(#arrow)"/>
-      <rect x="518" y="900" width="76" height="16" rx="2" fill="#fafbfc"/>
-      <text x="556" y="912" fill="#5a6472" font-size="12"
+      <line x1="506" y1="848" x2="506" y2="944" stroke="#8792a3" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="518" y="900" width="76" height="16" rx="2" fill="#1c2128"/>
+      <text x="556" y="912" fill="#8792a3" font-size="12"
             font-family="'JetBrains Mono', monospace" text-anchor="middle" letter-spacing="0.06em">FINDING</text>
 
       <!-- ============ nodes ============ -->
 
       <!-- N1  kernel surfaces (external) -->
-      <rect x="84" y="32" width="272" height="80" rx="6" fill="#fafbfc"/>
+      <rect x="84" y="32" width="272" height="80" rx="6" fill="#1c2128"/>
       <rect x="84" y="32" width="272" height="80" rx="6"
-            fill="rgba(20,24,31,0.03)" stroke="rgba(20,24,31,0.30)" stroke-width="1"/>
-      <rect x="96" y="40" width="28" height="14" rx="2" fill="transparent" stroke="rgba(20,24,31,0.35)" stroke-width="0.8"/>
-      <text x="110" y="51" fill="rgba(20,24,31,0.60)" font-size="8"
+            fill="rgba(230,233,238,0.03)" stroke="rgba(230,233,238,0.30)" stroke-width="1"/>
+      <rect x="96" y="40" width="28" height="14" rx="2" fill="transparent" stroke="rgba(230,233,238,0.35)" stroke-width="0.8"/>
+      <text x="110" y="51" fill="rgba(230,233,238,0.60)" font-size="8"
             font-family="'JetBrains Mono', monospace" text-anchor="middle" letter-spacing="0.08em">OS</text>
-      <text x="220" y="78" fill="#14181f" font-size="16" font-weight="600"
+      <text x="220" y="78" fill="#e6e9ee" font-size="16" font-weight="600"
             font-family="'Inter', sans-serif" text-anchor="middle">Kernel surfaces</text>
-      <text x="220" y="100" fill="#5a6472" font-size="12"
+      <text x="220" y="100" fill="#8792a3" font-size="12"
             font-family="'JetBrains Mono', monospace" text-anchor="middle">/proc · /sys/kernel/tracing</text>
 
       <!-- N2  Source (FOCAL 1 of 2) -->
-      <rect x="88" y="192" width="528" height="144" rx="6" fill="#fafbfc"/>
+      <rect x="88" y="192" width="528" height="144" rx="6" fill="#1c2128"/>
       <rect x="88" y="192" width="528" height="144" rx="6"
-            fill="rgba(18,105,74,0.08)" stroke="#12694a" stroke-width="1"/>
-      <rect x="100" y="200" width="32" height="14" rx="2" fill="transparent" stroke="rgba(18,105,74,0.45)" stroke-width="0.8"/>
-      <text x="116" y="211" fill="#12694a" font-size="8"
+            fill="rgba(61,220,132,0.10)" stroke="#3ddc84" stroke-width="1"/>
+      <rect x="100" y="200" width="32" height="14" rx="2" fill="transparent" stroke="rgba(61,220,132,0.45)" stroke-width="0.8"/>
+      <text x="116" y="211" fill="#3ddc84" font-size="8"
             font-family="'JetBrains Mono', monospace" text-anchor="middle" letter-spacing="0.08em">I/O</text>
-      <text x="352" y="230" fill="#14181f" font-size="16" font-weight="600"
+      <text x="352" y="230" fill="#e6e9ee" font-size="16" font-weight="600"
             font-family="'Inter', sans-serif" text-anchor="middle">Source</text>
-      <text x="352" y="252" fill="#5a6472" font-size="12"
+      <text x="352" y="252" fill="#8792a3" font-size="12"
             font-family="'JetBrains Mono', monospace" text-anchor="middle">Proc · Signal · Module · Hook · Socket</text>
       <!-- the seam: one interface, two implementations -->
-      <line x1="88" y1="268" x2="616" y2="268" stroke="rgba(18,105,74,0.30)" stroke-width="0.8"/>
-      <line x1="352" y1="268" x2="352" y2="336" stroke="rgba(18,105,74,0.30)" stroke-width="0.8"/>
-      <text x="220" y="296" fill="#12694a" font-size="12" font-weight="500"
+      <line x1="88" y1="268" x2="616" y2="268" stroke="rgba(61,220,132,0.30)" stroke-width="0.8"/>
+      <line x1="352" y1="268" x2="352" y2="336" stroke="rgba(61,220,132,0.30)" stroke-width="0.8"/>
+      <text x="220" y="296" fill="#3ddc84" font-size="12" font-weight="500"
             font-family="'JetBrains Mono', monospace" text-anchor="middle" letter-spacing="0.14em">LIVE</text>
-      <text x="220" y="318" fill="#5a6472" font-size="12"
+      <text x="220" y="318" fill="#8792a3" font-size="12"
             font-family="'JetBrains Mono', monospace" text-anchor="middle">the real kernel</text>
-      <text x="484" y="296" fill="#12694a" font-size="12" font-weight="500"
+      <text x="484" y="296" fill="#3ddc84" font-size="12" font-weight="500"
             font-family="'JetBrains Mono', monospace" text-anchor="middle" letter-spacing="0.14em">FIXTURE</text>
-      <text x="484" y="318" fill="#5a6472" font-size="12"
+      <text x="484" y="318" fill="#8792a3" font-size="12"
             font-family="'JetBrains Mono', monospace" text-anchor="middle">tree + _errors.json</text>
 
       <!-- N3  Parsers -->
-      <rect x="88" y="392" width="220" height="88" rx="6" fill="#fafbfc"/>
+      <rect x="88" y="392" width="220" height="88" rx="6" fill="#1c2128"/>
       <rect x="88" y="392" width="220" height="88" rx="6"
-            fill="#ffffff" stroke="#14181f" stroke-width="1"/>
-      <rect x="100" y="400" width="36" height="14" rx="2" fill="transparent" stroke="rgba(20,24,31,0.40)" stroke-width="0.8"/>
-      <text x="118" y="411" fill="rgba(20,24,31,0.70)" font-size="8"
+            fill="#262c36" stroke="#e6e9ee" stroke-width="1"/>
+      <rect x="100" y="400" width="36" height="14" rx="2" fill="transparent" stroke="rgba(230,233,238,0.40)" stroke-width="0.8"/>
+      <text x="118" y="411" fill="rgba(230,233,238,0.70)" font-size="8"
             font-family="'JetBrains Mono', monospace" text-anchor="middle" letter-spacing="0.08em">PURE</text>
-      <text x="198" y="444" fill="#14181f" font-size="16" font-weight="600"
+      <text x="198" y="444" fill="#e6e9ee" font-size="16" font-weight="600"
             font-family="'Inter', sans-serif" text-anchor="middle">Parsers</text>
-      <text x="198" y="466" fill="#5a6472" font-size="12"
+      <text x="198" y="466" fill="#8792a3" font-size="12"
             font-family="'JetBrains Mono', monospace" text-anchor="middle">text → typed</text>
 
       <!-- N4  Collectors -->
-      <rect x="396" y="392" width="220" height="88" rx="6" fill="#fafbfc"/>
+      <rect x="396" y="392" width="220" height="88" rx="6" fill="#1c2128"/>
       <rect x="396" y="392" width="220" height="88" rx="6"
-            fill="#ffffff" stroke="#14181f" stroke-width="1"/>
-      <rect x="408" y="400" width="36" height="14" rx="2" fill="transparent" stroke="rgba(20,24,31,0.40)" stroke-width="0.8"/>
-      <text x="426" y="411" fill="rgba(20,24,31,0.70)" font-size="8"
+            fill="#262c36" stroke="#e6e9ee" stroke-width="1"/>
+      <rect x="408" y="400" width="36" height="14" rx="2" fill="transparent" stroke="rgba(230,233,238,0.40)" stroke-width="0.8"/>
+      <text x="426" y="411" fill="rgba(230,233,238,0.70)" font-size="8"
             font-family="'JetBrains Mono', monospace" text-anchor="middle" letter-spacing="0.08em">ORCH</text>
-      <text x="506" y="444" fill="#14181f" font-size="16" font-weight="600"
+      <text x="506" y="444" fill="#e6e9ee" font-size="16" font-weight="600"
             font-family="'Inter', sans-serif" text-anchor="middle">Collectors</text>
-      <text x="506" y="466" fill="#5a6472" font-size="12"
+      <text x="506" y="466" fill="#8792a3" font-size="12"
             font-family="'JetBrains Mono', monospace" text-anchor="middle">7 observations</text>
 
       <!-- N5  Snapshot (artifact) -->
-      <rect x="88" y="576" width="220" height="88" rx="6" fill="#fafbfc"/>
+      <rect x="88" y="576" width="220" height="88" rx="6" fill="#1c2128"/>
       <rect x="88" y="576" width="220" height="88" rx="6"
-            fill="rgba(20,24,31,0.05)" stroke="#5a6472" stroke-width="1"/>
-      <rect x="100" y="584" width="36" height="14" rx="2" fill="transparent" stroke="rgba(90,100,114,0.45)" stroke-width="0.8"/>
-      <text x="118" y="595" fill="#5a6472" font-size="8"
+            fill="rgba(230,233,238,0.05)" stroke="#8792a3" stroke-width="1"/>
+      <rect x="100" y="584" width="36" height="14" rx="2" fill="transparent" stroke="rgba(135,146,163,0.45)" stroke-width="0.8"/>
+      <text x="118" y="595" fill="#8792a3" font-size="8"
             font-family="'JetBrains Mono', monospace" text-anchor="middle" letter-spacing="0.08em">FILE</text>
-      <text x="198" y="628" fill="#14181f" font-size="16" font-weight="600"
+      <text x="198" y="628" fill="#e6e9ee" font-size="16" font-weight="600"
             font-family="'Inter', sans-serif" text-anchor="middle">Snapshot</text>
-      <text x="198" y="650" fill="#5a6472" font-size="12"
+      <text x="198" y="650" fill="#8792a3" font-size="12"
             font-family="'JetBrains Mono', monospace" text-anchor="middle">schema 1.1 · JSON</text>
 
       <!-- N6  Baseline (optional artifact) -->
-      <rect x="396" y="576" width="220" height="88" rx="6" fill="#fafbfc"/>
+      <rect x="396" y="576" width="220" height="88" rx="6" fill="#1c2128"/>
       <rect x="396" y="576" width="220" height="88" rx="6"
-            fill="rgba(20,24,31,0.02)" stroke="rgba(20,24,31,0.25)" stroke-width="1" stroke-dasharray="4,3"/>
-      <rect x="408" y="584" width="36" height="14" rx="2" fill="transparent" stroke="rgba(20,24,31,0.30)" stroke-width="0.8"/>
-      <text x="426" y="595" fill="rgba(20,24,31,0.60)" font-size="8"
+            fill="rgba(230,233,238,0.02)" stroke="rgba(230,233,238,0.25)" stroke-width="1" stroke-dasharray="4,3"/>
+      <rect x="408" y="584" width="36" height="14" rx="2" fill="transparent" stroke="rgba(230,233,238,0.30)" stroke-width="0.8"/>
+      <text x="426" y="595" fill="rgba(230,233,238,0.60)" font-size="8"
             font-family="'JetBrains Mono', monospace" text-anchor="middle" letter-spacing="0.08em">FILE</text>
-      <text x="506" y="628" fill="#14181f" font-size="16" font-weight="600"
+      <text x="506" y="628" fill="#e6e9ee" font-size="16" font-weight="600"
             font-family="'Inter', sans-serif" text-anchor="middle">Baseline</text>
-      <text x="506" y="650" fill="#5a6472" font-size="12"
+      <text x="506" y="650" fill="#8792a3" font-size="12"
             font-family="'JetBrains Mono', monospace" text-anchor="middle">signed · Ed25519</text>
 
       <!-- N7  Detectors -->
-      <rect x="88" y="760" width="220" height="88" rx="6" fill="#fafbfc"/>
+      <rect x="88" y="760" width="220" height="88" rx="6" fill="#1c2128"/>
       <rect x="88" y="760" width="220" height="88" rx="6"
-            fill="#ffffff" stroke="#14181f" stroke-width="1"/>
-      <rect x="100" y="768" width="36" height="14" rx="2" fill="transparent" stroke="rgba(20,24,31,0.40)" stroke-width="0.8"/>
-      <text x="118" y="779" fill="rgba(20,24,31,0.70)" font-size="8"
+            fill="#262c36" stroke="#e6e9ee" stroke-width="1"/>
+      <rect x="100" y="768" width="36" height="14" rx="2" fill="transparent" stroke="rgba(230,233,238,0.40)" stroke-width="0.8"/>
+      <text x="118" y="779" fill="rgba(230,233,238,0.70)" font-size="8"
             font-family="'JetBrains Mono', monospace" text-anchor="middle" letter-spacing="0.08em">PURE</text>
-      <text x="198" y="812" fill="#14181f" font-size="16" font-weight="600"
+      <text x="198" y="812" fill="#e6e9ee" font-size="16" font-weight="600"
             font-family="'Inter', sans-serif" text-anchor="middle">Detectors</text>
-      <text x="198" y="834" fill="#5a6472" font-size="12"
+      <text x="198" y="834" fill="#8792a3" font-size="12"
             font-family="'JetBrains Mono', monospace" text-anchor="middle">signals.py</text>
 
       <!-- N8  Scoring (FOCAL 2 of 2) -->
-      <rect x="396" y="760" width="220" height="88" rx="6" fill="#fafbfc"/>
+      <rect x="396" y="760" width="220" height="88" rx="6" fill="#1c2128"/>
       <rect x="396" y="760" width="220" height="88" rx="6"
-            fill="rgba(18,105,74,0.08)" stroke="#12694a" stroke-width="1"/>
-      <rect x="408" y="768" width="36" height="14" rx="2" fill="transparent" stroke="rgba(18,105,74,0.45)" stroke-width="0.8"/>
-      <text x="426" y="779" fill="#12694a" font-size="8"
+            fill="rgba(61,220,132,0.10)" stroke="#3ddc84" stroke-width="1"/>
+      <rect x="408" y="768" width="36" height="14" rx="2" fill="transparent" stroke="rgba(61,220,132,0.45)" stroke-width="0.8"/>
+      <text x="426" y="779" fill="#3ddc84" font-size="8"
             font-family="'JetBrains Mono', monospace" text-anchor="middle" letter-spacing="0.08em">PURE</text>
-      <text x="506" y="812" fill="#14181f" font-size="16" font-weight="600"
+      <text x="506" y="812" fill="#e6e9ee" font-size="16" font-weight="600"
             font-family="'Inter', sans-serif" text-anchor="middle">Scoring</text>
-      <text x="506" y="834" fill="#5a6472" font-size="12"
+      <text x="506" y="834" fill="#8792a3" font-size="12"
             font-family="'JetBrains Mono', monospace" text-anchor="middle">scoring.py → Finding</text>
 
       <!-- N9  Reporting -->
-      <rect x="396" y="944" width="220" height="88" rx="6" fill="#fafbfc"/>
+      <rect x="396" y="944" width="220" height="88" rx="6" fill="#1c2128"/>
       <rect x="396" y="944" width="220" height="88" rx="6"
-            fill="#ffffff" stroke="#14181f" stroke-width="1"/>
-      <rect x="408" y="952" width="36" height="14" rx="2" fill="transparent" stroke="rgba(20,24,31,0.40)" stroke-width="0.8"/>
-      <text x="426" y="963" fill="rgba(20,24,31,0.70)" font-size="8"
+            fill="#262c36" stroke="#e6e9ee" stroke-width="1"/>
+      <rect x="408" y="952" width="36" height="14" rx="2" fill="transparent" stroke="rgba(230,233,238,0.40)" stroke-width="0.8"/>
+      <text x="426" y="963" fill="rgba(230,233,238,0.70)" font-size="8"
             font-family="'JetBrains Mono', monospace" text-anchor="middle" letter-spacing="0.08em">PURE</text>
-      <text x="506" y="996" fill="#14181f" font-size="16" font-weight="600"
+      <text x="506" y="996" fill="#e6e9ee" font-size="16" font-weight="600"
             font-family="'Inter', sans-serif" text-anchor="middle">Reporting</text>
-      <text x="506" y="1018" fill="#5a6472" font-size="12"
+      <text x="506" y="1018" fill="#8792a3" font-size="12"
             font-family="'JetBrains Mono', monospace" text-anchor="middle">IOCs · MD / JSON</text>
 
       <!-- ============ editorial callouts (max 2) ============ -->
 
       <!-- callout 1 -> Source -->
-      <text x="920" y="212" fill="#14181f" font-size="16" font-style="italic"
+      <text x="920" y="212" fill="#e6e9ee" font-size="16" font-style="italic"
             font-family="'Inter', sans-serif" text-anchor="end">Only Source touches the OS.</text>
-      <text x="920" y="234" fill="#14181f" font-size="16" font-style="italic"
+      <text x="920" y="234" fill="#e6e9ee" font-size="16" font-style="italic"
             font-family="'Inter', sans-serif" text-anchor="end">Everything below is pure —</text>
-      <text x="920" y="256" fill="#14181f" font-size="16" font-style="italic"
+      <text x="920" y="256" fill="#e6e9ee" font-size="16" font-style="italic"
             font-family="'Inter', sans-serif" text-anchor="end">a fixture test runs the same</text>
-      <text x="920" y="278" fill="#14181f" font-size="16" font-style="italic"
+      <text x="920" y="278" fill="#e6e9ee" font-size="16" font-style="italic"
             font-family="'Inter', sans-serif" text-anchor="end">code path as a live capture.</text>
       <path d="M 804,290 Q 712,316 620,282" fill="none"
-            stroke="rgba(20,24,31,0.40)" stroke-width="1" stroke-dasharray="4,3"/>
-      <circle cx="616" cy="282" r="2.5" fill="#14181f"/>
+            stroke="rgba(230,233,238,0.40)" stroke-width="1" stroke-dasharray="4,3"/>
+      <circle cx="616" cy="282" r="2.5" fill="#e6e9ee"/>
 
       <!-- callout 2 -> Scoring -->
-      <text x="920" y="772" fill="#14181f" font-size="16" font-style="italic"
+      <text x="920" y="772" fill="#e6e9ee" font-size="16" font-style="italic"
             font-family="'Inter', sans-serif" text-anchor="end">Confidence is how many</text>
-      <text x="920" y="794" fill="#14181f" font-size="16" font-style="italic"
+      <text x="920" y="794" fill="#e6e9ee" font-size="16" font-style="italic"
             font-family="'Inter', sans-serif" text-anchor="end">independent channels agree</text>
-      <text x="920" y="816" fill="#14181f" font-size="16" font-style="italic"
+      <text x="920" y="816" fill="#e6e9ee" font-size="16" font-style="italic"
             font-family="'Inter', sans-serif" text-anchor="end">about one suspect.</text>
       <path d="M 792,828 Q 704,850 620,816" fill="none"
-            stroke="rgba(20,24,31,0.40)" stroke-width="1" stroke-dasharray="4,3"/>
-      <circle cx="616" cy="816" r="2.5" fill="#14181f"/>
+            stroke="rgba(230,233,238,0.40)" stroke-width="1" stroke-dasharray="4,3"/>
+      <circle cx="616" cy="816" r="2.5" fill="#e6e9ee"/>
 
       <!-- ============ legend (horizontal strip, bottom) ============ -->
-      <line x1="48" y1="1072" x2="912" y2="1072" stroke="rgba(20,24,31,0.10)" stroke-width="0.8"/>
-      <text x="48" y="1100" fill="#5a6472" font-size="10"
+      <line x1="48" y1="1072" x2="912" y2="1072" stroke="rgba(230,233,238,0.10)" stroke-width="0.8"/>
+      <text x="48" y="1100" fill="#8792a3" font-size="10"
             font-family="'JetBrains Mono', monospace" letter-spacing="0.14em">LEGEND</text>
 
-      <rect x="136" y="1088" width="20" height="14" rx="2" fill="rgba(18,105,74,0.08)" stroke="#12694a" stroke-width="1"/>
-      <text x="164" y="1100" fill="#5a6472" font-size="10"
+      <rect x="136" y="1088" width="20" height="14" rx="2" fill="rgba(61,220,132,0.10)" stroke="#3ddc84" stroke-width="1"/>
+      <text x="164" y="1100" fill="#8792a3" font-size="10"
             font-family="'JetBrains Mono', monospace" letter-spacing="0.06em">FOCAL</text>
 
-      <rect x="296" y="1088" width="20" height="14" rx="2" fill="#ffffff" stroke="#14181f" stroke-width="1"/>
-      <text x="324" y="1100" fill="#5a6472" font-size="10"
+      <rect x="296" y="1088" width="20" height="14" rx="2" fill="#262c36" stroke="#e6e9ee" stroke-width="1"/>
+      <text x="324" y="1100" fill="#8792a3" font-size="10"
             font-family="'JetBrains Mono', monospace" letter-spacing="0.06em">KDETECT MODULE</text>
 
-      <rect x="456" y="1088" width="20" height="14" rx="2" fill="rgba(20,24,31,0.05)" stroke="#5a6472" stroke-width="1"/>
-      <text x="484" y="1100" fill="#5a6472" font-size="10"
+      <rect x="456" y="1088" width="20" height="14" rx="2" fill="rgba(230,233,238,0.05)" stroke="#8792a3" stroke-width="1"/>
+      <text x="484" y="1100" fill="#8792a3" font-size="10"
             font-family="'JetBrains Mono', monospace" letter-spacing="0.06em">ARTIFACT</text>
 
-      <rect x="616" y="1088" width="20" height="14" rx="2" fill="rgba(20,24,31,0.03)" stroke="rgba(20,24,31,0.30)" stroke-width="1"/>
-      <text x="644" y="1100" fill="#5a6472" font-size="10"
+      <rect x="616" y="1088" width="20" height="14" rx="2" fill="rgba(230,233,238,0.03)" stroke="rgba(230,233,238,0.30)" stroke-width="1"/>
+      <text x="644" y="1100" fill="#8792a3" font-size="10"
             font-family="'JetBrains Mono', monospace" letter-spacing="0.06em">KERNEL SURFACE</text>
 
-      <rect x="776" y="1088" width="20" height="14" rx="2" fill="rgba(20,24,31,0.02)" stroke="rgba(20,24,31,0.25)" stroke-width="1" stroke-dasharray="3,2"/>
-      <text x="804" y="1100" fill="#5a6472" font-size="10"
+      <rect x="776" y="1088" width="20" height="14" rx="2" fill="rgba(230,233,238,0.02)" stroke="rgba(230,233,238,0.25)" stroke-width="1" stroke-dasharray="3,2"/>
+      <text x="804" y="1100" fill="#8792a3" font-size="10"
             font-family="'JetBrains Mono', monospace" letter-spacing="0.06em">OPTIONAL</text>
     </svg>
   </div>
