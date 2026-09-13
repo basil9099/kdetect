@@ -172,6 +172,24 @@ Validated against real rootkits on Debian 12 / kernel 6.1.0-52. Diamorphine's
 hidden module was caught three independent ways, and a purpose-built hiding module
 (`kmod/kdetect_hooktest.c`) is the committed ground truth for hook detection.
 
+### MITRE ATT&CK
+
+Findings mapped to [ATT&CK v19.2](https://attack.mitre.org/) Enterprise, with how
+far each has been tested.
+
+| Finding | Technique (tactic) | Tested against |
+|---|---|---|
+| `hidden_module` | [T1014 Rootkit](https://attack.mitre.org/techniques/T1014/) (Stealth); [T1547.006 Kernel Modules and Extensions](https://attack.mitre.org/techniques/T1547/006/) (Persistence, Privilege Escalation) | Live: Diamorphine and `kdetect_hooktest` on kernel 6.1.0-52 |
+| `suspected_hidden_module` | T1014 Rootkit (Stealth); T1547.006 Kernel Modules and Extensions (Persistence, Privilege Escalation) | Not yet tested live |
+| `hidden_process` | T1014 Rootkit (Stealth) | Hand-built snapshots only: Diamorphine's process hiding did not engage on 6.1 (L16, L24) |
+| `baseline_drift` | T1547.006 Kernel Modules and Extensions (Persistence, Privilege Escalation) | Not yet tested live |
+
+A module that stays listed produces no finding unless a signed baseline predates
+it, so kdetect sees T1547.006 only when the module hides or is new since the
+baseline. T1014 also covers user-mode rootkits, which kdetect has not been tested
+against, and hypervisor or firmware rootkits, which sit below anything kdetect can
+observe.
+
 ## What it cannot detect
 
 [`docs/limitations.md`](docs/limitations.md) records 26 numbered limitations, each
