@@ -3,14 +3,16 @@
 # itself, then the capture that catches it.
 #
 # Run as root under asciinema on a throwaway VM snapshot, from the repo root, with
-# the test module built in hidden mode (make -C kmod hidden). A hidden module
-# cannot be unloaded, so revert the snapshot afterwards (docs/lab-setup.md §8).
+# the test module built in hidden mode (cd kmod && make clean && make hidden; not
+# make -C, because the Makefile's M=$(PWD) would point at the repo root). A hidden
+# module cannot be unloaded, so revert the snapshot afterwards
+# (docs/lab-setup.md §8).
 #
-#   sudo KDETECT_BIN="$(dirname "$(command -v kdetect)")" \
+#   sudo KDETECT_BIN="$PWD/.venv/bin" \
 #     asciinema rec --idle-time-limit 2 --command "bash tools/demo.sh" demo.cast
 #
-# KDETECT_BIN is there because sudo resets PATH, which would lose a kdetect
-# installed in a virtualenv or under ~/.local/bin.
+# KDETECT_BIN is the directory holding the kdetect executable. sudo resets PATH,
+# which would otherwise lose a kdetect installed in a virtualenv.
 
 set -uo pipefail
 
@@ -23,8 +25,11 @@ if [[ -n "${KDETECT_BIN:-}" ]]; then
 fi
 cd "$(dirname "$0")/.." || exit 1
 
-if [[ ! -f kmod/kdetect_hooktest.ko ]]; then
-  echo "build the module first: make -C kmod hidden" >&2
+# kbuild records each compile command in a .cmd file, so this tells a hidden build
+# from a visible one, which would load without hiding and give a dull demo.
+if [[ ! -f kmod/kdetect_hooktest.ko ]] ||
+   ! grep -qs KDETECT_HIDDEN kmod/.kdetect_hooktest.o.cmd; then
+  echo "build the hidden module first: (cd kmod && make clean && make hidden)" >&2
   exit 1
 fi
 if grep -q '^kdetect_hooktest ' /proc/modules; then
