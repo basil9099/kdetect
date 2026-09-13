@@ -13,6 +13,13 @@ several channels that a rootkit has to subvert separately, then treats their
 disagreement as the finding. It asks whether two views of the system agree,
 records both answers, and reports where they diverge.
 
+<img src="docs/demo.gif" alt="Terminal recording on the lab VM. kdetect captures a clean host and reports no findings. The kdetect_hooktest module is then loaded, lsmod no longer lists it, and a second capture reports a HIGH hidden_module finding seen by taint, unexpected_hook and vmalloc_region.">
+
+Recorded on the lab VM (Debian 12, kernel 6.1.0-52) with kdetect's own benign test
+module, [`kmod/kdetect_hooktest.c`](kmod/kdetect_hooktest.c). Pauses are shortened:
+each capture's syscall sweep takes about a minute. [`tools/demo.sh`](tools/demo.sh)
+reproduces the run.
+
 The architecture follows from that, via the principles in
 [`docs/architecture.md`](docs/architecture.md): snapshots hold evidence and never
 conclusions (P1), disagreement between collectors stays representable rather than
