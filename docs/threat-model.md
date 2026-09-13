@@ -47,9 +47,12 @@ this; it is mitigated only by running from read-only or external media, which
 kdetect does not currently support.
 
 **A3 — Stored snapshots and baselines have not been tampered with.** They are
-plain JSON on the same filesystem being inspected. Phase 3's baseline store
-should address this — signing, or storage off-host — and until then a baseline
-is only as trustworthy as the host holding it.
+plain JSON on the same filesystem being inspected. Baselines are signed with
+ed25519 and verified before parsing, so while the private key stays off-host a
+root attacker cannot forge a baseline that certifies their own compromise. If the
+private key is on the inspected host, or stolen, that degrades to detecting
+accidental corruption, and snapshots are not signed at all. This bounds A3 rather
+than closing it (L18); off-host key storage and verification are phase 5.
 
 **A4 — The kernel is telling the truth about itself, or is at least
 inconsistent when lying.** The entire cross-view approach depends on a rootkit
@@ -217,13 +220,16 @@ than being coerced.
 every process, which routinely includes credentials passed as arguments. The
 phase 1 fixture required a VS Code session token to be redacted before it could
 be committed (L13). **A snapshot should be treated as at least as sensitive as
-the host it came from**, and phase 4's reporting will need a redaction pass
-before anything is shareable.
+the host it came from.** Reports never include command lines: findings concern
+modules and hidden processes, and a hidden process has no recorded command line.
+Before a snapshot is shared, `kdetect redact` replaces every command line with a
+placeholder, but leaves `exe` paths, the hostname, the boot id, uid/gid, and
+socket addresses in place.
 
-**Baselines are a target.** Once integrity checking exists, the fastest way to
-defeat it is to rewrite the baseline rather than hide from it. A baseline stored
-on the host it describes provides much weaker assurance than one stored
-elsewhere.
+**Baselines are a target.** Now that integrity checking exists, the fastest way
+to defeat it is to rewrite the baseline rather than hide from it. Signing stops
+that for anyone without the private key (L18), but a baseline stored on the host
+it describes still provides much weaker assurance than one stored elsewhere.
 
 ---
 
@@ -232,7 +238,7 @@ elsewhere.
 - Prevention, containment, or remediation. kdetect observes; it does not act.
 - Non-Linux hosts.
 - Containers and namespaces as first-class concepts. A container's PID namespace
-  will produce disagreement that looks like hiding, and phase 1 has no model for
+  will produce disagreement that looks like hiding, and kdetect has no model for
   this. Recorded as a known gap rather than a solved problem.
 - Malicious hardware, firmware, or hypervisor (T4).
 - Network-based detection from off-host. Valuable, complementary, not this tool.
@@ -241,8 +247,7 @@ elsewhere.
 
 ## 8. Confidence discipline
 
-Directly downstream of §1, and binding on phase 3's scoring and phase 4's
-reporting:
+Directly downstream of §1, and binding on kdetect's scoring and reporting:
 
 1. **Report the observation, then the interpretation, and keep them separate.**
    "procfs listed 152 PIDs; the kill sweep found 153; PID 31337 appears only in
