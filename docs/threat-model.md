@@ -217,8 +217,11 @@ than being coerced.
 every process, which routinely includes credentials passed as arguments. The
 phase 1 fixture required a VS Code session token to be redacted before it could
 be committed (L13). **A snapshot should be treated as at least as sensitive as
-the host it came from**, and phase 4's reporting will need a redaction pass
-before anything is shareable.
+the host it came from.** Reports never include command lines: findings concern
+modules and hidden processes, and a hidden process has no recorded command line.
+Before a snapshot is shared, `kdetect redact` replaces every command line with a
+placeholder, but leaves `exe` paths, the hostname, the boot id, uid/gid, and
+socket addresses in place.
 
 **Baselines are a target.** Once integrity checking exists, the fastest way to
 defeat it is to rewrite the baseline rather than hide from it. A baseline stored
