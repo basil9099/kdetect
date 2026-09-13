@@ -32,6 +32,9 @@ source = ["kdetect"]
 # Stored paths relative to the checkout, so the coverage action in CI can map
 # results back to files in the repository.
 relative_files = true
+# Some tests run the CLI as `python -m kdetect.cli` in a subprocess. This starts
+# coverage in those child processes too (coverage 7.10+, pytest-cov 7+).
+patch = ["subprocess"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
