@@ -95,16 +95,18 @@ class ProcfsProcessCollector(Collector):
             partial: list[str] = []
             degraded = False
 
+            # _optional calls each read before returning, inside this iteration,
+            # so no closure can see a later pid; B023 is a false positive here.
             cmdline, d1 = self._optional(
-                lambda: parse_cmdline(source.read_text(pid, "cmdline")),
+                lambda: parse_cmdline(source.read_text(pid, "cmdline")),  # noqa: B023
                 pid, "cmdline", partial, errors,
             )
             creds, d2 = self._optional(
-                lambda: parse_status(source.read_text(pid, "status")),
+                lambda: parse_status(source.read_text(pid, "status")),  # noqa: B023
                 pid, "status", partial, errors,
             )
             exe, d3 = self._optional(
-                lambda: source.read_link(pid, "exe"),
+                lambda: source.read_link(pid, "exe"),  # noqa: B023
                 pid, "exe", partial, errors,
             )
             degraded = d1 or d2 or d3

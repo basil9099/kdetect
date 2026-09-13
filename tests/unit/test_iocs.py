@@ -1,5 +1,5 @@
 from kdetect.analysis.models import Finding, FindingKind, Confidence
-from kdetect.reporting.iocs import IOC, extract
+from kdetect.reporting.iocs import extract
 
 def _f(kind, subject, evidence, conf=Confidence.HIGH):
     return Finding(kind, subject, conf, [], [], evidence, "")

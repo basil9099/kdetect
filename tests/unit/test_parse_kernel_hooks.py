@@ -1,6 +1,6 @@
 import pytest
 from kdetect.parsers.kernel_hooks import (
-    HookRow, KernelHookParseError,
+    KernelHookParseError,
     parse_enabled_functions, parse_kprobes, reduce_kallsyms,
 )
 

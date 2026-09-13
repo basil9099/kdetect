@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from kdetect.collectors.base import Vanished
+from kdetect.collectors.base import ProcSourceError, Vanished
 from kdetect.collectors.sources import LiveProcSource
 from tests.conftest import needs_procfs
 
@@ -23,7 +23,7 @@ def test_reads_own_stat():
 
 def test_kernel_thread_exe_raises_vanished_or_unreadable():
     # PID 2 has no executable: ENOENT. See docs/step0/06-exe-errno-comparison.txt
-    with pytest.raises(Exception):
+    with pytest.raises(ProcSourceError):
         LiveProcSource().read_link(2, "exe")
 
 

@@ -1,0 +1,26 @@
+name: lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  ruff:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install
+        # Pinned: the rule set lives in pyproject.toml, but a ruff release can
+        # still change what a rule flags and turn a clean tree red.
+        run: pip install ruff==0.16.7
+
+      - name: Ruff
+        run: ruff check .

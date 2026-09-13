@@ -4,16 +4,28 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kdetect"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Linux kernel rootkit detection via cross-view comparison"
 requires-python = ">=3.11"
 dependencies = ["cryptography>=42"]
 
+[project.urls]
+Repository = "https://github.com/basil9099/kdetect"
+Write-up = "https://basil9099.github.io/projects/kdetect/"
+
 [project.scripts]
 kdetect = "kdetect.cli:cli_entry"
 
+[tool.setuptools.dynamic]
+version = { attr = "kdetect.__version__" }
+
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.ruff.lint]
+# Pyflakes and syntax errors (ruff's classic defaults) plus bugbear. Listed
+# explicitly because newer ruff releases widen the default set.
+select = ["E4", "E7", "E9", "F", "B"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -161,9 +161,11 @@ def test_analyze_with_tampered_baseline_exits_1(tmp_path, capsys, monkeypatch):
     from kdetect.baseline.store import write_baseline
     from kdetect.cli import main
     # build a minimal valid snapshot file to analyze (reuse an existing fixture)
-    import shutil, pathlib
+    import pathlib
+    import shutil
     fixture = pathlib.Path("tests/fixtures/snapshots/clean-phase2.json")
-    snap = tmp_path / "snap.json"; shutil.copy(fixture, snap)
+    snap = tmp_path / "snap.json"
+    shutil.copy(fixture, snap)
     # a baseline signed by key A, verified with key B -> BaselineTampered
     key_a = Ed25519PrivateKey.generate()
     from kdetect.models import Snapshot

@@ -435,7 +435,7 @@ def file_03_race(ev: Evidence, pid_max: int, noise: int) -> None:
         ev.say(f"  of those, still resolvable: {len(resolved)}")
         ev.say(
             f"  whose Tgid is a listed pid: "
-            f"{len([l for l in leaders if l in pass_b])} distinct leaders"
+            f"{len([leader for leader in leaders if leader in pass_b])} distinct leaders"
         )
         ev.say()
     ev.close()

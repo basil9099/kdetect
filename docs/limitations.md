@@ -3,8 +3,6 @@
 A running log, kept from day one. Every entry is something observed while
 building kdetect that constrains what it can honestly claim to detect.
 
-Deliverable 8 of the original brief asks for exactly this document.
-
 ## Lab environment
 
 **L1 — The baseline has unverifiable provenance.** ~~Current~~ **RESOLVED
@@ -21,7 +19,7 @@ Rebuild from Debian netinst before phase 2.
 
 **L2 — The VM holds a GitHub deploy key with write access.** **RESOLVED
 2026-08-19**: the old key was deleted and a new repository-scoped key generated
-on the rebuilt VM. It still grants write access to one private repository, so
+on the rebuilt VM. It still grants write access to the kdetect repository, so
 the working procedure in [`threat-model.md`](threat-model.md) applies — push
 from `clean-baseline`, never from an infected snapshot.
 
