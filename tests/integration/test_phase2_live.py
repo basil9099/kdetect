@@ -1,4 +1,3 @@
-import pytest
 from tests.conftest import needs_procfs
 from kdetect.collectors.sources import (
     LiveSignalSource, LiveModuleSource,

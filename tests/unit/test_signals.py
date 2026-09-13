@@ -142,7 +142,6 @@ def test_socket_visible_folds_thread_tid_to_listed_tgid():
 
 
 def test_signals_processes_carries_comm_in_evidence():
-    from kdetect.analysis.signals import signals_processes
     procs = Observation(
         collector="procfs.processes", collector_version="1", view="processes",
         trust_level=TrustLevel.LOW, status=Status.OK, duration_ms=1,

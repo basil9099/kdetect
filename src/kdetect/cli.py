@@ -233,10 +233,10 @@ def _load_verified_baseline(args):
         return load_baseline(Path(args.baseline), load_public_key(Path(args.verify_key)))
     except BaselineTampered as exc:
         print(f"error: baseline verification failed: {exc}", file=sys.stderr)
-        raise _BaselineLoadError
+        raise _BaselineLoadError from exc
     except (OSError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
-        raise _BaselineLoadError
+        raise _BaselineLoadError from exc
 
 
 def cmd_report(args) -> int:
