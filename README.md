@@ -206,6 +206,43 @@ v1.0. Built in phases, each with a design spec and an implementation plan under
 Deferred to phase 5: eBPF collectors, out-of-band memory forensics, and off-host
 baseline verification.
 
+## How this was built
+
+I built kdetect as a learning project, with Claude Code (Anthropic's coding agent)
+writing most of the implementation. I started out writing the code myself with
+Claude Code coaching, but I was new to Python and kept getting stuck on syntax,
+which taught me nothing about kernels. The kernel side of this project lives in the
+design and in how `/proc` behaves, so early in phase 1 I changed the arrangement.
+From then on Claude Code wrote the code and tests, and I read and reviewed each
+change before committing it.
+
+The split:
+
+- Me: project scope, the design decisions, and the lab. Claude Code proposed
+  options during each phase's design and I picked between them. I rebuilt the lab
+  VM from a signature-verified Debian installer, and its `sudo` needs a password,
+  so every root capture, rootkit load and live validation was run by me.
+- Claude Code: most of the Python and tests, first drafts of the docs, and
+  unprivileged checks on the VM over SSH.
+
+Every phase followed the same steps: a brainstorm, a design spec, an implementation
+plan, then a task-by-task build, with each task and then the whole branch reviewed
+before merging. The specs and plans are in [`docs/superpowers/`](docs/superpowers/),
+named after the [superpowers](https://github.com/obra/superpowers) Claude Code
+plugin that runs that workflow.
+
+Several problems only showed up on the real VM or in review:
+
+- The parser for ftrace's `enabled_functions` was written against a guessed
+  format. A live capture showed each hook on a single line with its owning module
+  inline, and the parser was rewritten.
+- `hidden_socket` fired on a clean VM, on a VMware Tools vsock socket and a D-Bus
+  socket. Some socket families have no `/proc/net` table at all, so the signal was
+  removed (L25).
+- The phase 4a branch review found that socket owners were compared as thread ids
+  against a list of process ids. On a clean host, every thread of a socket-owning
+  daemon would have been reported as a hidden process.
+
 ## Development
 
 ```bash
