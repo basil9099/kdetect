@@ -8,19 +8,19 @@
 | src/kdetect/analysis/\_\_init\_\_.py     |        0 |        0 |    100% |           |
 | src/kdetect/analysis/models.py           |       33 |        0 |    100% |           |
 | src/kdetect/analysis/scoring.py          |       42 |        0 |    100% |           |
-| src/kdetect/analysis/signals.py          |      103 |        4 |     96% |33, 80, 90, 160 |
+| src/kdetect/analysis/signals.py          |      103 |        2 |     98% |   90, 160 |
 | src/kdetect/baseline/\_\_init\_\_.py     |        0 |        0 |    100% |           |
 | src/kdetect/baseline/store.py            |       38 |        5 |     87% | 28-31, 37 |
-| src/kdetect/cli.py                       |      218 |       81 |     63% |50, 54-110, 114-127, 133, 160-176, 189-199, 202-204, 230-231, 237-239, 248, 253-254, 288, 347-348, 351, 357, 365, 370, 374 |
+| src/kdetect/cli.py                       |      218 |       32 |     85% |99, 114-127, 195-199, 230-231, 237-239, 248, 253-254, 288, 347-348, 357, 365, 370 |
 | src/kdetect/collectors/\_\_init\_\_.py   |        0 |        0 |    100% |           |
 | src/kdetect/collectors/base.py           |       29 |        0 |    100% |           |
 | src/kdetect/collectors/kernel\_hooks.py  |       29 |        1 |     97% |        46 |
 | src/kdetect/collectors/modules.py        |       30 |        0 |    100% |           |
 | src/kdetect/collectors/procfs.py         |       65 |       11 |     83% |28, 31-33, 59-62, 87-93 |
 | src/kdetect/collectors/sockets.py        |       34 |        0 |    100% |           |
-| src/kdetect/collectors/sources.py        |      218 |       45 |     79% |46, 63-64, 125, 135, 145-146, 176-177, 230, 238, 275-281, 284, 287, 290-294, 319-323, 326-340 |
+| src/kdetect/collectors/sources.py        |      218 |       16 |     93% |46, 63-64, 125, 135, 145-146, 176-177, 230, 238, 278, 293-294, 322-323 |
 | src/kdetect/collectors/syscall\_sweep.py |       21 |        0 |    100% |           |
-| src/kdetect/hostfacts.py                 |       17 |        9 |     47% |26-30, 35-39 |
+| src/kdetect/hostfacts.py                 |       17 |        1 |     94% |        30 |
 | src/kdetect/models.py                    |      184 |        0 |    100% |           |
 | src/kdetect/parsers/\_\_init\_\_.py      |        0 |        0 |    100% |           |
 | src/kdetect/parsers/kernel\_hooks.py     |       72 |        2 |     97% |   80, 103 |
@@ -31,7 +31,7 @@
 | src/kdetect/reporting/iocs.py            |       46 |        0 |    100% |           |
 | src/kdetect/reporting/redact.py          |        8 |        0 |    100% |           |
 | src/kdetect/reporting/report.py          |       56 |        1 |     98% |        74 |
-| **TOTAL**                                | **1372** |  **168** | **88%** |           |
+| **TOTAL**                                | **1372** |   **80** | **94%** |           |
 
 
 ## Setup coverage badge
