@@ -1,0 +1,52 @@
+name: coverage
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    permissions:
+      # On main, the action pushes the badge and coverage data to the
+      # python-coverage-comment-action-data branch; on a pull request it posts
+      # a coverage comment.
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install pytest pytest-cov
+
+      - name: Run tests with coverage
+        # ubuntu-latest has a live /proc, so the needs_procfs integration tier
+        # counts towards coverage here rather than skipping.
+        run: pytest tests -q --cov
+
+      - name: Publish coverage
+        # Pinned to a commit, not a tag: this step can write to the repository,
+        # and a tag can be moved to point at different code.
+        uses: py-cov-action/python-coverage-comment-action@a05be3d2e8a6272d3ef5fb2840ab20368bb2eb71 # v4.3
+        with:
+          GITHUB_TOKEN: ${{ github.token }}
+          MINIMUM_GREEN: 90
+          MINIMUM_ORANGE: 70

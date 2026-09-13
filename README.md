@@ -2,6 +2,7 @@
 
 [![tests](https://github.com/basil9099/kdetect/actions/workflows/tests.yml/badge.svg)](https://github.com/basil9099/kdetect/actions/workflows/tests.yml)
 [![lint](https://github.com/basil9099/kdetect/actions/workflows/lint.yml/badge.svg)](https://github.com/basil9099/kdetect/actions/workflows/lint.yml)
+[![coverage](https://raw.githubusercontent.com/basil9099/kdetect/python-coverage-comment-action-data/badge.svg)](https://github.com/basil9099/kdetect/tree/python-coverage-comment-action-data)
 [![python](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue)](pyproject.toml)
 [![licence](https://img.shields.io/badge/licence-MIT-green)](LICENSE)
 [![write-up](https://img.shields.io/badge/write--up-read%20the%20story-orange)](https://basil9099.github.io/projects/kdetect/)
