@@ -1,6 +1,10 @@
 # kdetect
 
 [![tests](https://github.com/basil9099/kdetect/actions/workflows/tests.yml/badge.svg)](https://github.com/basil9099/kdetect/actions/workflows/tests.yml)
+[![lint](https://github.com/basil9099/kdetect/actions/workflows/lint.yml/badge.svg)](https://github.com/basil9099/kdetect/actions/workflows/lint.yml)
+[![python](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue)](pyproject.toml)
+[![licence](https://img.shields.io/badge/licence-MIT-green)](LICENSE)
+[![write-up](https://img.shields.io/badge/write--up-read%20the%20story-orange)](https://basil9099.github.io/projects/kdetect/)
 
 Linux kernel rootkit detection via cross-view comparison.
 
@@ -15,6 +19,8 @@ conclusions (P1), disagreement between collectors stays representable rather tha
 resolved at capture time (P2), and every finding names both the channels that saw
 a thing and the channel that denied it.
 
+- [Write-up](https://basil9099.github.io/projects/kdetect/): the build story,
+  from first capture to catching a live rootkit in a contradiction
 - [`docs/architecture.md`](docs/architecture.md): how it is put together
 - [`docs/detection-methods.md`](docs/detection-methods.md): what it detects and why
 - [`docs/limitations.md`](docs/limitations.md): what it cannot detect

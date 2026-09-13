@@ -280,8 +280,7 @@ Collapsing the last two rows destroys the distinction. Evidence:
 
 ## Design questions, and the answers chosen
 
-These are the four questions the project brief asked to be settled on paper,
-before any code.
+These are the four questions settled on paper before any code was written.
 
 **1. Does an Observation hold one entity, or a whole view?**
 A whole view. The differ compares *sets* of identifiers, and per-entity records
