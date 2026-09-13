@@ -27,6 +27,12 @@ where = ["src"]
 # explicitly because newer ruff releases widen the default set.
 select = ["E4", "E7", "E9", "F", "B"]
 
+[tool.coverage.run]
+source = ["kdetect"]
+# Stored paths relative to the checkout, so the coverage action in CI can map
+# results back to files in the repository.
+relative_files = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = ["needs_procfs: requires a live /proc filesystem"]
