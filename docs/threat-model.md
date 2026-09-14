@@ -100,8 +100,10 @@ read and modify kdetect itself and its stored snapshots.
 **Detection.** Good, and this is where cross-view first earns its keep. A
 `LD_PRELOAD` hook on `readdir` fools anything using libc but not a direct
 `getdents` call — so the phase 2 `MEDIUM`-trust collector sees processes the
-`LOW` one does not. Immutable attributes are visible to `lsattr` (method 7).
-File integrity against a baseline catches replaced binaries.
+`LOW` one does not. Immutable attributes would show up through `lsattr`, but that
+check (method 7) is planned, not built. kdetect does not check file integrity
+either: it never calls `ps` or `netstat`, so replacing them does not fool it, but
+it does not report the replacement.
 
 **Caveat.** Assumption A2 already fails here. A root attacker can simply patch
 kdetect. Detection at this tier assumes the attacker did not bother — a
@@ -116,18 +118,33 @@ from `/proc`; grant privilege on demand through a magic signal or similar
 channel; hide files by intercepting filesystem calls.
 
 **Detection.** Fair, and probabilistic. It rests entirely on the rootkit hiding
-*inconsistently*:
+*inconsistently*. These were the original bets; building and testing kdetect
+changed most of them:
 
-- A PID hidden from the `/proc` listing but still answering `kill(pid, 0)`
-- A PID hidden from both, but whose threads appear under a parent's
-  `/proc/[pid]/task/`
-- A module removed from `/proc/modules` but still present in `/sys/module/`
-- A syscall table entry that no longer matches the baseline
+- **A PID hidden from the `/proc` listing but still answering `kill(pid, 0)`.**
+  Built (method 8), with a direct `/proc/<pid>/status` read and socket ownership
+  as further channels. Not yet tested against a real rootkit: Diamorphine's
+  process hiding never took effect on kernel 6.1 (L16), so this rests on
+  synthetic tests (L24).
+- **A module removed from `/proc/modules` but still present in `/sys/module/`.**
+  Disproven by the phase 2 step-0 evidence: every module list comes from the same
+  kernel list, so unlinking a module removes it from all of them (method 9). The
+  unlink leaves other traces, which kdetect reads instead: kernel taint,
+  `load_module` memory regions, and ftrace's function records. Live, those caught
+  Diamorphine three ways, at `HIGH`.
+- **A syscall table entry that no longer matches the baseline.** Replaced.
+  Diamorphine's syscall table hooks never took effect on 6.1, and current LKM
+  rootkits hook through ftrace or kprobes, so kdetect reads those registrations
+  and flags a hook whose callback belongs to an unlisted module (method 10).
+  `kdetect_hooktest` keeps its callback out of ftrace's function records, yet was
+  caught live at `HIGH` by its hook registration, taint and memory region.
+- **A PID hidden from both, but whose threads appear under a parent's
+  `/proc/[pid]/task/`.** Not built.
 
-Every one of these is a bet that the rootkit's author missed a path. Against
-Diamorphine — the phase 2 test subject — several of these bets are expected to
-pay off, which is what makes it a useful teaching target rather than a realistic
-worst case.
+Every one of these is a bet that the rootkit's author missed a path. Diamorphine
+lost the module bet on three separate channels; its process hiding never ran, so
+that bet is still untested against a real rootkit. That is what makes it a useful
+teaching target rather than a realistic worst case.
 
 **Caveat.** "kdetect found it" and "this class of rootkit is detectable" are
 different claims. Finding a rootkit that does not try to hide from you
@@ -170,12 +187,12 @@ explicit.
 | `PF_KTHREAD` kernel flag | ✅ | ✅ | ⚠️ | ❌ |
 | Deleted executable | ✅ | ✅ | ⚠️ | ❌ |
 | Cross-view PID enumeration | n/a | ✅ | ⚠️ | ❌ |
-| Hidden module (`/proc/modules` vs `/sys/module`) | n/a | n/a | ⚠️ | ❌ |
-| Syscall table / symbol integrity | n/a | n/a | ⚠️ | ❌ |
-| Immutable attributes | n/a | ✅ | ⚠️ | ❌ |
-| Out-of-band memory analysis | ✅ | ✅ | ✅ | ⚠️ |
+| Hidden module (taint, `load_module` regions, ftrace records vs `/proc/modules`) | n/a | n/a | ⚠️ | ❌ |
+| Hook-surface integrity (ftrace, kprobes) | n/a | n/a | ⚠️ | ❌ |
+| Immutable attributes (method 7) | n/a | 🔜 | 🔜 | ❌ |
+| Out-of-band memory analysis (phase 5, not built) | ✅ | ✅ | ✅ | ⚠️ |
 
-✅ reliable · ⚠️ depends on the attacker's thoroughness · ❌ no coverage
+✅ reliable · ⚠️ depends on the attacker's thoroughness · ❌ no coverage · 🔜 planned, not built
 
 The pattern is the point: **on-host techniques degrade to nothing by T3, and
 only out-of-band analysis holds any value there.**
@@ -266,7 +283,8 @@ Directly downstream of §1, and binding on kdetect's scoring and reporting:
 
 ## 9. What would change this document
 
-- Phase 2's Diamorphine results: which of the T2 bets actually pay off
+- A rootkit whose process hiding works on a 6.x kernel: the first live test of
+  cross-view PID enumeration (L16, L24)
 - Container support, which changes what disagreement means
 - Off-host baseline storage, which would strengthen assumption A3
 - Phase 5's out-of-band memory analysis, the only thing that moves the T3 column
