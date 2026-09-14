@@ -11,7 +11,7 @@
 | src/kdetect/analysis/signals.py          |      103 |        2 |     98% |   90, 160 |
 | src/kdetect/baseline/\_\_init\_\_.py     |        0 |        0 |    100% |           |
 | src/kdetect/baseline/store.py            |       38 |        5 |     87% | 28-31, 37 |
-| src/kdetect/cli.py                       |      218 |       32 |     85% |99, 114-127, 195-199, 230-231, 237-239, 248, 253-254, 288, 347-348, 357, 365, 370 |
+| src/kdetect/cli.py                       |      219 |       32 |     85% |99, 114-127, 202-206, 237-238, 244-246, 255, 260-261, 295, 354-355, 364, 372, 377 |
 | src/kdetect/collectors/\_\_init\_\_.py   |        0 |        0 |    100% |           |
 | src/kdetect/collectors/base.py           |       29 |        0 |    100% |           |
 | src/kdetect/collectors/kernel\_hooks.py  |       29 |        1 |     97% |        46 |
@@ -28,10 +28,11 @@
 | src/kdetect/parsers/procfs.py            |       46 |        5 |     89% |51, 61-62, 106-109 |
 | src/kdetect/parsers/sockets.py           |       39 |        3 |     92% | 52, 72-73 |
 | src/kdetect/reporting/\_\_init\_\_.py    |        0 |        0 |    100% |           |
+| src/kdetect/reporting/escape.py          |       37 |        1 |     97% |        35 |
 | src/kdetect/reporting/iocs.py            |       46 |        0 |    100% |           |
 | src/kdetect/reporting/redact.py          |        8 |        0 |    100% |           |
-| src/kdetect/reporting/report.py          |       56 |        1 |     98% |        74 |
-| **TOTAL**                                | **1372** |   **80** | **94%** |           |
+| src/kdetect/reporting/report.py          |       58 |        1 |     98% |        81 |
+| **TOTAL**                                | **1412** |   **81** | **94%** |           |
 
 
 ## Setup coverage badge
