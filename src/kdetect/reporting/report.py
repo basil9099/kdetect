@@ -5,6 +5,11 @@ JSON for a pipeline. A hidden process shows its comm and owned socket endpoints;
 its exe/cmdline are unavailable because it was hidden from the readdir path that
 records them (L26).
 
+Every snapshot-derived value in the Markdown goes through escape.md_code or
+escape.md_block: a rootkit names its own module, and a snapshot may come from a
+compromised host, so no value may create links, formatting or raw control
+characters. render_json keeps exact values; json.dumps escapes them itself.
+
 baseline_name is a caller contract, not something this module checks: pass it
 only once the named baseline's signature has already been verified (the `kdetect
 report --baseline` path requires --verify-key and load_baseline() raises
@@ -18,6 +23,7 @@ import json
 
 from kdetect.analysis.models import Confidence, Finding, FindingKind
 from kdetect.models import Snapshot
+from kdetect.reporting.escape import md_block, md_code
 from kdetect.reporting.iocs import IOC
 
 _ORDER = {Confidence.HIGH: 0, Confidence.MEDIUM: 1, Confidence.LOW: 2}
@@ -62,20 +68,21 @@ def render_json(snapshot: Snapshot, findings: list[Finding], iocs: list[IOC],
 
 
 def _render_evidence(f: Finding) -> list[str]:
+    """Plain evidence lines; the caller fences them with md_block."""
     lines: list[str] = []
     if f.kind is FindingKind.HIDDEN_PROCESS:
         comm = None
         for ch in ("syscall_kill", "direct_status"):
             for ev in f.evidence.get(ch, []):
                 comm = comm or ev.get("comm")
-        lines.append(f"  - comm: {comm if comm else 'unknown'}")
-        lines.append("  - exe: unavailable (hidden from /proc)")
+        lines.append(f"comm: {comm if comm else 'unknown'}")
+        lines.append("exe: unavailable (hidden from /proc)")
         for ev in f.evidence.get("socket_visible", []):
-            lines.append(f"  - socket: {ev.get('local')} -> {ev.get('remote')} "
+            lines.append(f"socket: {ev.get('local')} -> {ev.get('remote')} "
                          f"({ev.get('state')})")
     else:
         for channel in sorted(f.evidence):
-            lines.append(f"  - {channel}: {f.evidence[channel]}")
+            lines.append(f"{channel}: {f.evidence[channel]}")
     return lines
 
 
@@ -83,15 +90,17 @@ def render_markdown(snapshot: Snapshot, findings: list[Finding], iocs: list[IOC]
                     baseline_name: str | None = None) -> str:
     h = snapshot.host
     c = _counts(findings)
+    baseline = md_code(baseline_name) if baseline_name else "none"
     out = [
-        f"# kdetect report — {h.hostname}",
+        f"# kdetect report — {md_code(h.hostname)}",
         "",
-        f"**Host:** {h.hostname} · {h.kernel_release} · {h.arch}",
-        f"**Captured:** {snapshot.captured_at} · boot {h.boot_id[:8]} · "
-        f"euid {snapshot.capture.euid}",
-        f"**Tool:** kdetect {snapshot.capture.tool_version} · schema "
-        f"{snapshot.schema_version}",
-        f"**Baseline:** {baseline_name if baseline_name else 'none'}",
+        f"**Host:** {md_code(h.hostname)} · {md_code(h.kernel_release)} · "
+        f"{md_code(h.arch)}",
+        f"**Captured:** {md_code(snapshot.captured_at)} · boot "
+        f"{md_code(h.boot_id[:8])} · euid {snapshot.capture.euid}",
+        f"**Tool:** kdetect {md_code(snapshot.capture.tool_version)} · schema "
+        f"{md_code(snapshot.schema_version)}",
+        f"**Baseline:** {baseline}",
         "",
         "## Summary",
         f"- HIGH: {c['high']} · MEDIUM: {c['medium']} · LOW: {c['low']}",
@@ -102,19 +111,20 @@ def render_markdown(snapshot: Snapshot, findings: list[Finding], iocs: list[IOC]
     if not findings:
         out.append("None.")
     for f in _ranked(findings):
-        out.append(f"### [{f.confidence.value}] {f.kind.value} — {f.subject}")
-        if f.summary:
-            out.append(f.summary)
+        out.append(f"### [{f.confidence.value}] {f.kind.value} — {md_code(f.subject)}")
+        # Channel names come from kdetect's own detectors, not the snapshot.
         if f.channels_agree:
             out.append(f"- Seen by: {', '.join(f.channels_agree)}")
         if f.channels_dissent:
             out.append(f"- Denied by: {', '.join(f.channels_dissent)}")
-        out.extend(_render_evidence(f))
+        block = ([f.summary] if f.summary else []) + _render_evidence(f)
+        if block:
+            out.extend(md_block(block))
         out.append("")
     out.append("## Indicators of Compromise")
     if not iocs:
         out.append("None.")
     for i in iocs:
-        out.append(f"- {i.type}: `{i.value}` ({i.confidence})")
+        out.append(f"- {i.type}: {md_code(i.value)} ({i.confidence})")
     out.append("")
     return "\n".join(out)

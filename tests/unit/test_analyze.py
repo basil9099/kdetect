@@ -49,6 +49,45 @@ def test_analyze_malformed_json_exits_1(tmp_path):
     assert run(["analyze", str(bad)]).returncode == 1
 
 
+def test_analyze_escapes_a_hostile_module_name(tmp_path):
+    # A rootkit names its own module. Printed raw, ESC [2K erases the terminal
+    # line, so the escape sequence must appear as visible text instead.
+    d = json.loads((FIXTURE.parent / "infected-hooktest.json").read_text())
+    hooks = next(o for o in d["observations"] if o["collector"] == "kernel.hooks")
+    hooks["entities"]["ftrace:__x64_sys_newuname"]["owner_module"] = "evil\x1b[2Kclean"
+    snap = tmp_path / "hostile.json"
+    snap.write_text(json.dumps(d))
+    r = run(["analyze", str(snap)])
+    assert r.returncode == 3
+    assert "\x1b" not in r.stdout
+    assert "hidden_module   module evil\\x1b[2Kclean" in r.stdout
+
+
+def test_analyze_escapes_a_hostile_hostname(tmp_path):
+    # ESC ] 0 ; ... BEL sets the terminal window title.
+    d = json.loads(FIXTURE.read_text())
+    d["host"]["hostname"] = "lab\x1b]0;owned\x07"
+    snap = tmp_path / "hostile.json"
+    snap.write_text(json.dumps(d))
+    r = run(["analyze", str(snap)])
+    assert "\x1b" not in r.stdout
+    assert "\x07" not in r.stdout
+    assert "host:      lab\\x1b]0;owned\\x07  " in r.stdout
+
+
+def test_analyze_escapes_hostile_collector_name_and_stats(tmp_path):
+    d = json.loads(FIXTURE.read_text())
+    obs = d["observations"][0]
+    obs["collector"] = obs["collector"] + "\x1b[2K"
+    obs["stats"]["note"] = "x\x1b[31m"
+    snap = tmp_path / "hostile.json"
+    snap.write_text(json.dumps(d))
+    r = run(["analyze", str(snap)])
+    assert "\x1b" not in r.stdout
+    assert "procfs.processes\\x1b[2K   trust=" in r.stdout
+    assert "note=x\\x1b[31m" in r.stdout
+
+
 def test_fixture_round_trips_byte_identically():
     from kdetect.models import Snapshot
     raw = json.loads(FIXTURE.read_text())
