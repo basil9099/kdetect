@@ -116,27 +116,31 @@ For a shareable artifact rather than terminal triage:
 kdetect report tests/fixtures/snapshots/infected-hooktest.json
 ```
 
-```markdown
+````markdown
 ## Summary
 - HIGH: 1 · MEDIUM: 0 · LOW: 0
 - Verdict: 1 finding(s) — hidden_module. Investigate.
 
 ## Findings
-### [HIGH] hidden_module — module kdetect_hooktest
-module kdetect_hooktest is concealed from /proc/modules but named by taint, unexpected_hook, vmalloc_region
+### [HIGH] hidden_module — `module kdetect_hooktest`
 - Seen by: taint, unexpected_hook, vmalloc_region
 - Denied by: procfs.modules listing
-  - taint: [{'taint': 12288, 'listed_taint_markers': 0, 'bits': [12, 13]}]
-  - unexpected_hook: [{'function': '__x64_sys_newuname', 'hook_type': 'ftrace', 'callback': 'kdetect_callback', 'owner_module': 'kdetect_hooktest'}]
-  - vmalloc_region: [{'load_module_regions': 75, 'listed': 74, 'unaccounted': 1}]
+```text
+module kdetect_hooktest is concealed from /proc/modules but named by taint, unexpected_hook, vmalloc_region
+taint: [{'taint': 12288, 'listed_taint_markers': 0, 'bits': [12, 13]}]
+unexpected_hook: [{'function': '__x64_sys_newuname', 'hook_type': 'ftrace', 'callback': 'kdetect_callback', 'owner_module': 'kdetect_hooktest'}]
+vmalloc_region: [{'load_module_regions': 75, 'listed': 74, 'unaccounted': 1}]
+```
 
 ## Indicators of Compromise
 - hooked_function: `__x64_sys_newuname` (HIGH)
 - kernel_module: `kdetect_hooktest` (HIGH)
-```
+````
 
 The report concludes nothing of its own. It presents what `analyze` found, and
-every line traces back to a finding or a recorded fact. IOCs are the portable
+every line traces back to a finding or a recorded fact. Anything taken from the
+snapshot, such as a module name the rootkit chose, appears as code, so it cannot
+turn into a link, formatting or a terminal escape sequence. IOCs are the portable
 indicators worth carrying to another host: a module name, a hooked syscall, a C2
 endpoint, a process name. Host-local artifacts like pids and inodes stay as
 context.

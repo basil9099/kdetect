@@ -8,8 +8,8 @@ from kdetect.models import (
 )
 
 
-def _snap():
-    host = HostFacts("kdetect-lab", "6.1.0-52", "x86_64", "b0", 1, 100)
+def _snap(hostname="kdetect-lab"):
+    host = HostFacts(hostname, "6.1.0-52", "x86_64", "b0", 1, 100)
     return Snapshot(SCHEMA_VERSION, "id", "2026-09-03T00:00:00.000Z", host,
                     CaptureMeta("0.1.0", 0), [])
 
@@ -30,7 +30,7 @@ def test_markdown_has_sections_and_verdict():
     assert "__x64_sys_kill" in md
     # Weak "HIGH" in md could match anywhere; pin it to the finding's own
     # heading line, which carries the confidence tag by construction.
-    assert "[HIGH] hidden_module — module diamorphine" in md
+    assert "[HIGH] hidden_module — `module diamorphine`" in md
     # Finding.summary (the one-sentence "why it fired") must render too.
     assert "module diamorphine is concealed" in md
 
@@ -41,8 +41,8 @@ def test_markdown_hidden_process_shows_comm_and_exe_unavailable():
     md = report.render_markdown(_snap(), [f], extract([f]))
     # Weak "comm" in md / "evil" in md could match unrelated lines; pin the
     # comm value to the evidence line that actually names it.
-    assert "  - comm: evil" in md
-    assert "  - exe: unavailable (hidden from /proc)" in md
+    assert "\ncomm: evil\n" in md
+    assert "\nexe: unavailable (hidden from /proc)\n" in md
 
 
 def test_markdown_hidden_process_comm_falls_back_to_unknown():
@@ -51,7 +51,7 @@ def test_markdown_hidden_process_comm_falls_back_to_unknown():
     f = Finding(FindingKind.HIDDEN_PROCESS, "pid 9999", Confidence.HIGH,
                 ["syscall_kill"], [], {"syscall_kill": [{"comm": None}]}, "")
     md = report.render_markdown(_snap(), [f], extract([f]))
-    assert "  - comm: unknown" in md
+    assert "\ncomm: unknown\n" in md
 
 
 def test_zero_findings_report_is_valid():
@@ -87,12 +87,55 @@ def test_markdown_baseline_name_appears_in_header():
     f = _hidden_module()
     md = report.render_markdown(_snap(), [f], extract([f]),
                                 baseline_name="prod-baseline")
-    assert "**Baseline:** prod-baseline" in md
+    assert "**Baseline:** `prod-baseline`" in md
 
 
 def test_markdown_baseline_none_renders_none_in_header():
     md = report.render_markdown(_snap(), [], [], baseline_name=None)
     assert "**Baseline:** none" in md
+
+
+def test_markdown_module_name_cannot_inject_a_link():
+    # A rootkit chooses its own module name. Outside code formatting this one
+    # would render as a clickable link in a shared report.
+    name = "[click](https://evil.example)"
+    f = Finding(FindingKind.HIDDEN_MODULE, "module " + name, Confidence.HIGH,
+                ["ftrace_orphan"], ["procfs.modules listing"], {},
+                "module " + name + " is concealed")
+    md = report.render_markdown(_snap(), [f], extract([f]))
+    assert "### [HIGH] hidden_module — `module [click](https://evil.example)`\n" in md
+    assert "```text\nmodule [click](https://evil.example) is concealed\n" in md
+    assert "- kernel_module: `[click](https://evil.example)` (HIGH)\n" in md
+    # Exactly the three formatted places above, and no raw copy anywhere else.
+    assert md.count(name) == 3
+
+
+def test_markdown_comm_with_backtick_and_escape_stays_inert():
+    comm = "a`b\x1b[2K"
+    f = Finding(FindingKind.HIDDEN_PROCESS, "pid 4242", Confidence.HIGH,
+                ["syscall_kill"], [], {"syscall_kill": [{"comm": comm}]}, "")
+    md = report.render_markdown(_snap(), [f], extract([f]))
+    assert "\x1b" not in md
+    assert "\ncomm: a`b\\x1b[2K\n" in md
+    assert "- process_name: ``a`b\\x1b[2K`` (HIGH)\n" in md
+
+
+def test_markdown_hostname_is_code_formatted_and_escaped():
+    md = report.render_markdown(_snap(hostname="lab\x1b[31m"), [], [])
+    assert "\x1b" not in md
+    assert "# kdetect report — `lab\\x1b[31m`\n" in md
+    assert "**Host:** `lab\\x1b[31m` · `6.1.0-52` · `x86_64`\n" in md
+
+
+def test_markdown_evidence_backticks_cannot_close_the_block():
+    # repr() already shows the newline as \n; the triple backticks must not end
+    # the fenced block, or whatever followed them would render as Markdown.
+    f = Finding(FindingKind.HIDDEN_MODULE, "module m", Confidence.HIGH,
+                ["unexpected_hook"], ["procfs.modules listing"],
+                {"unexpected_hook": [{"callback": "```\n# pwned"}]}, "")
+    md = report.render_markdown(_snap(), [f], extract([f]))
+    assert "\n````text\n" in md
+    assert "\n# pwned" not in md
 
 
 def test_json_baseline_object_shape_when_verified():
@@ -118,6 +161,17 @@ def test_json_report_shape():
     assert payload["summary"]["high"] == 1
     assert payload["findings"][0]["kind"] == "hidden_module"
     assert any(i["type"] == "kernel_module" for i in payload["iocs"])
+
+
+def test_json_keeps_untrusted_values_verbatim():
+    # Escaping is for people. A pipeline reading the JSON report gets the exact
+    # captured name back once the JSON is decoded.
+    name = "evil\x1b[2K`name`"
+    f = Finding(FindingKind.HIDDEN_MODULE, "module " + name, Confidence.HIGH,
+                ["ftrace_orphan"], ["procfs.modules listing"], {}, "")
+    payload = json.loads(report.render_json(_snap(), [f], extract([f])))
+    assert payload["findings"][0]["subject"] == "module " + name
+    assert payload["iocs"][0]["value"] == name
 
 
 def test_json_report_is_deterministic_and_sorted_keys():

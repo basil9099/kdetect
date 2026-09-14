@@ -546,6 +546,17 @@ Host-local artifacts — pids, inodes, region counts, taint words — stay as re
 separate IOC section. Output is deduplicated and sorted by `(type, value)`, so
 the same findings always produce the same IOC list.
 
+**Untrusted values are shown, never interpreted.** Every string in a snapshot is
+attacker-influenced: a rootkit names its own module, and the snapshot itself may
+come from a compromised host. In the Markdown report each such value appears as
+inline code, and a finding's summary and evidence sit in a fenced block whose
+fence is longer than any backtick run inside, so no value can open a link, add
+formatting, or close the block early. Both the report and `analyze`'s terminal
+output show control and invisible characters as escapes (`\x1b`, `‮`), so a
+crafted name cannot erase or reorder what is on screen
+(`src/kdetect/reporting/escape.py`). The snapshot, the JSON outputs and the IOC
+values keep the exact captured strings.
+
 **Redaction is a separate concern from the report.** The report never carries
 `cmdline`, but a **snapshot** does — every visible process's `cmdline`,
 credentials and all (L13). `kdetect redact <in.json> <out.json>` scrubs a

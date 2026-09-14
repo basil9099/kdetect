@@ -128,6 +128,11 @@ def cmd_baseline(args) -> int:
 
 
 def cmd_analyze(args) -> int:
+    # Snapshot strings are untrusted (a rootkit names its own module), so every
+    # one printed to the terminal goes through printable(): an escape sequence
+    # shows as text instead of erasing or rewriting lines.
+    from kdetect.reporting.escape import printable
+
     loaded = _load_snapshot(args.snapshot)
     if loaded is None:
         return EXIT_ERROR
@@ -136,20 +141,22 @@ def cmd_analyze(args) -> int:
 
     if not getattr(args, "json", False):
         host = snapshot.host
-        print(f"snapshot:  {path}")
-        print(f"schema:    {snapshot.schema_version}")
-        print(f"host:      {host.hostname}  {host.kernel_release}  {host.arch}")
-        print(f"captured:  {snapshot.captured_at}   boot {host.boot_id[:8]}")
+        print(f"snapshot:  {printable(str(path))}")
+        print(f"schema:    {printable(snapshot.schema_version)}")
+        print(f"host:      {printable(host.hostname)}  "
+              f"{printable(host.kernel_release)}  {printable(host.arch)}")
+        print(f"captured:  {printable(snapshot.captured_at)}   "
+              f"boot {printable(host.boot_id[:8])}")
         print(f"euid:      {snapshot.capture.euid}")
         print()
         print("collectors:")
         for obs in snapshot.observations:
             print(
-                f"  {obs.collector}   trust={obs.trust_level.value}   "
+                f"  {printable(obs.collector)}   trust={obs.trust_level.value}   "
                 f"status={obs.status.value}   {len(obs.entity_ids)} entities   "
                 f"{obs.duration_ms}ms"
             )
-            stats = "  ".join(f"{k}={v}" for k, v in sorted(obs.stats.items()))
+            stats = "  ".join(printable(f"{k}={v}") for k, v in sorted(obs.stats.items()))
             print(f"{' ' * 21}{stats}")
 
     try:
@@ -170,7 +177,7 @@ def cmd_analyze(args) -> int:
 
     print("findings:")
     for f in findings:
-        print(f"  [{f.confidence.value}]   {f.kind.value}   {f.subject}")
+        print(f"  [{f.confidence.value}]   {f.kind.value}   {printable(f.subject)}")
         print(f"           seen by: {', '.join(f.channels_agree)}")
         print(f"           denied by: {', '.join(f.channels_dissent)}")
     return 3
