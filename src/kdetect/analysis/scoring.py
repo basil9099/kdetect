@@ -33,6 +33,10 @@ def _classify(suspect: Suspect, channels: list[str]) -> tuple[FindingKind, str, 
     if suspect.name is None:
         return (FindingKind.SUSPECTED_HIDDEN_MODULE, "unattributed hidden module",
                 "hidden-module indicators fired but no channel can name the module")
+    if channels == ["over_listed"]:
+        return (FindingKind.OVER_LISTED_MODULE, f"module {suspect.name}",
+                f"module {suspect.name} is listed in /proc/modules but named by "
+                f"no other channel")
     if any(c in _HIDING for c in channels):
         return (FindingKind.HIDDEN_MODULE, f"module {suspect.name}",
                 f"module {suspect.name} is concealed from /proc/modules but named "

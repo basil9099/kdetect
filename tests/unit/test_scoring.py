@@ -64,3 +64,20 @@ def test_socket_visible_lifts_hidden_process_to_high():
     assert findings[0].kind is FindingKind.HIDDEN_PROCESS
     assert findings[0].confidence is Confidence.HIGH        # 3 channels
 
+def test_over_listed_module_gets_its_own_kind_and_is_not_hidden():
+    findings = score([_mod("over_listed", "phantom_mod")])
+    assert len(findings) == 1
+    f = findings[0]
+    assert f.kind is FindingKind.OVER_LISTED_MODULE
+    assert f.confidence is Confidence.LOW
+    # The inverse-classification trap from spec section 7.1.
+    assert f.kind is not FindingKind.HIDDEN_MODULE
+    assert f.kind is not FindingKind.BASELINE_DRIFT
+
+def test_over_listed_does_not_absorb_anonymous_hidden_evidence():
+    sigs = [_mod("over_listed", "phantom_mod"), _mod("taint", None, bits=[12])]
+    findings = score(sigs)
+    over = [f for f in findings if f.kind is FindingKind.OVER_LISTED_MODULE]
+    assert len(over) == 1
+    assert over[0].channels_agree == ["over_listed"]
+

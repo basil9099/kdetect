@@ -16,6 +16,7 @@ from kdetect.models import Snapshot
 _MODULE_DISSENT = "procfs.modules listing"
 _PROCESS_DISSENT = "procfs readdir (all passes)"
 _BASELINE_DISSENT = "signed baseline"
+_LISTING_DISSENT = "every corroborating channel"
 
 
 def _observations(snapshot: Snapshot, collector: str):
@@ -160,6 +161,42 @@ def signals_sockets(snapshot: Snapshot) -> list[Signal]:
     return sorted(out, key=lambda s: (s.channel, s.suspect.name or ""))
 
 
+def signals_over_listed(snapshot: Snapshot) -> list[Signal]:
+    """A listed module that no other channel corroborates (spec section 5).
+
+    The mirror of ftrace_orphan. An attacker who can unlink a row from
+    /proc/modules can equally add one, and each phantom row absorbs exactly one
+    unaccounted vmalloc region -- so the region arithmetic is one phantom row
+    deep without this.
+
+    Guarded on channel AVAILABILITY, never on emptiness: a channel that cannot
+    be read must be skipped rather than read as dissent, which is the rule
+    ModuleSource's own docstring states. Reading emptiness as unavailability
+    would flag every module on a host whose channels legitimately name nothing.
+    """
+    listings = _observations(snapshot, "procfs.modules")
+    evidences = _observations(snapshot, "kernel.module_evidence")
+    hooks = _observations(snapshot, "kernel.hooks")
+    if not listings or not evidences or not hooks:
+        return []
+    if not evidences[0].stats.get("ftrace_available"):
+        return []
+    if not hooks[0].stats.get("kallsyms_available"):
+        return []
+
+    ftrace = (evidences[0].extra or {}).get("ftrace_modules")
+    kallsyms = (hooks[0].extra or {}).get("kallsyms_modules")
+    if ftrace is None or kallsyms is None:
+        return []
+
+    corroborated = set(ftrace) | set(kallsyms)
+    return [
+        Signal("over_listed", Suspect("module", name), _LISTING_DISSENT,
+               {"listed": True, "corroborated_by": []})
+        for name in sorted(set(listings[0].entity_ids) - corroborated)
+    ]
+
+
 def signals_baseline(current: Snapshot, baseline: Snapshot) -> list[Signal]:
     now = _module_ids(current)
     was = _module_ids(baseline)
@@ -171,7 +208,8 @@ def signals_baseline(current: Snapshot, baseline: Snapshot) -> list[Signal]:
 
 def all_signals(snapshot: Snapshot, baseline: Snapshot | None = None) -> list[Signal]:
     sigs = (signals_processes(snapshot) + signals_modules(snapshot)
-            + signals_hooks(snapshot) + signals_sockets(snapshot))
+            + signals_hooks(snapshot) + signals_sockets(snapshot)
+            + signals_over_listed(snapshot))
     if baseline is not None:
         sigs += signals_baseline(snapshot, baseline)
     return sigs

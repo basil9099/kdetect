@@ -5,7 +5,7 @@ from pathlib import Path
 from kdetect.analysis.models import ChannelNote, Suspect
 from kdetect.analysis.signals import (
     signals_modules, signals_hooks, signals_processes, signals_baseline, all_signals,
-    signals_sockets, channel_notes,
+    signals_sockets, channel_notes, signals_over_listed,
 )
 from kdetect.models import (
     CaptureMeta, HostFacts, ModuleEntity, Observation, SCHEMA_VERSION, Snapshot,
@@ -249,3 +249,56 @@ def test_note_round_trips_to_a_json_safe_dict():
     d = channel_notes(Snapshot.from_dict(raw))[0].to_dict()
     assert json.loads(json.dumps(d)) == d
     assert set(d) == {"channel", "reason", "detail"}
+
+
+def _corroborators(raw, ftrace, kallsyms):
+    _obs(raw, "kernel.module_evidence")["extra"]["ftrace_modules"] = ftrace
+    _obs(raw, "kernel.module_evidence")["stats"]["ftrace_available"] = True
+    hooks = _obs(raw, "kernel.hooks")
+    hooks["extra"]["kallsyms_modules"] = kallsyms
+    hooks["stats"]["kallsyms_available"] = True
+    return raw
+
+
+def test_no_over_listed_signal_on_the_real_captures():
+    # Measured in spec section 5.2: zero on hooktest, and diamorphine has no
+    # kernel.hooks observation at all so the guard suppresses it there.
+    for name in ("infected-hooktest.json", "infected-diamorphine.json"):
+        assert signals_over_listed(_load(name)) == [], name
+
+
+def test_phantom_row_is_caught_when_every_channel_is_available():
+    raw = _mutate("infected-hooktest.json")
+    mods = _obs(raw, "procfs.modules")
+    mods["entities"]["phantom_mod"] = {
+        "name": "phantom_mod", "size": 1, "refcount": 0, "dependents": [],
+        "state": "Live", "base_addr": "0x0", "taint": None,
+    }
+    mods["entity_ids"] = sorted(mods["entity_ids"] + ["phantom_mod"])
+    # infected-hooktest.json's own ftrace/kallsyms lists already corroborate
+    # every genuine listed module (spec section 5.2, measured at 0 signals on
+    # the unmutated capture) -- only the injected phantom row is missing from
+    # both, so it alone should be flagged.
+    real_ftrace = _obs(raw, "kernel.module_evidence")["extra"]["ftrace_modules"]
+    real_kallsyms = _obs(raw, "kernel.hooks")["extra"]["kallsyms_modules"]
+    raw = _corroborators(raw, ftrace=real_ftrace, kallsyms=real_kallsyms)
+
+    sigs = signals_over_listed(Snapshot.from_dict(raw))
+    assert [s.suspect.name for s in sigs] == ["phantom_mod"]
+    assert sigs[0].channel == "over_listed"
+
+
+def test_unavailable_channel_suppresses_the_signal_entirely():
+    raw = _mutate("infected-hooktest.json")
+    _obs(raw, "kernel.hooks")["stats"]["kallsyms_available"] = False
+    assert signals_over_listed(Snapshot.from_dict(raw)) == []
+
+
+def test_available_but_empty_channel_is_not_treated_as_dissent():
+    # The distinction spec section 5.2 calls load-bearing: an available channel
+    # that legitimately names nothing must not make every module over-listed.
+    raw = _corroborators(_mutate("infected-hooktest.json"), ftrace=[], kallsyms=[])
+    sigs = signals_over_listed(Snapshot.from_dict(raw))
+    listed = len(_obs(raw, "procfs.modules")["entity_ids"])
+    assert len(sigs) == listed          # every module really is uncorroborated
+    assert listed > 0
