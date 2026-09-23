@@ -2,10 +2,10 @@ import copy
 import json
 from pathlib import Path
 
-from kdetect.analysis.models import Suspect
+from kdetect.analysis.models import ChannelNote, Suspect
 from kdetect.analysis.signals import (
     signals_modules, signals_hooks, signals_processes, signals_baseline, all_signals,
-    signals_sockets,
+    signals_sockets, channel_notes,
 )
 from kdetect.models import (
     CaptureMeta, HostFacts, ModuleEntity, Observation, SCHEMA_VERSION, Snapshot,
@@ -219,3 +219,33 @@ def test_non_module_taint_bit_never_fires():
     raw = _mutate("infected-hooktest.json")
     _obs(raw, "kernel.module_evidence")["stats"]["taint"] = 1 << 9   # TAINT_WARN
     assert _taint_signal(raw) is None
+
+
+def test_no_note_when_taint_is_clean():
+    raw = _mutate("infected-hooktest.json")
+    _obs(raw, "kernel.module_evidence")["stats"]["taint"] = 0
+    assert channel_notes(Snapshot.from_dict(raw)) == []
+
+
+def test_no_note_when_the_channel_still_speaks():
+    # Bits set and unexplained: the channel is contributing, not saturated.
+    assert channel_notes(_load("infected-hooktest.json")) == []
+
+
+def test_saturated_taint_emits_a_note_naming_the_explaining_module():
+    raw = _mark(_mutate("infected-hooktest.json"), "OE")
+    notes = channel_notes(Snapshot.from_dict(raw))
+    assert len(notes) == 1
+    note = notes[0]
+    assert isinstance(note, ChannelNote)
+    assert note.channel == "taint"
+    assert note.reason == "saturated"
+    explaining = _obs(raw, "procfs.modules")["entity_ids"][0]
+    assert note.detail["explained_by"] == {"12": [explaining], "13": [explaining]}
+
+
+def test_note_round_trips_to_a_json_safe_dict():
+    raw = _mark(_mutate("infected-hooktest.json"), "OE")
+    d = channel_notes(Snapshot.from_dict(raw))[0].to_dict()
+    assert json.loads(json.dumps(d)) == d
+    assert set(d) == {"channel", "reason", "detail"}

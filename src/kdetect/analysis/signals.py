@@ -9,7 +9,7 @@ and unexpected_hook name their module. The scorer attributes the anonymous ones
 """
 from __future__ import annotations
 
-from kdetect.analysis.models import Signal, Suspect
+from kdetect.analysis.models import ChannelNote, Signal, Suspect
 from kdetect.analysis.taint import reconcile
 from kdetect.models import Snapshot
 
@@ -175,3 +175,22 @@ def all_signals(snapshot: Snapshot, baseline: Snapshot | None = None) -> list[Si
     if baseline is not None:
         sigs += signals_baseline(snapshot, baseline)
     return sigs
+
+
+def channel_notes(snapshot: Snapshot) -> list[ChannelNote]:
+    """Channels that could not contribute, and why (spec section 4.4).
+
+    A saturated channel and a clean one look identical in the output today, and
+    they mean opposite things: "taint is clear" versus "taint is set and fully
+    accounted for by a listed module, so it can say nothing about a hidden one".
+    """
+    notes: list[ChannelNote] = []
+    evidences = _observations(snapshot, "kernel.module_evidence")
+    if evidences:
+        rec = reconcile(evidences[0].stats.get("taint", 0), _listed_markers(snapshot))
+        if rec.saturated:
+            notes.append(ChannelNote(
+                "taint", "saturated",
+                {"explained_by": {str(b): v for b, v in rec.explained_by.items()}},
+            ))
+    return notes

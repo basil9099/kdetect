@@ -63,3 +63,23 @@ class Finding:
             "evidence": dict(self.evidence),
             "summary": self.summary,
         }
+
+
+@dataclass(frozen=True)
+class ChannelNote:
+    """Why a channel did not contribute (spec section 4.4).
+
+    NOT a Finding. A channel being uninformative is not a detection, and exit
+    code 3 means findings were produced -- emitting this as a Finding would make
+    every host with an out-of-tree driver exit 3 forever. Channel notes are
+    carried on their own path, are absent from the IOC extractor, and never
+    influence an exit code.
+    """
+
+    channel: str
+    reason: str          # "saturated"
+    detail: dict
+
+    def to_dict(self) -> dict:
+        return {"channel": self.channel, "reason": self.reason,
+                "detail": dict(self.detail)}
