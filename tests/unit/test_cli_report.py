@@ -103,7 +103,8 @@ def test_saturated_channel_does_not_change_the_exit_code(tmp_path, capsys):
     # Saturate taint AND neutralise the other module channels, so the only
     # module evidence left is the saturated one -> no findings at all.
     mods = next(o for o in raw["observations"] if o["collector"] == "procfs.modules")
-    mods["entities"][mods["entity_ids"][0]]["taint"] = "OE"
+    explaining_module = mods["entity_ids"][0]
+    mods["entities"][explaining_module]["taint"] = "OE"
     ev = next(o for o in raw["observations"]
               if o["collector"] == "kernel.module_evidence")
     ev["stats"]["load_module_regions"] = len(mods["entity_ids"])
@@ -111,11 +112,18 @@ def test_saturated_channel_does_not_change_the_exit_code(tmp_path, capsys):
     raw["observations"] = [o for o in raw["observations"]
                            if o["collector"] != "kernel.hooks"]
 
-    snap = tmp_path / "saturated.json"
+    # Not "saturated.json": the filename must not be able to contribute to
+    # either assertion below (cmd_analyze prints the snapshot path verbatim).
+    snap = tmp_path / "snap.json"
     snap.write_text(json.dumps(raw), encoding="utf-8")
 
     rc = main(["analyze", str(snap)])
     out = capsys.readouterr().out
     assert rc == 0, out
-    assert "saturated" in out
-    assert "taint" in out
+    # "could not corroborate" appears nowhere else in cmd_analyze's output
+    # (unlike "taint", which is also a stats key, or "saturated", which is
+    # also in the snapshot's own path) -- only the note-printing block emits
+    # it. The explaining module's name pins the explained_by detail line too,
+    # not just the header.
+    assert "could not corroborate" in out
+    assert explaining_module in out
