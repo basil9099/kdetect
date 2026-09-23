@@ -2,10 +2,15 @@
 
 **Date:** 2026-09-20
 **Status:** Approved, ready for implementation planning
-**Scope:** Analysis-layer only. Three defects in which a **conclusion is drawn at
-capture time** and frozen into the snapshot as a scalar, where analysis cannot
-revisit it. No collector changes, no parser changes, no schema change. The parser
+**Scope:** Analysis layer, plus the thin output path that renders its new channel
+notes. Three defects in which a **conclusion is drawn at capture time** and frozen
+into the snapshot as a scalar, where analysis cannot revisit it. No collector
+changes, no parser changes, no schema change, no exit-code change. The parser
 hardening these defects were found alongside is deferred to phase 4d (§10).
+
+**Revision 2026-09-23:** §4's central claim was wrong and is withdrawn — see §1.2.
+Per-bit taint reconciliation does not recover the NVIDIA/ZFS hosts the first draft
+said it did. §4.4 (report channel saturation) is the response, and is new.
 
 ---
 
@@ -53,6 +58,38 @@ a listed module, and that permanently silences the taint channel, including when
 a rootkit is present. Both committed infected fixtures have
 `listed_taint_markers=0`, which is *why* taint fires on them. It is a clean-room
 artifact of a lab VM with no third-party drivers.
+
+### 1.2 How much of that per-bit reconciliation actually recovers
+
+An earlier draft of this spec claimed the fix in §4 restores the channel on those
+hosts. **It does not, and the claim is withdrawn.** Measured against the same
+capture, comparing today's logic with the §4 logic for realistic marker letters:
+
+| Listed module carries | Today fires | §4 fires | Unexplained bits |
+|---|---|---|---|
+| nothing (the lab VM) | yes | yes | 12, 13 |
+| `(OE)` — vboxdrv, zfs | no | **no** | — |
+| `(POE)` — nvidia | no | **no** | — |
+| `(O)` — out-of-tree but signed | no | yes | 13 |
+| `(P)` — proprietary only | no | yes | 12, 13 |
+| `(E)` — unsigned only | no | yes | 12 |
+
+The two headline cases are **not** recovered, and the reason is
+information-theoretic rather than a defect in the reconciliation. Taint is a set
+of sticky booleans about the whole boot: *"at least one out-of-tree module was
+loaded"* cannot distinguish one from two. Once any legitimate out-of-tree module
+is listed, bits 12 and 13 are honestly explained, and no reconciliation can
+recover the hidden module's contribution. L17 reached the same conclusion three
+phases ago — the region-count and ftrace channels, which track currently-loaded
+state rather than sticky history, are the robust ones.
+
+What per-bit reconciliation genuinely buys is the middle rows: a **signed**
+out-of-tree module carries `(O)` without `(E)`, which is normal under Secure Boot
+and DKMS signing, and today that silences bit 13 completely. That is a real
+class of host and a real recovery.
+
+The rest of the value is in §4.4: making the silence **visible**. Where the
+channel cannot contribute, saying so is worth more than reconciling harder.
 
 ---
 
@@ -119,21 +156,28 @@ letter to the taint bit it corresponds to. A bit set in the global taint word is
 **explained** if some listed module carries the letter for that bit. Fire the
 signal on the bits that remain **unexplained**, carrying them in the evidence.
 
-This also hardens the channel against the obvious forgery. A rootkit adding `(OE)`
-to one listed row no longer buys blanket silence, because every set bit still has
-to reconcile independently.
+Scope of the recovery is exactly the middle rows of the §1.2 table: markers that
+explain *some other* bit stop silencing the bits they have nothing to do with.
+A rootkit forging `(OE)` on a listed row still buys silence on bits 12 and 13,
+because `(OE)` genuinely explains them — that is not a hole this phase can close,
+and §4.4 is the response to it.
 
 ### 4.3 Two details the implementation must get right
 
 **Only module-attributable bits may be reconciled.** The global taint word carries
 bits no module can account for; `TAINT_USER` and `TAINT_WARN` among others are set
 by events unrelated to module loading. Reconciling those would fire on any host
-that has ever emitted a kernel warning. The reconcilable set is exactly the bits
-that `/proc/modules` can mark on a module. The letter-to-bit table and the
-reconcilable set must be **grounded in kernel source** (`kernel/panic.c`,
-`kernel/module/main.c`) and cited in `detection-methods.md`, not reproduced from
-memory. This is the same discipline that caught the `enabled_functions` format
-guess in phase 3a.
+that has ever emitted a kernel warning.
+
+The table must be **evidenced, not recalled**. The repository already holds the
+evidence for exactly two letters — `docs/step0-phase2/clean/08-taint-accounting.txt`
+records bit 12 as out-of-tree and bit 13 as unsigned, and names the `(O)` and
+`(E)` markers that correspond. **The implementation carries those two and no
+more.** That is not a placeholder: bits 12 and 13 are the only bits the taint
+signal has ever tested, so a wider table would be unused code justified by
+unevidenced belief — the exact failure the `enabled_functions` format guess taught
+in phase 3a. Widening the table is a later change, gated on capturing the evidence
+for the additional letters first.
 
 **Taint bits are sticky.** Once set they are never cleared for the life of the
 boot. A module loaded and then `rmmod`ed leaves its bit set with no listed module
@@ -147,6 +191,41 @@ This is **already recorded as L17** and must not be re-filed as a new limitation
 What L17 does not yet cover is the opposite direction this phase found — a listed
 module carrying a marker silencing the channel altogether. L17 is amended rather
 than duplicated; see §11.1.
+
+---
+
+### 4.4 Report channel saturation, so the silence is visible
+
+A channel is **saturated** when it cannot contribute because the evidence it would
+rely on is already, honestly, fully explained by legitimate listed state. Taint on
+an NVIDIA host is the case: bits 12 and 13 are set and accounted for, so the
+channel has nothing left to say about a hidden module. Today that is
+indistinguishable in the output from a host where taint is clean, and the two mean
+opposite things to an analyst.
+
+So where the reconciliation in §4.2 finds every set bit explained, analysis
+records **why** the channel did not contribute, naming the listed modules that
+explain each bit. "Taint could not corroborate: bits 12 and 13 are explained by
+`nvidia (POE)`" is materially different information from silence, and it tells an
+operator that on this host a hidden module must be caught by the region and hook
+channels alone.
+
+**A saturation note must not be a `Finding`.** Exit code 3 means findings were
+produced, and that is a scriptable contract (`README`, "Commands"). A channel
+being uninformative is not a detection, and emitting it as a `Finding` would make
+every NVIDIA host exit 3 forever. The note is therefore carried on a separate
+path:
+
+- a pure `channel_notes(snapshot) -> list[ChannelNote]` in the analysis layer,
+  computed from the same reconciliation as §4.2;
+- rendered by `analyze` beneath the observations and by `report` as a short
+  "Channel coverage" section;
+- absent from `Finding`, from the IOC extractor, and from the exit code.
+
+This also generalises: `ChannelNote` is the natural home for "this channel was
+unreadable", which is where phase 4d's *unparseable channel is a finding*
+decision will need to record the difference between a channel that answered
+"nothing" and one that could not answer at all.
 
 ---
 
@@ -234,9 +313,12 @@ No new modules, no new I/O, no interface changes at the collector seam.
 
 | File | Change |
 |---|---|
-| `analysis/signals.py` | Rewrite the `taint` branch of `signals_modules` (§4); add the over-listed detector (§5) |
+| `analysis/taint.py` | **New.** The letter-to-bit table and the pure reconciliation (§4.2), so the table has one home and one test file |
+| `analysis/signals.py` | Rewrite the `taint` branch of `signals_modules` (§4); add the over-listed detector (§5); add `channel_notes` (§4.4) |
 | `analysis/scoring.py` | Replace the silent `len(hidden_named) == 1` gate (§6) |
-| `analysis/models.py` | One new `FindingKind.OVER_LISTED_MODULE = "over_listed_module"` (§7.1) |
+| `analysis/models.py` | One new `FindingKind.OVER_LISTED_MODULE = "over_listed_module"` (§7.1); new `ChannelNote` (§4.4) |
+| `reporting/report.py` | Render a "Channel coverage" section from `channel_notes` (§4.4) |
+| `cli.py` | Print channel notes under `analyze`'s observation list (§4.4); **exit codes unchanged** |
 | `collectors/modules.py` | **Unchanged.** `listed_taint_markers` stays in `extra` for snapshot compatibility; analysis stops reading it |
 
 `listed_taint_markers` is deliberately left in place rather than removed. Removing
@@ -268,25 +350,40 @@ the mutation it performs.
 
 ### 8.1 Acceptance criteria
 
-1. `infected-hooktest.json` and `infected-diamorphine.json` produce **findings
-   identical to today's output**. This phase must not change what kdetect says
-   about the captures it was validated on.
-2. Adding a taint marker to a listed module no longer degrades `infected-hooktest`
-   from HIGH — the regression in §1.1, as a test.
-3. A forged `(OE)` marker on a listed row does not suppress an unexplained bit.
+1. `infected-hooktest.json` and `infected-diamorphine.json` produce the same
+   **kind, subject, confidence, `channels_agree` and `channels_dissent`** as
+   today. This phase must not change what kdetect *concludes* about the captures
+   it was validated on.
+   The taint signal's **evidence dict** does change, and that is intended: it
+   loses `listed_taint_markers` (the vestigial count) and gains `explained_by`,
+   mapping each explained bit to the listed modules accounting for it. On both
+   fixtures `explained_by` is empty, so the rendered evidence gains one field and
+   loses one. The `to_dict()` round-trip and the report snapshot tests must be
+   updated deliberately, not silenced.
+2. Adding a `(P)`-only marker to a listed module no longer degrades
+   `infected-hooktest` from HIGH. Today it does; a proprietary-module marker has
+   nothing to do with bits 12 and 13. This is the §1.2 middle-row recovery, as a
+   test, and it is the honest version of what an earlier draft claimed.
+3. Adding an `(OE)` marker **does** still silence the taint channel — asserted
+   explicitly, so the limit is pinned by a test rather than assumed — **and** a
+   channel note is emitted naming the module that explains bits 12 and 13.
 4. A non-module taint bit (`TAINT_WARN`, `TAINT_USER`) never contributes a signal.
-5. A phantom `/proc/modules` row is caught by the over-listed signal when all
+5. A channel note never becomes a `Finding`, never reaches the IOC extractor, and
+   never changes an exit code: a clean capture whose taint is saturated still
+   exits 0.
+6. A phantom `/proc/modules` row is caught by the over-listed signal when all
    corroborating channels are available, and produces **nothing** when any is
    unavailable. Specifically: `infected-diamorphine`, which has no `kernel.hooks`
    observation, emits no over-listed signal for its four CRC helper modules.
-6. A channel that is available but legitimately returns an **empty** name set is
+7. A channel that is available but legitimately returns an **empty** name set is
    treated as available, not as dissent — the emptiness-versus-availability
    distinction in §5.2, asserted directly.
-7. Appending a second module name to a naming channel does not reduce the real
+8. Appending a second module name to a naming channel does not reduce the real
    suspect's confidence or detach its evidence.
-8. No fixture is modified, `schema_version` is unchanged, and every committed
+9. No fixture is modified, `schema_version` is unchanged, and every committed
    snapshot still parses.
-9. The letter-to-bit table cites kernel source.
+10. The letter-to-bit table cites its source, and the reconcilable set is limited
+    to the letters that source actually evidences (§4.3).
 
 ---
 
@@ -372,10 +469,16 @@ rather than unloaded.
 L17 is therefore **amended, not superseded**:
 
 - add the false-negative direction and the §1.1 demonstration;
-- record that phase 4c replaces the marker count with per-bit reconciliation,
-  which closes the false negative while leaving the sticky false positive intact —
-  stickiness is a property of the kernel, not of kdetect, and no channel available
-  to kdetect distinguishes "loaded now" from "loaded this boot";
+- record what phase 4c does and does not change. Per-bit reconciliation recovers
+  only the case where a listed module's marker explains a *different* bit — a
+  signed out-of-tree module carrying `(O)` without `(E)`, normal under Secure Boot
+  and DKMS signing, which today silences bit 13 for no reason. It does **not**
+  recover the `(OE)`/`(POE)` hosts, because those markers honestly explain bits 12
+  and 13, and one bit cannot distinguish one out-of-tree module from two (§1.2);
+- state the consequence plainly: **on any host with a listed out-of-tree module,
+  the taint channel cannot corroborate a hidden one, and a hidden module must be
+  caught by the region and hook channels alone.** Phase 4c makes that visible as a
+  channel note (§4.4) rather than leaving it as silence;
 - fix the stale identifier: L17 is written against `module_taint_mismatch`, a
   `FindingKind` that phase 3b deleted. It is now the `taint` **channel**
   contributing to `hidden_module`.
