@@ -1,3 +1,4 @@
+import copy
 import json
 from pathlib import Path
 
@@ -157,3 +158,64 @@ def test_signals_processes_carries_comm_in_evidence():
                     [procs, sweep])
     sigs = signals_processes(snap)
     assert sigs and all(s.evidence.get("comm") == "evil" for s in sigs)
+
+
+def _mutate(name):
+    """Load a committed capture as a raw dict for hostile mutation.
+
+    Fixtures are never modified on disk (spec section 8); every test deep-copies
+    the parsed JSON, edits the copy, and rebuilds a Snapshot from it.
+    """
+    return copy.deepcopy(json.loads((SNAP / name).read_text(encoding="utf-8")))
+
+
+def _obs(raw, collector):
+    return next(o for o in raw["observations"] if o["collector"] == collector)
+
+
+def _mark(raw, marker):
+    """Give the first listed module a /proc/modules taint marker."""
+    mods = _obs(raw, "procfs.modules")
+    mods["entities"][mods["entity_ids"][0]]["taint"] = marker
+    return raw
+
+
+def _taint_signal(raw):
+    sigs = signals_modules(Snapshot.from_dict(raw))
+    found = [s for s in sigs if s.channel == "taint"]
+    return found[0] if found else None
+
+
+def test_taint_fires_on_the_unmodified_captures():
+    for name in ("infected-hooktest.json", "infected-diamorphine.json"):
+        sig = _taint_signal(_mutate(name))
+        assert sig is not None, name
+        assert sig.evidence["bits"] == [12, 13]
+        assert sig.evidence["explained_by"] == {}
+
+
+def test_proprietary_marker_no_longer_silences_the_out_of_tree_bits():
+    # Today a (P) marker sets listed_taint_markers to 1 and kills the channel.
+    # It has nothing to do with bits 12 and 13 (spec section 1.2, middle rows).
+    sig = _taint_signal(_mark(_mutate("infected-hooktest.json"), "P"))
+    assert sig is not None
+    assert sig.evidence["bits"] == [12, 13]
+
+
+def test_signed_out_of_tree_marker_leaves_the_unsigned_bit_unexplained():
+    sig = _taint_signal(_mark(_mutate("infected-hooktest.json"), "O"))
+    assert sig is not None
+    assert sig.evidence["bits"] == [13]
+    assert list(sig.evidence["explained_by"]) == ["12"]
+
+
+def test_oe_marker_still_silences_the_channel():
+    # Pinning the LIMIT with a test so it cannot be mistaken for a regression:
+    # (OE) honestly explains both bits, and no reconciliation recovers this.
+    assert _taint_signal(_mark(_mutate("infected-hooktest.json"), "OE")) is None
+
+
+def test_non_module_taint_bit_never_fires():
+    raw = _mutate("infected-hooktest.json")
+    _obs(raw, "kernel.module_evidence")["stats"]["taint"] = 1 << 9   # TAINT_WARN
+    assert _taint_signal(raw) is None

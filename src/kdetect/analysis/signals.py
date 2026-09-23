@@ -10,6 +10,7 @@ and unexpected_hook name their module. The scorer attributes the anonymous ones
 from __future__ import annotations
 
 from kdetect.analysis.models import Signal, Suspect
+from kdetect.analysis.taint import reconcile
 from kdetect.models import Snapshot
 
 _MODULE_DISSENT = "procfs.modules listing"
@@ -26,6 +27,18 @@ def _module_ids(snapshot: Snapshot) -> set[str]:
     return set(obs[0].entity_ids) if obs else set()
 
 
+def _listed_markers(snapshot: Snapshot) -> dict[str, str | None]:
+    """Each listed module's /proc/modules taint marker, or None.
+
+    The letters are already in every snapshot ever captured -- ModuleEntity.taint
+    -- and were being discarded in favour of a count (P12).
+    """
+    obs = _observations(snapshot, "procfs.modules")
+    if not obs:
+        return {}
+    return {name: ent.taint for name, ent in obs[0].entities.items()}
+
+
 def signals_modules(snapshot: Snapshot) -> list[Signal]:
     listings = _observations(snapshot, "procfs.modules")
     evidences = _observations(snapshot, "kernel.module_evidence")
@@ -34,15 +47,18 @@ def signals_modules(snapshot: Snapshot) -> list[Signal]:
     listed = set(listings[0].entity_ids)
     ev = evidences[0]
     taint = ev.stats.get("taint", 0)
-    markers = (ev.extra or {}).get("listed_taint_markers", 0)
     regions = ev.stats.get("load_module_regions")
     ftrace = (ev.extra or {}).get("ftrace_modules")
 
     out: list[Signal] = []
-    if bool(taint & ((1 << 12) | (1 << 13))) and markers == 0:
-        bits = [b for b in (12, 13) if taint & (1 << b)]
+    rec = reconcile(taint, _listed_markers(snapshot))
+    if rec.unexplained:
+        # explained_by keys are stringified: this dict is serialised into the
+        # finding's evidence and JSON object keys must be strings.
         out.append(Signal("taint", Suspect("module", None), _MODULE_DISSENT,
-                          {"taint": taint, "listed_taint_markers": markers, "bits": bits}))
+                          {"taint": taint, "bits": rec.unexplained,
+                           "explained_by": {str(b): v
+                                            for b, v in rec.explained_by.items()}}))
     if regions is not None and regions > len(listed):
         out.append(Signal("vmalloc_region", Suspect("module", None), _MODULE_DISSENT,
                           {"load_module_regions": regions, "listed": len(listed),
