@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import json
 
-from kdetect.analysis.models import Confidence, Finding, FindingKind
+from kdetect.analysis.models import ChannelNote, Confidence, Finding, FindingKind
 from kdetect.models import Snapshot
 from kdetect.reporting.escape import md_block, md_code
 from kdetect.reporting.iocs import IOC
@@ -49,7 +49,8 @@ def _verdict(findings: list[Finding]) -> str:
 
 
 def render_json(snapshot: Snapshot, findings: list[Finding], iocs: list[IOC],
-                baseline_name: str | None = None) -> str:
+                baseline_name: str | None = None,
+                notes: list[ChannelNote] | None = None) -> str:
     h = snapshot.host
     payload = {
         "host": {"hostname": h.hostname, "kernel_release": h.kernel_release,
@@ -63,6 +64,7 @@ def render_json(snapshot: Snapshot, findings: list[Finding], iocs: list[IOC],
         "verdict": _verdict(findings),
         "findings": [f.to_dict() for f in _ranked(findings)],
         "iocs": [i.to_dict() for i in iocs],
+        "channel_notes": [n.to_dict() for n in (notes or [])],
     }
     return json.dumps(payload, indent=2, sort_keys=True)
 
@@ -86,8 +88,49 @@ def _render_evidence(f: Finding) -> list[str]:
     return lines
 
 
+def _note_lines(note: ChannelNote) -> list[str]:
+    """One ChannelNote as Markdown list items (spec section 4.4).
+
+    Every reason renders something. A note whose reason this function has not
+    learned yet falls through to a generic item naming the channel, the raw
+    reason and the detail keys, so a reason added later degrades to a visible
+    line rather than to silence -- which is what happened to "uncorroborated":
+    this renderer matched the literal "saturated" and emitted a bare
+    "## Channel coverage" heading with nothing under it.
+
+    cli.py has its own copy: the two escape differently (md_code() here,
+    printable() there) and must not be merged into one renderer.
+    """
+    if note.reason == "saturated":
+        lines = [
+            f"- {md_code(note.channel)} could not corroborate: every bit it reads "
+            f"is already explained by a listed module, so it cannot speak to a "
+            f"hidden one."
+        ]
+        for bit, owners in sorted(note.detail.get("explained_by", {}).items()):
+            named = ", ".join(md_code(o) for o in owners)
+            lines.append(f"  - bit {md_code(bit)}: {named}")
+        return lines
+    if note.reason == "uncorroborated":
+        consulted = note.detail.get("channels_consulted", [])
+        lines = [
+            f"- {md_code(note.channel)} could not corroborate: every listed module "
+            f"came back uncorroborated, so the channel is reporting on itself "
+            f"rather than on the modules."
+        ]
+        lines.append(f"  - listed modules: {md_code(str(note.detail.get('listed', '?')))}")
+        lines.append("  - channels consulted: "
+                     + (", ".join(md_code(str(c)) for c in consulted) or "none"))
+        return lines
+    keys = ", ".join(md_code(str(k)) for k in sorted(note.detail)) or "none"
+    return [f"- {md_code(note.channel)} did not contribute (reason: "
+            f"{md_code(note.reason)}).",
+            f"  - detail keys: {keys}"]
+
+
 def render_markdown(snapshot: Snapshot, findings: list[Finding], iocs: list[IOC],
-                    baseline_name: str | None = None) -> str:
+                    baseline_name: str | None = None,
+                    notes: list[ChannelNote] | None = None) -> str:
     h = snapshot.host
     c = _counts(findings)
     baseline = md_code(baseline_name) if baseline_name else "none"
@@ -127,4 +170,14 @@ def render_markdown(snapshot: Snapshot, findings: list[Finding], iocs: list[IOC]
     for i in iocs:
         out.append(f"- {i.type}: {md_code(i.value)} ({i.confidence})")
     out.append("")
+    # Gate on rendered LINES, not on whether notes exist: a note whose reason
+    # produced nothing once emitted "## Channel coverage" followed by an empty
+    # body. _note_lines now always produces something, so this can no longer
+    # print a bare heading -- and it stays true for the next reason added.
+    note_lines = [line for n in (notes or []) for line in _note_lines(n)]
+    if note_lines:
+        out.append("## Channel coverage")
+        out.append("")
+        out.extend(note_lines)
+        out.append("")
     return "\n".join(out)

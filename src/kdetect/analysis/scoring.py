@@ -7,6 +7,8 @@ live here (P8); detectors only observe.
 """
 from __future__ import annotations
 
+from dataclasses import replace
+
 from kdetect.analysis.models import (
     Confidence, Finding, FindingKind, Signal, Suspect,
 )
@@ -33,10 +35,27 @@ def _classify(suspect: Suspect, channels: list[str]) -> tuple[FindingKind, str, 
     if suspect.name is None:
         return (FindingKind.SUSPECTED_HIDDEN_MODULE, "unattributed hidden module",
                 "hidden-module indicators fired but no channel can name the module")
+    if "over_listed" in channels and not any(c in _HIDING for c in channels):
+        # Presence, not an exact match. A phantom row an attacker inserts is by
+        # construction also absent from any baseline predating it, so
+        # baseline_drift fires on the same suspect -- an exact match missed that
+        # and classified the phantom as baseline_drift, stating the weaker of the
+        # two facts and burying the kind an operator greps for, in exactly the
+        # posture the project recommends (running against a signed baseline).
+        # _HIDING keeps precedence below: a real hiding channel still wins.
+        others = [c for c in channels if c != "over_listed"]
+        alongside = (f", alongside {', '.join(others)}" if others else "")
+        return (FindingKind.OVER_LISTED_MODULE, f"module {suspect.name}",
+                f"module {suspect.name} is listed in /proc/modules but named by "
+                f"no other channel{alongside}")
     if any(c in _HIDING for c in channels):
+        # over_listed is never a hiding channel (spec section 7.1) -- it must
+        # never appear as though it corroborated concealment, even when it
+        # rides alongside a genuine hiding channel on the same suspect.
+        naming = [c for c in channels if c != "over_listed"]
         return (FindingKind.HIDDEN_MODULE, f"module {suspect.name}",
                 f"module {suspect.name} is concealed from /proc/modules but named "
-                f"by {', '.join(channels)}")
+                f"by {', '.join(naming)}")
     return (FindingKind.BASELINE_DRIFT, f"module {suspect.name}",
             f"module {suspect.name} is loaded now but was absent from the baseline")
 
@@ -68,8 +87,9 @@ def score(signals: list[Signal]) -> list[Finding]:
 
     # Attribute anonymous module signals only when exactly one module is hidden
     # (spec §5); with 0 or >=2 they cannot be pinned to a name (L15/L21).
-    if len(hidden_named) == 1 and anon:
-        target = Suspect("module", next(iter(hidden_named)))
+    candidates = sorted(hidden_named)
+    if len(candidates) == 1 and anon:
+        target = Suspect("module", candidates[0])
         groups.setdefault(target, []).extend(anon)
         anon = []
 
@@ -78,7 +98,19 @@ def score(signals: list[Signal]) -> list[Finding]:
         for susp in sorted(groups, key=lambda s: (s.kind, s.name or ""))
     ]
     if anon:
-        findings.append(_compose(Suspect("module", None), anon))
+        unattributed = _compose(Suspect("module", None), anon)
+        if len(candidates) > 1:
+            # Ambiguity is reported, not discarded (spec section 6). An attacker
+            # who manufactures a second hidden name must not be able to make the
+            # corroborating evidence vanish from the report.
+            evidence = dict(unattributed.evidence)
+            evidence["candidates"] = candidates
+            unattributed = replace(
+                unattributed, evidence=evidence,
+                summary=(f"{unattributed.summary}; candidates: "
+                         f"{', '.join(candidates)}"),
+            )
+        findings.append(unattributed)
     return sorted(findings, key=lambda f: f.subject)
 
 

@@ -12,6 +12,7 @@ from pathlib import Path
 
 from kdetect import __version__, hostfacts
 from kdetect.analysis.scoring import analyze
+from kdetect.analysis.signals import channel_notes
 from kdetect.collectors.kernel_hooks import KernelHookCollector
 from kdetect.collectors.modules import ModuleEvidenceCollector, ProcfsModuleCollector
 from kdetect.collectors.procfs import ProcfsProcessCollector
@@ -127,6 +128,51 @@ def cmd_baseline(args) -> int:
     return EXIT_OK
 
 
+def _note_lines(note) -> list[str]:
+    """One ChannelNote as terminal lines (spec section 4.4).
+
+    Every reason renders something. A note whose reason this function has not
+    learned yet falls through to a generic line naming the channel, the raw
+    reason and the detail keys: a channel that could not contribute is the one
+    artifact saying so, and a reason added later must degrade to a visible line
+    rather than to silence. Both human sinks fell silent on "uncorroborated"
+    exactly because each matched one literal reason and emitted nothing else --
+    on a host where both corroborating channels read empty, `analyze` printed
+    "findings: none" and exited 0, indistinguishable from a clean box.
+
+    report.py has its own copy: the two escape differently (printable() here,
+    md_code() there) and must not be merged into one renderer.
+    """
+    from kdetect.reporting.escape import printable
+
+    channel = printable(note.channel)
+    if note.reason == "saturated":
+        lines = [f"note:      {channel} could not corroborate (saturated); "
+                 f"every bit it reads is explained by a listed module"]
+        for bit, owners in sorted(note.detail.get("explained_by", {}).items()):
+            lines.append(f"{' ' * 11}bit {printable(bit)}: "
+                         f"{printable(', '.join(owners))}")
+        return lines
+    if note.reason == "uncorroborated":
+        consulted = note.detail.get("channels_consulted", [])
+        lines = [f"note:      {channel} could not corroborate "
+                 f"(uncorroborated); every listed module came back "
+                 f"uncorroborated, so the channel is reporting on itself "
+                 f"rather than on the modules"]
+        lines.append(f"{' ' * 11}listed modules: "
+                     f"{printable(str(note.detail.get('listed', '?')))}"
+                     f"   channels consulted: "
+                     f"{printable(', '.join(str(c) for c in consulted))}")
+        return lines
+    # Unknown reason: still say the channel did not contribute, and name what
+    # little is known, so phase 4d's "unreadable" note is visible on the day it
+    # is added rather than on the day someone edits this function.
+    keys = ", ".join(printable(str(k)) for k in sorted(note.detail)) or "none"
+    return [f"note:      {channel} did not contribute "
+            f"(reason: {printable(note.reason)})",
+            f"{' ' * 11}detail keys: {keys}"]
+
+
 def cmd_analyze(args) -> int:
     # Snapshot strings are untrusted (a rootkit names its own module), so every
     # one printed to the terminal goes through printable(): an escape sequence
@@ -165,12 +211,16 @@ def cmd_analyze(args) -> int:
         return EXIT_ERROR
 
     findings = analyze(snapshot, baseline)
+    notes = channel_notes(snapshot)
 
     if getattr(args, "json", False):
         print(json.dumps([f.to_dict() for f in findings], indent=2, sort_keys=True))
         return 3 if findings else EXIT_OK
 
     print()
+    for n in notes:
+        for line in _note_lines(n):
+            print(line)
     if not findings:
         print("findings:  none")
         return EXIT_OK
@@ -263,10 +313,11 @@ def cmd_report(args) -> int:
 
     findings = analyze(snapshot, baseline)
     iocs = extract(findings)
+    notes = channel_notes(snapshot)
     if args.format == "json":
-        text = report_mod.render_json(snapshot, findings, iocs, baseline_name)
+        text = report_mod.render_json(snapshot, findings, iocs, baseline_name, notes=notes)
     else:
-        text = report_mod.render_markdown(snapshot, findings, iocs, baseline_name)
+        text = report_mod.render_markdown(snapshot, findings, iocs, baseline_name, notes=notes)
 
     # The two sinks must emit identical bytes, so settle the trailing newline
     # here rather than letting them disagree: render_markdown already ends in

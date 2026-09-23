@@ -1,7 +1,12 @@
 import json
 
-from kdetect.analysis.models import Finding, FindingKind, Confidence
+import pytest
+
+from kdetect.analysis.models import (
+    CHANNEL_NOTE_REASONS, ChannelNote, Finding, FindingKind, Confidence,
+)
 from kdetect.reporting.iocs import extract
+from kdetect.reporting.iocs import extract as _extract
 from kdetect.reporting import report
 from kdetect.models import (
     Snapshot, HostFacts, CaptureMeta, SCHEMA_VERSION,
@@ -182,3 +187,135 @@ def test_json_report_is_deterministic_and_sorted_keys():
     # sort_keys=True: top-level keys must appear in sorted order in the text.
     payload = json.loads(a)
     assert list(json.loads(a).keys()) == sorted(payload.keys())
+
+
+_NOTE = ChannelNote("taint", "saturated",
+                    {"explained_by": {"12": ["vboxdrv"], "13": ["vboxdrv"]}})
+
+
+def test_markdown_omits_channel_coverage_when_there_are_no_notes():
+    md = report.render_markdown(_snap(), [], [])
+    assert "Channel coverage" not in md
+
+
+def test_markdown_renders_channel_coverage_and_escapes_module_names():
+    md = report.render_markdown(_snap(), [], [], notes=[_NOTE])
+    assert "## Channel coverage" in md
+    assert "taint" in md
+    # A module name is attacker-chosen, so it must be inline code, not bare text.
+    assert "`vboxdrv`" in md
+
+
+def test_markdown_channel_coverage_neutralises_a_hostile_module_name():
+    # "vboxdrv" above is benign: `` f"`{o}`" `` would pass that assertion just
+    # as well as md_code(o) would. Use a name carrying both an ESC byte and a
+    # backtick, so this only passes if printable() and the fence-widening in
+    # md_code() actually ran.
+    owner = "evil`mod\x1b[31m"
+    note = ChannelNote("taint", "saturated", {"explained_by": {"12": [owner]}})
+    md = report.render_markdown(_snap(), [], [], notes=[note])
+    assert "\x1b" not in md
+    # A bare single-backtick span would end at the owner's own backtick,
+    # spilling "mod\x1b[31m``" as loose Markdown; the fence must widen to two
+    # backticks to stay closed around the whole escaped value.
+    assert "  - bit `12`: ``evil`mod\\x1b[31m``\n" in md
+
+
+#: Minimal detail for each reason, so every branch has the keys it reads.
+_DETAIL_FOR_REASON = {
+    "saturated": {"explained_by": {"12": ["vboxdrv"]}},
+    "uncorroborated": {"listed": 3, "channels_consulted": ["a", "b"]},
+}
+
+
+@pytest.mark.parametrize("reason", CHANNEL_NOTE_REASONS)
+def test_every_declared_reason_has_a_branch_in_both_renderers(reason):
+    """CHANNEL_NOTE_REASONS is the declared vocabulary; this makes it binding.
+
+    models.py listed one reason while a second shipped, and that stale comment
+    is the proximate cause of both human renderers falling silent on it. Adding
+    a reason to the tuple without teaching both renderers now fails here: the
+    generic fallback is a safety net for reasons nobody has written yet, not a
+    substitute for a branch for one that is declared.
+    """
+    from kdetect.cli import _note_lines as cli_note_lines
+
+    assert reason in _DETAIL_FOR_REASON, (
+        f"{reason!r} was added to CHANNEL_NOTE_REASONS without a sample detail "
+        f"dict here -- add one, then check both renderers below still pass."
+    )
+    note = ChannelNote("some_channel", reason, _DETAIL_FOR_REASON[reason])
+
+    for rendered in ("\n".join(report._note_lines(note)),
+                     "\n".join(cli_note_lines(note))):
+        assert rendered.strip()
+        # The generic fallback's wording. Reaching it means no branch matched.
+        assert "did not contribute (reason:" not in rendered
+
+
+def test_markdown_renders_an_unknown_note_reason_rather_than_nothing():
+    """Spec section 4.4 earmarks ChannelNote for phase 4d's "this channel was
+    unreadable", so an unrecognised reason is the next thing to arrive, not a
+    hypothetical. It must degrade to a visible generic line -- matching one
+    literal reason and emitting nothing else is what silenced "uncorroborated"
+    on both human paths.
+    """
+    note = ChannelNote("kallsyms", "unreadable", {"errno": "EACCES"})
+    md = report.render_markdown(_snap(), [], [], notes=[note])
+    assert "## Channel coverage" in md
+    assert "`kallsyms`" in md
+    assert "`unreadable`" in md            # the raw reason, verbatim
+    assert "`errno`" in md                 # the detail keys, so nothing is lost
+
+
+def test_markdown_channel_coverage_heading_is_gated_on_content_not_on_notes(
+        monkeypatch):
+    """The empty-heading defect, pinned at its cause.
+
+    `if notes:` emitted the heading whether or not any note rendered a line;
+    `if lines:` cannot. _note_lines always produces something now, so the only
+    way to exercise the gate is to make it produce nothing.
+    """
+    monkeypatch.setattr(report, "_note_lines", lambda note: [])
+    md = report.render_markdown(_snap(), [], [], notes=[_NOTE])
+    assert "Channel coverage" not in md
+
+
+def test_cli_renders_an_unknown_note_reason_rather_than_nothing():
+    """cli.py's _note_lines is a separate renderer (printable(), not md_code())
+    and needs its own guard for the same fallback."""
+    from kdetect.cli import _note_lines
+
+    lines = _note_lines(ChannelNote("kallsyms", "unreadable", {"errno": "EACCES"}))
+    blob = "\n".join(lines)
+    assert lines
+    assert "kallsyms" in blob and "unreadable" in blob and "errno" in blob
+
+
+def test_cli_note_fallback_escapes_a_hostile_reason_and_detail_key():
+    """The fallback prints previously-unrendered strings, so it is a new sink
+    for attacker-chosen bytes and must escape like every other one."""
+    from kdetect.cli import _note_lines
+
+    note = ChannelNote("evil\x1b[31m", "boom\x1b[2K", {"k\x1b[0m": 1})
+    blob = "\n".join(_note_lines(note))
+    assert "\x1b" not in blob
+    assert "\\x1b[31m" in blob and "\\x1b[2K" in blob and "\\x1b[0m" in blob
+
+
+def test_json_carries_notes_as_a_named_key():
+    payload = json.loads(report.render_json(_snap(), [], [], notes=[_NOTE]))
+    assert payload["channel_notes"] == [_NOTE.to_dict()]
+
+
+def test_json_notes_key_is_present_and_empty_when_there_are_none():
+    payload = json.loads(report.render_json(_snap(), [], []))
+    assert payload["channel_notes"] == []
+
+
+def test_a_channel_note_never_becomes_an_ioc():
+    """Criterion 5: notes are not findings and carry no indicators."""
+    assert _extract([]) == []
+    md = report.render_markdown(_snap(), [], [], notes=[_NOTE])
+    ioc_section = md.split("## Indicators of Compromise", 1)[1]
+    assert "vboxdrv" not in ioc_section.split("## Channel coverage")[0]

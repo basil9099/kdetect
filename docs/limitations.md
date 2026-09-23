@@ -153,21 +153,41 @@ exercised against real ground truth and succeeded — three channels, `HIGH`
 confidence. Rootkits not surviving kernel updates is itself a documentable
 reality of this problem space.
 
-**L17 — Taint stickiness makes `module_taint_mismatch` a false-positive-prone
+**L17 — Taint stickiness makes the `taint` channel a false-positive-prone
 signal on its own.** Taint bits 12 (out-of-tree) and 13 (unsigned) are set
 permanently for the rest of the boot when such a module loads, and are NOT
-cleared when it unloads. kdetect's `module_taint_mismatch` fires when a taint
-bit is set but no currently-listed module carries the `(O)`/`(E)` marker —
-which is true of a genuinely hidden module, but ALSO true of a host that
-merely loaded and then unloaded a legitimate out-of-tree or unsigned module
-earlier in the boot (VirtualBox additions, nvidia, vmware, a local dev build).
-On such a host `module_taint_mismatch` fires with no rootkit present. The
-clean-baseline fixture avoids this only because the freshly-rebuilt VM has
-`taint=0`. A taint-only hit therefore corroborates just one channel and is
-reported at LOW confidence; the `load_module` region-count and ftrace
-channels, which track currently-loaded state rather than sticky history, are
-the robust ones. Treat a lone `module_taint_mismatch` as a prompt to
-investigate, not proof.
+cleared when it unloads. The `taint` channel fires when a taint bit is set
+but no currently-listed module carries the `(O)`/`(E)` marker — which is true
+of a genuinely hidden module, but ALSO true of a host that merely loaded and
+then unloaded a legitimate out-of-tree or unsigned module earlier in the boot
+(VirtualBox additions, nvidia, vmware, a local dev build). On such a host the
+`taint` channel fires with no rootkit present. The clean-baseline fixture
+avoids this only because the freshly-rebuilt VM has `taint=0`. A taint-only
+hit therefore corroborates just one channel and is reported at LOW
+confidence; the `load_module` region-count and ftrace channels, which track
+currently-loaded state rather than sticky history, are the robust ones. Treat
+a lone `taint` hit as a prompt to investigate, not proof.
+
+**Amended phase 4c (2026-09-20).** The entry above records the false-positive
+direction. The implementation also had the opposite failure, which is worse. It
+tested `markers == 0` — a bare count of listed modules carrying any taint marker
+at all — so a *single currently listed* module with any marker silenced the
+channel completely, including when a rootkit was present. The same drivers named
+above are false-negative risks whenever they are loaded rather than unloaded.
+
+Phase 4c replaced the count with per-bit reconciliation: a set bit is explained
+only by a listed module carrying that bit's own letter. That recovers the case
+where a marker explains some *other* bit — a signed out-of-tree module carries
+`(O)` without `(E)`, normal under Secure Boot and DKMS signing, and used to
+silence bit 13 for no reason.
+
+It does **not** recover a host carrying `(OE)` or `(POE)` — nvidia, zfs,
+vboxdrv. Those markers honestly explain bits 12 and 13, and taint is one sticky
+boolean per class: "at least one out-of-tree module was loaded" cannot
+distinguish one from two. **On any host with a listed out-of-tree module the
+taint channel cannot corroborate a hidden one, and a hidden module must be
+caught by the region and hook channels alone.** kdetect now says so rather than
+staying silent — see the "Channel coverage" section of a report.
 
 ## Phase 3a — baseline store and hook surfaces
 
@@ -288,6 +308,81 @@ Threads can `prctl(PR_SET_NAME)` independently of the leader, so this is a real
 possibility, not a corner case kdetect can rule out. The report labels it a
 bare `comm:` because that is exactly what was observed; it is not claimed to
 be the leader's name.
+
+## Phase 4c — evidence discipline in analysis
+
+**L27 — The over-listed signal's zero-false-positive record depends on
+`/proc/kallsyms` being a complete module inventory, not on two channels
+agreeing.** Direct computation against the committed
+`infected-hooktest.json` capture (74 listed modules): the ftrace channel
+alone leaves 4 uncorroborated — `crc16`, `crc64`, `crc64_rocksoft`,
+`crc_t10dif` — because those CRC helper modules have no functions ftrace can
+trace. That is structural, not suspicious, and it is exactly why the signal
+requires *any* corroborating channel to name a module, not all of them.
+`/proc/kallsyms` alone covers all 74, which is the only reason that capture
+fires zero `over_listed` findings. So the guard's soundness rests entirely
+on kallsyms being a complete inventory; a host where kallsyms omits even one
+loaded module, for any reason, produces a spurious finding for it.
+
+There is also a flag-semantics mismatch in the collector that could produce
+exactly that omission: `src/kdetect/collectors/kernel_hooks.py:29` builds the
+callback→module map with a truthiness test (`if kallsyms_text`), while `:58`
+derives `kallsyms_available` from `kallsyms_text is not None`. A
+readable-but-empty `/proc/kallsyms` therefore reports `kallsyms_available =
+True` with an empty module map — available and useless at the same time.
+Phase 4c's availability guard (see `detection-methods.md`) catches the total
+case, where *every* listed module comes up uncorroborated, and reports a
+`ChannelNote` instead of flooding the report with findings. It does **not**
+catch the partial case — kallsyms readable but silently missing a handful of
+modules — and that partial case is the signal's live, unmeasured risk. The
+note itself now renders on every path (`analyze`, the Markdown report and the
+JSON report alike); it was briefly visible only to a JSON consumer, which meant
+an operator on a blinded host saw zero findings and no explanation.
+
+Calibration otherwise stands as it was scoped: two captures, one host, one
+kernel; provisional until clean captures from more kernels exist.
+
+**L28 — The vmalloc region count is derived from an unanchored substring
+match.** `count_module_regions` counts any `/proc/vmallocinfo` line containing
+the text `load_module`, so a vmalloc caller symbol containing that substring
+inflates the count and can manufacture a `suspected_hidden_module` finding on a
+clean host. Not fixable in the analysis layer — the collector records only the
+count, discarding which lines matched (P12) — so it is deferred to phase 4d.
+
+**L29 — A module name can steer its own attribution.** All three channels that
+can name a module (`parse_ftrace_modules`, `reduce_kallsyms`, and
+`_callback_and_module`) derive the name by scraping the last bracketed group on
+a line, so a module named to contain `][` attributes its own records to the
+trailing name — and all three fail identically, so cross-view corroboration
+cannot recover it. Confirmed against the parsers. The kernel-side reachability
+is unverified: whether `load_module` accepts such a name in the `name` field of
+`.gnu.linkonce.this_module` has not been tested on a real kernel, and phase 4d
+is gated on that experiment.
+
+**L30 — Ambiguous attribution is named, not solved; the true positive is still
+attacker-influenceable.** Phase 4c's scoring change guarantees that anonymous
+corroborating evidence (`taint`, `vmalloc_region`) is never silently discarded
+when two or more modules look hidden — it is retained and every candidate is
+named in the finding. But naming the candidates does not stop an attacker from
+degrading the graded confidence: appending one decoy module name to any
+naming channel still splits a HIGH `hidden_module` finding into two LOW ones
+plus a MEDIUM `suspected_hidden_module`. Measured directly against
+`scoring.score`:
+
+```
+no attack:   HIGH  hidden_module  module kdetect_hooktest
++ one decoy: LOW   hidden_module  module e1000_dbg
+             LOW   hidden_module  module kdetect_hooktest
+             MEDIUM suspected_hidden_module (candidates: e1000_dbg, kdetect_hooktest)
+```
+
+The corroborating evidence survives and is attributable by a human reading
+the candidate list, which is the phase 4c fix — an attacker can no longer make
+it vanish. But the confidence *grading* is still attacker-influenceable, since
+confidence is a per-suspect channel count and a decoy candidate splits the
+count across two suspects. This is pre-existing behaviour (the `len(candidates)
+== 1` attribution gate, unchanged since phase 3b) that phase 4c chose not to
+change, not something it introduced, and it must not be mistaken for solved.
 
 ## Verified properties
 

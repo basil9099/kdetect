@@ -1,10 +1,11 @@
+import copy
 import json
 from pathlib import Path
 
-from kdetect.analysis.models import Suspect
+from kdetect.analysis.models import ChannelNote, Suspect
 from kdetect.analysis.signals import (
     signals_modules, signals_hooks, signals_processes, signals_baseline, all_signals,
-    signals_sockets,
+    signals_sockets, channel_notes, signals_over_listed,
 )
 from kdetect.models import (
     CaptureMeta, HostFacts, ModuleEntity, Observation, SCHEMA_VERSION, Snapshot,
@@ -157,3 +158,183 @@ def test_signals_processes_carries_comm_in_evidence():
                     [procs, sweep])
     sigs = signals_processes(snap)
     assert sigs and all(s.evidence.get("comm") == "evil" for s in sigs)
+
+
+def _mutate(name):
+    """Load a committed capture as a raw dict for hostile mutation.
+
+    Fixtures are never modified on disk (spec section 8); every test deep-copies
+    the parsed JSON, edits the copy, and rebuilds a Snapshot from it.
+    """
+    return copy.deepcopy(json.loads((SNAP / name).read_text(encoding="utf-8")))
+
+
+def _obs(raw, collector):
+    return next(o for o in raw["observations"] if o["collector"] == collector)
+
+
+def _mark(raw, marker):
+    """Give the first listed module a /proc/modules taint marker."""
+    mods = _obs(raw, "procfs.modules")
+    mods["entities"][mods["entity_ids"][0]]["taint"] = marker
+    return raw
+
+
+def _taint_signal(raw):
+    sigs = signals_modules(Snapshot.from_dict(raw))
+    found = [s for s in sigs if s.channel == "taint"]
+    return found[0] if found else None
+
+
+def test_taint_fires_on_the_unmodified_captures():
+    for name in ("infected-hooktest.json", "infected-diamorphine.json"):
+        sig = _taint_signal(_mutate(name))
+        assert sig is not None, name
+        assert sig.evidence["bits"] == [12, 13]
+        assert sig.evidence["explained_by"] == {}
+
+
+def test_proprietary_marker_no_longer_silences_the_out_of_tree_bits():
+    # Today a (P) marker sets listed_taint_markers to 1 and kills the channel.
+    # It has nothing to do with bits 12 and 13 (spec section 1.2, middle rows).
+    sig = _taint_signal(_mark(_mutate("infected-hooktest.json"), "P"))
+    assert sig is not None
+    assert sig.evidence["bits"] == [12, 13]
+
+
+def test_signed_out_of_tree_marker_leaves_the_unsigned_bit_unexplained():
+    sig = _taint_signal(_mark(_mutate("infected-hooktest.json"), "O"))
+    assert sig is not None
+    assert sig.evidence["bits"] == [13]
+    assert list(sig.evidence["explained_by"]) == ["12"]
+
+
+def test_oe_marker_still_silences_the_channel():
+    # Pinning the LIMIT with a test so it cannot be mistaken for a regression:
+    # (OE) honestly explains both bits, and no reconciliation recovers this.
+    assert _taint_signal(_mark(_mutate("infected-hooktest.json"), "OE")) is None
+
+
+def test_non_module_taint_bit_never_fires():
+    raw = _mutate("infected-hooktest.json")
+    _obs(raw, "kernel.module_evidence")["stats"]["taint"] = 1 << 9   # TAINT_WARN
+    assert _taint_signal(raw) is None
+
+
+def test_no_note_when_taint_is_clean():
+    raw = _mutate("infected-hooktest.json")
+    _obs(raw, "kernel.module_evidence")["stats"]["taint"] = 0
+    assert channel_notes(Snapshot.from_dict(raw)) == []
+
+
+def test_no_note_when_the_channel_still_speaks():
+    # Bits set and unexplained: the channel is contributing, not saturated.
+    assert channel_notes(_load("infected-hooktest.json")) == []
+
+
+def test_saturated_taint_emits_a_note_naming_the_explaining_module():
+    raw = _mark(_mutate("infected-hooktest.json"), "OE")
+    notes = channel_notes(Snapshot.from_dict(raw))
+    assert len(notes) == 1
+    note = notes[0]
+    assert isinstance(note, ChannelNote)
+    assert note.channel == "taint"
+    assert note.reason == "saturated"
+    explaining = _obs(raw, "procfs.modules")["entity_ids"][0]
+    assert note.detail["explained_by"] == {"12": [explaining], "13": [explaining]}
+
+
+def test_note_round_trips_to_a_json_safe_dict():
+    raw = _mark(_mutate("infected-hooktest.json"), "OE")
+    d = channel_notes(Snapshot.from_dict(raw))[0].to_dict()
+    assert json.loads(json.dumps(d)) == d
+    assert set(d) == {"channel", "reason", "detail"}
+
+
+def _corroborators(raw, ftrace, kallsyms):
+    _obs(raw, "kernel.module_evidence")["extra"]["ftrace_modules"] = ftrace
+    _obs(raw, "kernel.module_evidence")["stats"]["ftrace_available"] = True
+    hooks = _obs(raw, "kernel.hooks")
+    hooks["extra"]["kallsyms_modules"] = kallsyms
+    hooks["stats"]["kallsyms_available"] = True
+    return raw
+
+
+def test_no_over_listed_signal_on_the_real_captures():
+    # Measured in spec section 5.2: zero on hooktest, and diamorphine has no
+    # kernel.hooks observation at all so the guard suppresses it there.
+    for name in ("infected-hooktest.json", "infected-diamorphine.json"):
+        assert signals_over_listed(_load(name)) == [], name
+
+
+def test_phantom_row_is_caught_when_every_channel_is_available():
+    raw = _mutate("infected-hooktest.json")
+    mods = _obs(raw, "procfs.modules")
+    original = list(mods["entity_ids"])          # before injecting the phantom
+    mods["entities"]["phantom_mod"] = {
+        "name": "phantom_mod", "size": 1, "refcount": 0, "dependents": [],
+        "state": "Live", "base_addr": "0x0", "taint": None,
+    }
+    mods["entity_ids"] = sorted(original + ["phantom_mod"])
+    # Split the real listing across the two corroborating channels so neither
+    # one alone covers it -- proving the UNION is what corroborates, not just
+    # one channel's reach -- while the injected phantom row sits in neither
+    # half. This does not depend on the fixture's own ftrace/kallsyms lists
+    # happening to already cover 100% of the listing.
+    raw = _corroborators(raw, ftrace=original[:1], kallsyms=original[1:])
+
+    sigs = signals_over_listed(Snapshot.from_dict(raw))
+    assert [s.suspect.name for s in sigs] == ["phantom_mod"]
+    assert sigs[0].channel == "over_listed"
+    assert channel_notes(Snapshot.from_dict(raw)) == []   # partial, not a flood
+
+
+def test_unavailable_kallsyms_suppresses_the_signal_entirely():
+    raw = _mutate("infected-hooktest.json")
+    listed = _obs(raw, "procfs.modules")["entity_ids"]
+    # Partial corroboration -- neither empty (which would instead trip the
+    # "every module uncorroborated" ChannelNote guard) nor full -- so
+    # unavailability is the only thing standing between the detector and a
+    # real signal for the other 73 modules.
+    raw = _corroborators(raw, ftrace=listed[:1], kallsyms=[])
+    _obs(raw, "kernel.hooks")["stats"]["kallsyms_available"] = False
+    assert signals_over_listed(Snapshot.from_dict(raw)) == []
+
+
+def test_unavailable_ftrace_also_suppresses_the_signal_entirely():
+    raw = _mutate("infected-hooktest.json")
+    listed = _obs(raw, "procfs.modules")["entity_ids"]
+    raw = _corroborators(raw, ftrace=[], kallsyms=listed[:1])
+    _obs(raw, "kernel.module_evidence")["stats"]["ftrace_available"] = False
+    assert signals_over_listed(Snapshot.from_dict(raw)) == []
+
+
+def test_all_modules_uncorroborated_emits_a_note_not_a_flood_of_findings():
+    # A readable-but-empty /proc/kallsyms (and an equally silent ftrace) still
+    # reports both channels available=True with no names. Every listed module
+    # comes up uncorroborated: that is evidence about the channel pair, not
+    # that every legitimate module is hiding, so it must not flood the report
+    # with one finding per module (spec section 5.2, the P12 behaviour change).
+    raw = _corroborators(_mutate("infected-hooktest.json"), ftrace=[], kallsyms=[])
+    listed = _obs(raw, "procfs.modules")["entity_ids"]
+    assert len(listed) > 0
+    assert signals_over_listed(Snapshot.from_dict(raw)) == []
+
+    notes = channel_notes(Snapshot.from_dict(raw))
+    over_listed_notes = [n for n in notes if n.channel == "over_listed"]
+    assert len(over_listed_notes) == 1
+    note = over_listed_notes[0]
+    assert isinstance(note, ChannelNote)
+    assert note.reason == "uncorroborated"
+    assert note.detail["listed"] == len(listed)
+
+
+def test_partial_uncorroboration_still_emits_signals_not_a_note():
+    raw = _mutate("infected-hooktest.json")
+    listed = _obs(raw, "procfs.modules")["entity_ids"]
+    # Every module but the last is corroborated; the note guard requires ALL
+    # of them to be uncorroborated, so this must take the ordinary signal path.
+    raw = _corroborators(raw, ftrace=listed[:-1], kallsyms=[])
+    sigs = signals_over_listed(Snapshot.from_dict(raw))
+    assert [s.suspect.name for s in sigs] == [listed[-1]]
+    assert channel_notes(Snapshot.from_dict(raw)) == []

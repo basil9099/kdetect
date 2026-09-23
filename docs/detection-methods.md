@@ -329,6 +329,27 @@ unloaded a legitimate out-of-tree/unsigned module earlier in the boot carries
 the same bits, so a taint-only hit is `LOW`-confidence and noisy on its own —
 see [`limitations.md`](limitations.md) L17.
 
+**Per-bit reconciliation, not a marker count (phase 4c).** A taint bit is
+*explained* only when a currently-listed module carries that bit's own
+letter — bit 12 (out-of-tree) by marker `O`, bit 13 (unsigned) by marker `E`,
+the only two letters `docs/step0-phase2/clean/08-taint-accounting.txt`
+evidences and deliberately the only two the reconciliation table carries. An
+earlier implementation counted listed modules carrying *any* marker and fired
+the channel only when that count was zero, so one signed out-of-tree module
+(`O` without `E`) silenced the whole channel, including bit 13, which it says
+nothing about. Reconciling per bit recovers exactly that case.
+
+It does **not** recover the case where a listed module's markers genuinely
+explain the set bits — `(OE)` (VirtualBox, ZFS) or `(POE)` (nvidia): taint is
+one sticky boolean per class, so "at least one out-of-tree module was loaded"
+cannot distinguish one from two. **On a host with a listed module carrying
+those markers, the taint channel is saturated: it cannot corroborate a hidden
+module, and the `vmalloc_region` channel here and the hook-surface
+`unexpected_hook` channel (method 10) are the ones that must catch it
+instead.** kdetect surfaces the saturated
+state as a `ChannelNote` — under `analyze`'s observation list and the
+report's "Channel coverage" section — rather than staying silent about it.
+
 **Also worth collecting.** Module base addresses (requires `CAP_SYSLOG`, see
 method 6) and whether the module is signed. Debian's stock kernel ships with
 module signature checking available; an unsigned out-of-tree module is not
@@ -502,6 +523,99 @@ clean-host calibration that drove the `hidden_socket` drop is recorded in
 [`superpowers/specs/2026-09-03-kdetect-phase4a-design.md`](superpowers/specs/2026-09-03-kdetect-phase4a-design.md)
 §4–§6 (source/collector/entity, signals and FP calibration, correlation and
 the HIGH `hidden_process` path), amended by L25.
+
+---
+
+## 13. Over-listed module detection [implemented — phase 4c]
+
+**Observes.** The mirror image of method 9's `ftrace_orphan`: a module that
+**is** in the `/proc/modules` listing but that no other channel corroborates —
+absent from both `kernel.module_evidence`'s ftrace module tags and
+`kernel.hooks`'s kallsyms module map.
+
+**Why it works.** An attacker who can `list_del` a row out of `/proc/modules`
+to hide a module (method 9) can equally *add* a row that was never linked in
+the first place, and each such phantom row absorbs exactly one of the
+`vmalloc_region` channel's unaccounted regions — so that channel alone is one
+phantom row deep. `signals_over_listed` (`src/kdetect/analysis/signals.py`)
+recovers the *detection* by checking whether anything else backs the name the
+listing claims.
+
+It does **not** repair the region channel's arithmetic, and saying it "closes"
+the gap overstates it. Measured on `infected-hooktest.json` with one phantom
+row injected: the real suspect `kdetect_hooktest` still drops **HIGH →
+MEDIUM**, because the phantom row absorbs the unaccounted `load_module` region
+exactly as before and `vmalloc_region` stops firing. What the channel adds is
+one *separate* `LOW` `over_listed_module` finding naming the phantom. So an
+analyst sees the attack rather than nothing, but the real finding's grade is
+still degraded and the region count is still one row short — the same honesty
+[`limitations.md`](limitations.md) L30 applies to the ambiguous-attribution
+fix. Repairing the arithmetic needs the collector to carry which vmalloc lines
+matched, which is L28's schema-level deferral.
+
+**The guard.** The signal is gated on channel *availability*, never on
+emptiness: it is computed only when both `kernel.module_evidence`'s
+`ftrace_available` and `kernel.hooks`'s `kallsyms_available` flags are true,
+reading the union of `ftrace_modules` and `kallsyms_modules` as the
+corroborating name set. An unavailable channel is skipped rather than read as
+dissent — reading absence as dissent is exactly the false positive the guard
+exists to prevent (`infected-diamorphine.json` has no `kernel.hooks`
+observation at all, and without the guard its four legitimate CRC helper
+modules — `crc16`, `crc64`, `crc64_rocksoft`, `crc_t10dif` — would misfire).
+
+**Channel notes, not a flood of findings.** When *every* listed module comes
+up uncorroborated, that is read as the corroborating channel pair itself
+having nothing to say — an empty-but-readable `/proc/kallsyms`, for instance —
+not as every module hiding at once. That case emits one
+`ChannelNote(channel="over_listed", reason="uncorroborated")` instead of one
+finding per legitimately-loaded module (never a `Finding`, never reaches the
+IOC extractor, never affects the exit code). Only a *partial* uncorroborated
+set — some, not all, listed modules unbacked — becomes `over_listed` `Signal`s,
+one per module, composing into an `over_listed_module` `Finding` — `LOW`
+confidence when `over_listed` is a suspect's only channel.
+
+**Visible on every path, including for reasons not yet written.** This note was
+briefly JSON-only: both human renderers matched the literal string
+`"saturated"`, so an `uncorroborated` note printed nothing under `analyze` and
+appeared in a Markdown report as an empty `## Channel coverage` heading. That
+mattered because returning *empty* content for `/proc/kallsyms` and
+`available_filter_functions` is strictly easier for an attacker than forging
+their contents, and it kills the `ftrace_orphan` channel at the same time — so
+the one artifact saying "two channels I asked returned nothing" was suppressed
+on both paths an operator actually reads, leaving `analyze` printing
+`findings: none` and exiting `0`, indistinguishable from a clean host.
+
+Each sink now renders notes through its own `_note_lines` helper (`cli.py` with
+`printable()`, `report.py` with `md_code()` — separate because they escape
+differently). Each handles `saturated` and `uncorroborated` explicitly and falls
+back, for any reason it does not recognise, to a generic line naming the
+channel, the raw reason and the detail keys. The Markdown section is gated on
+whether any lines were produced rather than on whether any notes exist, so it
+can no longer emit a bare heading. Spec §4.4 earmarks `ChannelNote` as the home
+for phase 4d's "this channel was unreadable", so that fallback is the next
+reason to arrive, not speculative generality.
+
+**Calibrated on two captures, one host, one kernel — provisional.** Measured
+on the committed fixtures: zero `over_listed` findings on
+`infected-hooktest.json` (kallsyms alone corroborates all 74 listed modules,
+even though ftrace alone leaves the 4 CRC helper modules above
+uncorroborated), and none on `infected-diamorphine.json` (the availability
+guard suppresses it — no `kernel.hooks` observation). That is not evidence
+the signal is false-positive-free on a real host, only that it has not yet
+misfired on the two captures it has been run against. See
+[`limitations.md`](limitations.md) L27 for the specific mechanism: the
+signal's soundness rests on `/proc/kallsyms` being a *complete* module
+inventory, and a collector flag-semantics gap (`kernel_hooks.py:29` vs `:58`)
+can produce exactly the kind of partial, undetected omission L27 describes.
+
+**Defeated by.** A rootkit that also forges a `kernel.module_evidence` or
+`kernel.hooks` entry for its phantom row, or a host whose legitimate modules
+are absent from both corroborating channels for reasons the two committed
+captures have never exercised.
+
+**Evidence.** `tests/fixtures/snapshots/infected-hooktest.json`,
+`tests/fixtures/snapshots/infected-diamorphine.json`;
+[`limitations.md`](limitations.md) L27.
 
 ---
 
