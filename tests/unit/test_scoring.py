@@ -94,3 +94,20 @@ def test_over_listed_plus_other_evidence_never_reads_as_pure_concealment():
     assert len(findings) == 1
     assert findings[0].kind is not FindingKind.HIDDEN_MODULE
 
+def test_over_listed_is_not_named_among_channels_that_corroborate_concealment():
+    # unexpected_hook IS in _HIDING, unlike baseline_drift above -- this is the
+    # composite that actually reaches the HIDDEN_MODULE summary-join line and
+    # can catch a regression of the over_listed exclusion there.
+    findings = score([_mod("over_listed", "m"),
+                      _mod("unexpected_hook", "m", function="x")])
+    assert len(findings) == 1
+    f = findings[0]
+    assert f.kind is FindingKind.HIDDEN_MODULE      # a hiding channel is present
+    assert "unexpected_hook" in f.summary
+    # over_listed means "nothing corroborates this module" -- listing it among
+    # the channels that named a concealment is self-contradictory.
+    assert "over_listed" not in f.summary
+    # It is still a real channel that fired and must still count toward
+    # confidence -- only the summary's "named by" clause excludes it.
+    assert "over_listed" in f.channels_agree
+
