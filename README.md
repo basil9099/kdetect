@@ -165,7 +165,7 @@ from `analyze` or `report` is a detection, not a crash.
 
 ## What it detects
 
-Ten of the twelve numbered detection methods are implemented, documented
+Eleven of the thirteen numbered detection methods are implemented, documented
 individually in [`docs/detection-methods.md`](docs/detection-methods.md). One more
 is implemented as a constraint on what kdetect can read, and one is planned.
 
@@ -174,6 +174,7 @@ is implemented as a constraint on what kdetect can read, and one is planned.
 | `hidden_process` | `syscall_kill`, `direct_status`, `socket_visible` vs `/proc` readdir |
 | `hidden_module` | `taint`, `vmalloc_region`, `ftrace_orphan`, `unexpected_hook` vs `/proc/modules` |
 | `suspected_hidden_module` | anonymous indicators that fire but name no module |
+| `over_listed_module` | `/proc/modules` listing vs `ftrace_modules`, `kallsyms_modules` |
 | `baseline_drift` | a module present now but absent from a signed baseline |
 
 Confidence is corroboration count, scoped per suspect: one channel is LOW, two
@@ -204,7 +205,7 @@ observe.
 
 ## What it cannot detect
 
-[`docs/limitations.md`](docs/limitations.md) records 26 numbered limitations, each
+[`docs/limitations.md`](docs/limitations.md) records 30 numbered limitations, each
 one traced to captured evidence under `docs/step0*/` rather than asserted. The
 shape of them:
 
