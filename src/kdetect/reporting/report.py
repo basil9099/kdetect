@@ -88,6 +88,46 @@ def _render_evidence(f: Finding) -> list[str]:
     return lines
 
 
+def _note_lines(note: ChannelNote) -> list[str]:
+    """One ChannelNote as Markdown list items (spec section 4.4).
+
+    Every reason renders something. A note whose reason this function has not
+    learned yet falls through to a generic item naming the channel, the raw
+    reason and the detail keys, so a reason added later degrades to a visible
+    line rather than to silence -- which is what happened to "uncorroborated":
+    this renderer matched the literal "saturated" and emitted a bare
+    "## Channel coverage" heading with nothing under it.
+
+    cli.py has its own copy: the two escape differently (md_code() here,
+    printable() there) and must not be merged into one renderer.
+    """
+    if note.reason == "saturated":
+        lines = [
+            f"- {md_code(note.channel)} could not corroborate: every bit it reads "
+            f"is already explained by a listed module, so it cannot speak to a "
+            f"hidden one."
+        ]
+        for bit, owners in sorted(note.detail.get("explained_by", {}).items()):
+            named = ", ".join(md_code(o) for o in owners)
+            lines.append(f"  - bit {md_code(bit)}: {named}")
+        return lines
+    if note.reason == "uncorroborated":
+        consulted = note.detail.get("channels_consulted", [])
+        lines = [
+            f"- {md_code(note.channel)} could not corroborate: every listed module "
+            f"came back uncorroborated, so the channel is reporting on itself "
+            f"rather than on the modules."
+        ]
+        lines.append(f"  - listed modules: {md_code(str(note.detail.get('listed', '?')))}")
+        lines.append("  - channels consulted: "
+                     + (", ".join(md_code(str(c)) for c in consulted) or "none"))
+        return lines
+    keys = ", ".join(md_code(str(k)) for k in sorted(note.detail)) or "none"
+    return [f"- {md_code(note.channel)} did not contribute (reason: "
+            f"{md_code(note.reason)}).",
+            f"  - detail keys: {keys}"]
+
+
 def render_markdown(snapshot: Snapshot, findings: list[Finding], iocs: list[IOC],
                     baseline_name: str | None = None,
                     notes: list[ChannelNote] | None = None) -> str:
@@ -130,18 +170,14 @@ def render_markdown(snapshot: Snapshot, findings: list[Finding], iocs: list[IOC]
     for i in iocs:
         out.append(f"- {i.type}: {md_code(i.value)} ({i.confidence})")
     out.append("")
-    if notes:
+    # Gate on rendered LINES, not on whether notes exist: a note whose reason
+    # produced nothing once emitted "## Channel coverage" followed by an empty
+    # body. _note_lines now always produces something, so this can no longer
+    # print a bare heading -- and it stays true for the next reason added.
+    note_lines = [line for n in (notes or []) for line in _note_lines(n)]
+    if note_lines:
         out.append("## Channel coverage")
         out.append("")
-        for n in notes:
-            if n.reason == "saturated":
-                out.append(
-                    f"- `{n.channel}` could not corroborate: every bit it reads is "
-                    f"already explained by a listed module, so it cannot speak to a "
-                    f"hidden one."
-                )
-                for bit, owners in sorted(n.detail.get("explained_by", {}).items()):
-                    named = ", ".join(md_code(o) for o in owners)
-                    out.append(f"  - bit {md_code(bit)}: {named}")
+        out.extend(note_lines)
         out.append("")
     return "\n".join(out)

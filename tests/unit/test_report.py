@@ -1,6 +1,10 @@
 import json
 
-from kdetect.analysis.models import ChannelNote, Finding, FindingKind, Confidence
+import pytest
+
+from kdetect.analysis.models import (
+    CHANNEL_NOTE_REASONS, ChannelNote, Finding, FindingKind, Confidence,
+)
 from kdetect.reporting.iocs import extract
 from kdetect.reporting.iocs import extract as _extract
 from kdetect.reporting import report
@@ -215,6 +219,88 @@ def test_markdown_channel_coverage_neutralises_a_hostile_module_name():
     # spilling "mod\x1b[31m``" as loose Markdown; the fence must widen to two
     # backticks to stay closed around the whole escaped value.
     assert "  - bit `12`: ``evil`mod\\x1b[31m``\n" in md
+
+
+#: Minimal detail for each reason, so every branch has the keys it reads.
+_DETAIL_FOR_REASON = {
+    "saturated": {"explained_by": {"12": ["vboxdrv"]}},
+    "uncorroborated": {"listed": 3, "channels_consulted": ["a", "b"]},
+}
+
+
+@pytest.mark.parametrize("reason", CHANNEL_NOTE_REASONS)
+def test_every_declared_reason_has_a_branch_in_both_renderers(reason):
+    """CHANNEL_NOTE_REASONS is the declared vocabulary; this makes it binding.
+
+    models.py listed one reason while a second shipped, and that stale comment
+    is the proximate cause of both human renderers falling silent on it. Adding
+    a reason to the tuple without teaching both renderers now fails here: the
+    generic fallback is a safety net for reasons nobody has written yet, not a
+    substitute for a branch for one that is declared.
+    """
+    from kdetect.cli import _note_lines as cli_note_lines
+
+    assert reason in _DETAIL_FOR_REASON, (
+        f"{reason!r} was added to CHANNEL_NOTE_REASONS without a sample detail "
+        f"dict here -- add one, then check both renderers below still pass."
+    )
+    note = ChannelNote("some_channel", reason, _DETAIL_FOR_REASON[reason])
+
+    for rendered in ("\n".join(report._note_lines(note)),
+                     "\n".join(cli_note_lines(note))):
+        assert rendered.strip()
+        # The generic fallback's wording. Reaching it means no branch matched.
+        assert "did not contribute (reason:" not in rendered
+
+
+def test_markdown_renders_an_unknown_note_reason_rather_than_nothing():
+    """Spec section 4.4 earmarks ChannelNote for phase 4d's "this channel was
+    unreadable", so an unrecognised reason is the next thing to arrive, not a
+    hypothetical. It must degrade to a visible generic line -- matching one
+    literal reason and emitting nothing else is what silenced "uncorroborated"
+    on both human paths.
+    """
+    note = ChannelNote("kallsyms", "unreadable", {"errno": "EACCES"})
+    md = report.render_markdown(_snap(), [], [], notes=[note])
+    assert "## Channel coverage" in md
+    assert "`kallsyms`" in md
+    assert "`unreadable`" in md            # the raw reason, verbatim
+    assert "`errno`" in md                 # the detail keys, so nothing is lost
+
+
+def test_markdown_channel_coverage_heading_is_gated_on_content_not_on_notes(
+        monkeypatch):
+    """The empty-heading defect, pinned at its cause.
+
+    `if notes:` emitted the heading whether or not any note rendered a line;
+    `if lines:` cannot. _note_lines always produces something now, so the only
+    way to exercise the gate is to make it produce nothing.
+    """
+    monkeypatch.setattr(report, "_note_lines", lambda note: [])
+    md = report.render_markdown(_snap(), [], [], notes=[_NOTE])
+    assert "Channel coverage" not in md
+
+
+def test_cli_renders_an_unknown_note_reason_rather_than_nothing():
+    """cli.py's _note_lines is a separate renderer (printable(), not md_code())
+    and needs its own guard for the same fallback."""
+    from kdetect.cli import _note_lines
+
+    lines = _note_lines(ChannelNote("kallsyms", "unreadable", {"errno": "EACCES"}))
+    blob = "\n".join(lines)
+    assert lines
+    assert "kallsyms" in blob and "unreadable" in blob and "errno" in blob
+
+
+def test_cli_note_fallback_escapes_a_hostile_reason_and_detail_key():
+    """The fallback prints previously-unrendered strings, so it is a new sink
+    for attacker-chosen bytes and must escape like every other one."""
+    from kdetect.cli import _note_lines
+
+    note = ChannelNote("evil\x1b[31m", "boom\x1b[2K", {"k\x1b[0m": 1})
+    blob = "\n".join(_note_lines(note))
+    assert "\x1b" not in blob
+    assert "\\x1b[31m" in blob and "\\x1b[2K" in blob and "\\x1b[0m" in blob
 
 
 def test_json_carries_notes_as_a_named_key():

@@ -128,6 +128,51 @@ def cmd_baseline(args) -> int:
     return EXIT_OK
 
 
+def _note_lines(note) -> list[str]:
+    """One ChannelNote as terminal lines (spec section 4.4).
+
+    Every reason renders something. A note whose reason this function has not
+    learned yet falls through to a generic line naming the channel, the raw
+    reason and the detail keys: a channel that could not contribute is the one
+    artifact saying so, and a reason added later must degrade to a visible line
+    rather than to silence. Both human sinks fell silent on "uncorroborated"
+    exactly because each matched one literal reason and emitted nothing else --
+    on a host where both corroborating channels read empty, `analyze` printed
+    "findings: none" and exited 0, indistinguishable from a clean box.
+
+    report.py has its own copy: the two escape differently (printable() here,
+    md_code() there) and must not be merged into one renderer.
+    """
+    from kdetect.reporting.escape import printable
+
+    channel = printable(note.channel)
+    if note.reason == "saturated":
+        lines = [f"note:      {channel} could not corroborate (saturated); "
+                 f"every bit it reads is explained by a listed module"]
+        for bit, owners in sorted(note.detail.get("explained_by", {}).items()):
+            lines.append(f"{' ' * 11}bit {printable(bit)}: "
+                         f"{printable(', '.join(owners))}")
+        return lines
+    if note.reason == "uncorroborated":
+        consulted = note.detail.get("channels_consulted", [])
+        lines = [f"note:      {channel} could not corroborate "
+                 f"(uncorroborated); every listed module came back "
+                 f"uncorroborated, so the channel is reporting on itself "
+                 f"rather than on the modules"]
+        lines.append(f"{' ' * 11}listed modules: "
+                     f"{printable(str(note.detail.get('listed', '?')))}"
+                     f"   channels consulted: "
+                     f"{printable(', '.join(str(c) for c in consulted))}")
+        return lines
+    # Unknown reason: still say the channel did not contribute, and name what
+    # little is known, so phase 4d's "unreadable" note is visible on the day it
+    # is added rather than on the day someone edits this function.
+    keys = ", ".join(printable(str(k)) for k in sorted(note.detail)) or "none"
+    return [f"note:      {channel} did not contribute "
+            f"(reason: {printable(note.reason)})",
+            f"{' ' * 11}detail keys: {keys}"]
+
+
 def cmd_analyze(args) -> int:
     # Snapshot strings are untrusted (a rootkit names its own module), so every
     # one printed to the terminal goes through printable(): an escape sequence
@@ -174,12 +219,8 @@ def cmd_analyze(args) -> int:
 
     print()
     for n in notes:
-        if n.reason == "saturated":
-            print(f"note:      {printable(n.channel)} could not corroborate "
-                  f"(saturated); every bit it reads is explained by a listed module")
-            for bit, owners in sorted(n.detail.get("explained_by", {}).items()):
-                print(f"{' ' * 11}bit {printable(bit)}: "
-                      f"{printable(', '.join(owners))}")
+        for line in _note_lines(n):
+            print(line)
     if not findings:
         print("findings:  none")
         return EXIT_OK
