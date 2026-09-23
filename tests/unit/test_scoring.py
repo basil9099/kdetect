@@ -94,6 +94,36 @@ def test_over_listed_plus_other_evidence_never_reads_as_pure_concealment():
     assert len(findings) == 1
     assert findings[0].kind is not FindingKind.HIDDEN_MODULE
 
+def test_over_listed_is_not_masked_as_baseline_drift():
+    # The exact-match branch (channels == ["over_listed"]) was inert in exactly
+    # the posture the project recommends. A phantom row an attacker inserts is
+    # by construction absent from any baseline predating it, so baseline_drift
+    # fires on the same suspect, the exact match misses, and the finding
+    # classified as baseline_drift: the weaker of the two facts stated in the
+    # summary, and the kind an operator greps for never emitted at all.
+    findings = score([_mod("over_listed", "phantom_mod"),
+                      _mod("baseline_drift", "phantom_mod", direction="added")])
+    assert len(findings) == 1
+    f = findings[0]
+    assert f.kind is FindingKind.OVER_LISTED_MODULE
+    assert f.kind is not FindingKind.BASELINE_DRIFT
+    assert set(f.channels_agree) == {"over_listed", "baseline_drift"}
+    # The over-listed fact is stated, and the channel riding alongside it is
+    # named rather than dropped -- both facts, not the weaker one.
+    assert "named by no other channel" in f.summary
+    assert "baseline_drift" in f.summary
+
+
+def test_a_hiding_channel_still_outranks_over_listed_after_the_presence_check():
+    # The presence check must not overtake _HIDING: over_listed riding with a
+    # genuine hiding channel is still concealment, not an over-listed row.
+    findings = score([_mod("over_listed", "m"),
+                      _mod("ftrace_orphan", "m"),
+                      _mod("baseline_drift", "m", direction="added")])
+    assert len(findings) == 1
+    assert findings[0].kind is FindingKind.HIDDEN_MODULE
+
+
 def test_over_listed_is_not_named_among_channels_that_corroborate_concealment():
     # unexpected_hook IS in _HIDING, unlike baseline_drift above -- this is the
     # composite that actually reaches the HIDDEN_MODULE summary-join line and

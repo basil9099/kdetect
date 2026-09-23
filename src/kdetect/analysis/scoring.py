@@ -35,10 +35,19 @@ def _classify(suspect: Suspect, channels: list[str]) -> tuple[FindingKind, str, 
     if suspect.name is None:
         return (FindingKind.SUSPECTED_HIDDEN_MODULE, "unattributed hidden module",
                 "hidden-module indicators fired but no channel can name the module")
-    if channels == ["over_listed"]:
+    if "over_listed" in channels and not any(c in _HIDING for c in channels):
+        # Presence, not an exact match. A phantom row an attacker inserts is by
+        # construction also absent from any baseline predating it, so
+        # baseline_drift fires on the same suspect -- an exact match missed that
+        # and classified the phantom as baseline_drift, stating the weaker of the
+        # two facts and burying the kind an operator greps for, in exactly the
+        # posture the project recommends (running against a signed baseline).
+        # _HIDING keeps precedence below: a real hiding channel still wins.
+        others = [c for c in channels if c != "over_listed"]
+        alongside = (f", alongside {', '.join(others)}" if others else "")
         return (FindingKind.OVER_LISTED_MODULE, f"module {suspect.name}",
                 f"module {suspect.name} is listed in /proc/modules but named by "
-                f"no other channel")
+                f"no other channel{alongside}")
     if any(c in _HIDING for c in channels):
         # over_listed is never a hiding channel (spec section 7.1) -- it must
         # never appear as though it corroborated concealment, even when it
