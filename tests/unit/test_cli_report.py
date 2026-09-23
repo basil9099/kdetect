@@ -172,7 +172,14 @@ def test_analyze_note_output_escapes_hostile_module_name(tmp_path, capsys):
 
 
 def test_report_shows_channel_coverage_for_saturated_taint(tmp_path, capsys):
-    """A report must show the same coverage the terminal does (brief step 4)."""
+    """A report must show the same coverage the terminal does (brief step 4).
+
+    Exercises only the markdown arm of cmd_report's format branch (cli.py's
+    render_markdown(..., notes=notes) call). The json arm is a separate call
+    site with its own notes=notes argument -- see
+    test_report_json_carries_channel_notes_for_saturated_taint below, which
+    that arm being correct says nothing about.
+    """
     raw = _saturated_snapshot_raw()
     snap = tmp_path / "snap.json"
     snap.write_text(json.dumps(raw), encoding="utf-8")
@@ -181,3 +188,19 @@ def test_report_shows_channel_coverage_for_saturated_taint(tmp_path, capsys):
     out = capsys.readouterr().out
     assert rc == 0, out
     assert "## Channel coverage" in out
+
+
+def test_report_json_carries_channel_notes_for_saturated_taint(tmp_path, capsys):
+    """cmd_report's --format json branch (render_json(..., notes=notes)) is a
+    separate call site from the markdown arm above and needs its own guard."""
+    raw = _saturated_snapshot_raw()
+    snap = tmp_path / "snap.json"
+    snap.write_text(json.dumps(raw), encoding="utf-8")
+
+    rc = main(["report", str(snap), "--format", "json"])
+    payload = json.loads(capsys.readouterr().out)
+    assert rc == 0, payload
+
+    expected_notes = _channel_notes(_Snapshot.from_dict(raw))
+    assert payload["channel_notes"]                    # non-empty
+    assert payload["channel_notes"] == [n.to_dict() for n in expected_notes]
