@@ -270,35 +270,71 @@ def test_no_over_listed_signal_on_the_real_captures():
 def test_phantom_row_is_caught_when_every_channel_is_available():
     raw = _mutate("infected-hooktest.json")
     mods = _obs(raw, "procfs.modules")
+    original = list(mods["entity_ids"])          # before injecting the phantom
     mods["entities"]["phantom_mod"] = {
         "name": "phantom_mod", "size": 1, "refcount": 0, "dependents": [],
         "state": "Live", "base_addr": "0x0", "taint": None,
     }
-    mods["entity_ids"] = sorted(mods["entity_ids"] + ["phantom_mod"])
-    # infected-hooktest.json's own ftrace/kallsyms lists already corroborate
-    # every genuine listed module (spec section 5.2, measured at 0 signals on
-    # the unmutated capture) -- only the injected phantom row is missing from
-    # both, so it alone should be flagged.
-    real_ftrace = _obs(raw, "kernel.module_evidence")["extra"]["ftrace_modules"]
-    real_kallsyms = _obs(raw, "kernel.hooks")["extra"]["kallsyms_modules"]
-    raw = _corroborators(raw, ftrace=real_ftrace, kallsyms=real_kallsyms)
+    mods["entity_ids"] = sorted(original + ["phantom_mod"])
+    # Split the real listing across the two corroborating channels so neither
+    # one alone covers it -- proving the UNION is what corroborates, not just
+    # one channel's reach -- while the injected phantom row sits in neither
+    # half. This does not depend on the fixture's own ftrace/kallsyms lists
+    # happening to already cover 100% of the listing.
+    raw = _corroborators(raw, ftrace=original[:1], kallsyms=original[1:])
 
     sigs = signals_over_listed(Snapshot.from_dict(raw))
     assert [s.suspect.name for s in sigs] == ["phantom_mod"]
     assert sigs[0].channel == "over_listed"
+    assert channel_notes(Snapshot.from_dict(raw)) == []   # partial, not a flood
 
 
-def test_unavailable_channel_suppresses_the_signal_entirely():
+def test_unavailable_kallsyms_suppresses_the_signal_entirely():
     raw = _mutate("infected-hooktest.json")
+    listed = _obs(raw, "procfs.modules")["entity_ids"]
+    # Partial corroboration -- neither empty (which would instead trip the
+    # "every module uncorroborated" ChannelNote guard) nor full -- so
+    # unavailability is the only thing standing between the detector and a
+    # real signal for the other 73 modules.
+    raw = _corroborators(raw, ftrace=listed[:1], kallsyms=[])
     _obs(raw, "kernel.hooks")["stats"]["kallsyms_available"] = False
     assert signals_over_listed(Snapshot.from_dict(raw)) == []
 
 
-def test_available_but_empty_channel_is_not_treated_as_dissent():
-    # The distinction spec section 5.2 calls load-bearing: an available channel
-    # that legitimately names nothing must not make every module over-listed.
+def test_unavailable_ftrace_also_suppresses_the_signal_entirely():
+    raw = _mutate("infected-hooktest.json")
+    listed = _obs(raw, "procfs.modules")["entity_ids"]
+    raw = _corroborators(raw, ftrace=[], kallsyms=listed[:1])
+    _obs(raw, "kernel.module_evidence")["stats"]["ftrace_available"] = False
+    assert signals_over_listed(Snapshot.from_dict(raw)) == []
+
+
+def test_all_modules_uncorroborated_emits_a_note_not_a_flood_of_findings():
+    # A readable-but-empty /proc/kallsyms (and an equally silent ftrace) still
+    # reports both channels available=True with no names. Every listed module
+    # comes up uncorroborated: that is evidence about the channel pair, not
+    # that every legitimate module is hiding, so it must not flood the report
+    # with one finding per module (spec section 5.2, the P12 behaviour change).
     raw = _corroborators(_mutate("infected-hooktest.json"), ftrace=[], kallsyms=[])
+    listed = _obs(raw, "procfs.modules")["entity_ids"]
+    assert len(listed) > 0
+    assert signals_over_listed(Snapshot.from_dict(raw)) == []
+
+    notes = channel_notes(Snapshot.from_dict(raw))
+    over_listed_notes = [n for n in notes if n.channel == "over_listed"]
+    assert len(over_listed_notes) == 1
+    note = over_listed_notes[0]
+    assert isinstance(note, ChannelNote)
+    assert note.reason == "uncorroborated"
+    assert note.detail["listed"] == len(listed)
+
+
+def test_partial_uncorroboration_still_emits_signals_not_a_note():
+    raw = _mutate("infected-hooktest.json")
+    listed = _obs(raw, "procfs.modules")["entity_ids"]
+    # Every module but the last is corroborated; the note guard requires ALL
+    # of them to be uncorroborated, so this must take the ordinary signal path.
+    raw = _corroborators(raw, ftrace=listed[:-1], kallsyms=[])
     sigs = signals_over_listed(Snapshot.from_dict(raw))
-    listed = len(_obs(raw, "procfs.modules")["entity_ids"])
-    assert len(sigs) == listed          # every module really is uncorroborated
-    assert listed > 0
+    assert [s.suspect.name for s in sigs] == [listed[-1]]
+    assert channel_notes(Snapshot.from_dict(raw)) == []

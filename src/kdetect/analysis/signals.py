@@ -161,6 +161,38 @@ def signals_sockets(snapshot: Snapshot) -> list[Signal]:
     return sorted(out, key=lambda s: (s.channel, s.suspect.name or ""))
 
 
+#: Channels consulted for over_listed corroboration, named for ChannelNote detail.
+_LISTING_CHANNELS = ["kernel.module_evidence.ftrace_modules", "kernel.hooks.kallsyms_modules"]
+
+
+def _over_listed_corroboration(snapshot: Snapshot) -> tuple[set[str], set[str]] | None:
+    """The listed and corroborated module-name sets for the over_listed channel,
+    or None if any corroborating channel is unavailable (spec section 5.2).
+
+    Guarded on channel AVAILABILITY, never on emptiness: a channel that cannot
+    be read must be skipped rather than read as dissent, which is the rule
+    ModuleSource's own docstring states. Availability is read from the
+    ftrace_available/kallsyms_available stats flags, never inferred from
+    whether ftrace_modules/kallsyms_modules happens to be empty.
+    """
+    listings = _observations(snapshot, "procfs.modules")
+    evidences = _observations(snapshot, "kernel.module_evidence")
+    hooks = _observations(snapshot, "kernel.hooks")
+    if not listings or not evidences or not hooks:
+        return None
+    if not evidences[0].stats.get("ftrace_available"):
+        return None
+    if not hooks[0].stats.get("kallsyms_available"):
+        return None
+
+    ftrace = (evidences[0].extra or {}).get("ftrace_modules")
+    kallsyms = (hooks[0].extra or {}).get("kallsyms_modules")
+    if ftrace is None or kallsyms is None:
+        return None
+
+    return set(listings[0].entity_ids), set(ftrace) | set(kallsyms)
+
+
 def signals_over_listed(snapshot: Snapshot) -> list[Signal]:
     """A listed module that no other channel corroborates (spec section 5).
 
@@ -169,31 +201,25 @@ def signals_over_listed(snapshot: Snapshot) -> list[Signal]:
     unaccounted vmalloc region -- so the region arithmetic is one phantom row
     deep without this.
 
-    Guarded on channel AVAILABILITY, never on emptiness: a channel that cannot
-    be read must be skipped rather than read as dissent, which is the rule
-    ModuleSource's own docstring states. Reading emptiness as unavailability
-    would flag every module on a host whose channels legitimately name nothing.
+    When EVERY listed module comes up uncorroborated, that is not N modules
+    hiding at once -- it is evidence the channel pair itself said nothing (a
+    readable-but-empty /proc/kallsyms still reports available=True with no
+    names). Emptiness of the whole corroborating union is channel-level
+    evidence (P12), so it is surfaced as a ChannelNote (see channel_notes),
+    not as a signal per module, which would flood the report with one
+    HIDDEN-reading finding for every legitimate module on such a host.
     """
-    listings = _observations(snapshot, "procfs.modules")
-    evidences = _observations(snapshot, "kernel.module_evidence")
-    hooks = _observations(snapshot, "kernel.hooks")
-    if not listings or not evidences or not hooks:
+    corrob = _over_listed_corroboration(snapshot)
+    if corrob is None:
         return []
-    if not evidences[0].stats.get("ftrace_available"):
+    listed, corroborated = corrob
+    uncorroborated = listed - corroborated
+    if listed and uncorroborated == listed:
         return []
-    if not hooks[0].stats.get("kallsyms_available"):
-        return []
-
-    ftrace = (evidences[0].extra or {}).get("ftrace_modules")
-    kallsyms = (hooks[0].extra or {}).get("kallsyms_modules")
-    if ftrace is None or kallsyms is None:
-        return []
-
-    corroborated = set(ftrace) | set(kallsyms)
     return [
         Signal("over_listed", Suspect("module", name), _LISTING_DISSENT,
                {"listed": True, "corroborated_by": []})
-        for name in sorted(set(listings[0].entity_ids) - corroborated)
+        for name in sorted(uncorroborated)
     ]
 
 
@@ -221,6 +247,11 @@ def channel_notes(snapshot: Snapshot) -> list[ChannelNote]:
     A saturated channel and a clean one look identical in the output today, and
     they mean opposite things: "taint is clear" versus "taint is set and fully
     accounted for by a listed module, so it can say nothing about a hidden one".
+
+    Likewise "over_listed is silent" and "over_listed said everything is
+    over-listed" look identical as an empty signal list, and mean opposite
+    things: a channel with nothing to add versus a channel that came back
+    empty and so corroborated nothing at all (spec section 5.2).
     """
     notes: list[ChannelNote] = []
     evidences = _observations(snapshot, "kernel.module_evidence")
@@ -230,5 +261,13 @@ def channel_notes(snapshot: Snapshot) -> list[ChannelNote]:
             notes.append(ChannelNote(
                 "taint", "saturated",
                 {"explained_by": {str(b): v for b, v in rec.explained_by.items()}},
+            ))
+    corrob = _over_listed_corroboration(snapshot)
+    if corrob is not None:
+        listed, corroborated = corrob
+        if listed and listed - corroborated == listed:
+            notes.append(ChannelNote(
+                "over_listed", "uncorroborated",
+                {"listed": len(listed), "channels_consulted": list(_LISTING_CHANNELS)},
             ))
     return notes

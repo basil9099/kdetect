@@ -38,9 +38,13 @@ def _classify(suspect: Suspect, channels: list[str]) -> tuple[FindingKind, str, 
                 f"module {suspect.name} is listed in /proc/modules but named by "
                 f"no other channel")
     if any(c in _HIDING for c in channels):
+        # over_listed is never a hiding channel (spec section 7.1) -- it must
+        # never appear as though it corroborated concealment, even when it
+        # rides alongside a genuine hiding channel on the same suspect.
+        naming = [c for c in channels if c != "over_listed"]
         return (FindingKind.HIDDEN_MODULE, f"module {suspect.name}",
                 f"module {suspect.name} is concealed from /proc/modules but named "
-                f"by {', '.join(channels)}")
+                f"by {', '.join(naming)}")
     return (FindingKind.BASELINE_DRIFT, f"module {suspect.name}",
             f"module {suspect.name} is loaded now but was absent from the baseline")
 

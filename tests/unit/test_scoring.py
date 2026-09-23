@@ -81,3 +81,16 @@ def test_over_listed_does_not_absorb_anonymous_hidden_evidence():
     assert len(over) == 1
     assert over[0].channels_agree == ["over_listed"]
 
+def test_over_listed_plus_other_evidence_never_reads_as_pure_concealment():
+    # A single-channel over_listed-only suspect can pass this mandate by luck
+    # of check ordering even when over_listed is wrongly added to _HIDING (the
+    # exact-match branch still catches it first) or when the branch is moved
+    # after the _HIDING test (_HIDING correctly excludes it either way). A
+    # composite suspect -- over_listed riding alongside a channel that is
+    # neither over_listed nor hiding -- is the case that actually exercises
+    # whether _HIDING excludes over_listed: it never matches the exact-match
+    # branch, so it always falls through to the _HIDING test.
+    findings = score([_mod("over_listed", "m"), _mod("baseline_drift", "m")])
+    assert len(findings) == 1
+    assert findings[0].kind is not FindingKind.HIDDEN_MODULE
+
