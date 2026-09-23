@@ -196,6 +196,7 @@ far each has been tested.
 | `suspected_hidden_module` | T1014 Rootkit (Stealth); T1547.006 Kernel Modules and Extensions (Persistence, Privilege Escalation) | Not yet tested live |
 | `hidden_process` | T1014 Rootkit (Stealth) | Hand-built snapshots only: Diamorphine's process hiding did not engage on 6.1 (L16, L24) |
 | `baseline_drift` | T1547.006 Kernel Modules and Extensions (Persistence, Privilege Escalation) | Not yet tested live |
+| `over_listed_module` | [T1014 Rootkit](https://attack.mitre.org/techniques/T1014/) (Stealth) | Not yet tested live |
 
 A module that stays listed produces no finding unless a signed baseline predates
 it, so kdetect sees T1547.006 only when the module hides or is new since the

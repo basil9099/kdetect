@@ -335,10 +335,9 @@ case, where *every* listed module comes up uncorroborated, and reports a
 `ChannelNote` instead of flooding the report with findings. It does **not**
 catch the partial case — kallsyms readable but silently missing a handful of
 modules — and that partial case is the signal's live, unmeasured risk. The
-blast-radius cap this note provides is also only fully visible to a JSON
-consumer today (`kdetect report --format json`) — `analyze` and the Markdown
-report do not render it — so an operator reading a Markdown report on an
-affected host sees zero findings and no explanation.
+note itself now renders on every path (`analyze`, the Markdown report and the
+JSON report alike); it was briefly visible only to a JSON consumer, which meant
+an operator on a blinded host saw zero findings and no explanation.
 
 Calibration otherwise stands as it was scoped: two captures, one host, one
 kernel; provisional until clean captures from more kernels exist.

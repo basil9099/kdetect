@@ -243,6 +243,28 @@ corroborating sets are already in `extra` and cost nothing to read.
 
 ### 5.2 The guard, and the honest evidence base
 
+**Revision — what shipped is not what this section describes.** As drafted, §5.2
+emits one `over_listed` signal per uncorroborated listed module unconditionally
+once the availability guard passes. A mid-phase ruling superseded that, and the
+claim as written below is withdrawn. A readable-but-empty `/proc/kallsyms` still
+reports `kallsyms_available = True` with no names, so on such a host *every*
+listed module comes up uncorroborated — and the draft behaviour would have
+emitted one HIDDEN-reading finding for every legitimate module on the box. That
+is a count standing in for evidence, which is exactly what P12 forbids: the
+emptiness of the whole corroborating union is evidence about the **channel
+pair**, not about the modules.
+
+What shipped: when the uncorroborated set is the entire listing, `signals_over_listed`
+emits **nothing** and `channel_notes` emits one
+`ChannelNote(channel="over_listed", reason="uncorroborated")` instead — the
+§4.4 mechanism, reused for a sibling channel. Only a *partial* uncorroborated
+set becomes signals. The availability guard and the LOW/provisional status
+below are unchanged and still bind.
+
+This also made `ChannelNote` carry a second `reason`, which §4.4's renderers did
+not anticipate; both human sinks now render any reason, unknown ones included,
+through a generic fallback.
+
 Measured against the committed captures:
 
 | Capture | Listed | Corroborated by no other channel |

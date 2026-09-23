@@ -538,8 +538,20 @@ to hide a module (method 9) can equally *add* a row that was never linked in
 the first place, and each such phantom row absorbs exactly one of the
 `vmalloc_region` channel's unaccounted regions — so that channel alone is one
 phantom row deep. `signals_over_listed` (`src/kdetect/analysis/signals.py`)
-closes it by checking whether anything else backs the name the listing
-claims.
+recovers the *detection* by checking whether anything else backs the name the
+listing claims.
+
+It does **not** repair the region channel's arithmetic, and saying it "closes"
+the gap overstates it. Measured on `infected-hooktest.json` with one phantom
+row injected: the real suspect `kdetect_hooktest` still drops **HIGH →
+MEDIUM**, because the phantom row absorbs the unaccounted `load_module` region
+exactly as before and `vmalloc_region` stops firing. What the channel adds is
+one *separate* `LOW` `over_listed_module` finding naming the phantom. So an
+analyst sees the attack rather than nothing, but the real finding's grade is
+still degraded and the region count is still one row short — the same honesty
+[`limitations.md`](limitations.md) L30 applies to the ambiguous-attribution
+fix. Repairing the arithmetic needs the collector to carry which vmalloc lines
+matched, which is L28's schema-level deferral.
 
 **The guard.** The signal is gated on channel *availability*, never on
 emptiness: it is computed only when both `kernel.module_evidence`'s
@@ -562,16 +574,26 @@ set — some, not all, listed modules unbacked — becomes `over_listed` `Signal
 one per module, composing into an `over_listed_module` `Finding` — `LOW`
 confidence when `over_listed` is a suspect's only channel.
 
-**Currently visible only in JSON.** Unlike the saturated `taint` note above,
-neither renderer has a branch for `reason="uncorroborated"`: `cli.py`'s
-`cmd_analyze` (`:177`) and `report.py`'s `render_markdown` (`:137`) both
-match the literal string `"saturated"` only. An `uncorroborated` note
-therefore prints nothing under `analyze` and appears in a Markdown report
-only as an empty `## Channel coverage` heading with no body. It reaches a
-consumer today solely through `kdetect report --format json`, via
-`render_json`'s unconditional `channel_notes` key. So an operator reading
-`analyze` or a Markdown report on an affected host sees zero findings and no
-explanation — the note exists, but only a JSON consumer can currently see it.
+**Visible on every path, including for reasons not yet written.** This note was
+briefly JSON-only: both human renderers matched the literal string
+`"saturated"`, so an `uncorroborated` note printed nothing under `analyze` and
+appeared in a Markdown report as an empty `## Channel coverage` heading. That
+mattered because returning *empty* content for `/proc/kallsyms` and
+`available_filter_functions` is strictly easier for an attacker than forging
+their contents, and it kills the `ftrace_orphan` channel at the same time — so
+the one artifact saying "two channels I asked returned nothing" was suppressed
+on both paths an operator actually reads, leaving `analyze` printing
+`findings: none` and exiting `0`, indistinguishable from a clean host.
+
+Each sink now renders notes through its own `_note_lines` helper (`cli.py` with
+`printable()`, `report.py` with `md_code()` — separate because they escape
+differently). Each handles `saturated` and `uncorroborated` explicitly and falls
+back, for any reason it does not recognise, to a generic line naming the
+channel, the raw reason and the detail keys. The Markdown section is gated on
+whether any lines were produced rather than on whether any notes exist, so it
+can no longer emit a bare heading. Spec §4.4 earmarks `ChannelNote` as the home
+for phase 4d's "this channel was unreadable", so that fallback is the next
+reason to arrive, not speculative generality.
 
 **Calibrated on two captures, one host, one kernel — provisional.** Measured
 on the committed fixtures: zero `over_listed` findings on
