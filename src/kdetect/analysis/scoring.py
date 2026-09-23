@@ -7,6 +7,8 @@ live here (P8); detectors only observe.
 """
 from __future__ import annotations
 
+from dataclasses import replace
+
 from kdetect.analysis.models import (
     Confidence, Finding, FindingKind, Signal, Suspect,
 )
@@ -76,8 +78,9 @@ def score(signals: list[Signal]) -> list[Finding]:
 
     # Attribute anonymous module signals only when exactly one module is hidden
     # (spec §5); with 0 or >=2 they cannot be pinned to a name (L15/L21).
-    if len(hidden_named) == 1 and anon:
-        target = Suspect("module", next(iter(hidden_named)))
+    candidates = sorted(hidden_named)
+    if len(candidates) == 1 and anon:
+        target = Suspect("module", candidates[0])
         groups.setdefault(target, []).extend(anon)
         anon = []
 
@@ -86,7 +89,19 @@ def score(signals: list[Signal]) -> list[Finding]:
         for susp in sorted(groups, key=lambda s: (s.kind, s.name or ""))
     ]
     if anon:
-        findings.append(_compose(Suspect("module", None), anon))
+        unattributed = _compose(Suspect("module", None), anon)
+        if len(candidates) > 1:
+            # Ambiguity is reported, not discarded (spec section 6). An attacker
+            # who manufactures a second hidden name must not be able to make the
+            # corroborating evidence vanish from the report.
+            evidence = dict(unattributed.evidence)
+            evidence["candidates"] = candidates
+            unattributed = replace(
+                unattributed, evidence=evidence,
+                summary=(f"{unattributed.summary}; candidates: "
+                         f"{', '.join(candidates)}"),
+            )
+        findings.append(unattributed)
     return sorted(findings, key=lambda f: f.subject)
 
 

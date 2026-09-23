@@ -111,3 +111,32 @@ def test_over_listed_is_not_named_among_channels_that_corroborate_concealment():
     # confidence -- only the summary's "named by" clause excludes it.
     assert "over_listed" in f.channels_agree
 
+def test_a_second_name_does_not_strip_the_real_suspects_evidence():
+    """One appended module name must not demote a real finding (spec section 6)."""
+    real = [
+        _mod("unexpected_hook", "kdetect_hooktest", function="__x64_sys_newuname"),
+        _mod("taint", None, bits=[12, 13]),
+        _mod("vmalloc_region", None, unaccounted=1),
+    ]
+    alone = score(real)
+    assert alone[0].confidence is Confidence.HIGH
+
+    # The attack: manufacture one extra hidden name to force a tie.
+    with_decoy = score(real + [_mod("ftrace_orphan", "e1000_dbg")])
+    unattributed = [f for f in with_decoy
+                    if f.kind is FindingKind.SUSPECTED_HIDDEN_MODULE]
+    assert len(unattributed) == 1
+
+    # The anonymous evidence is still reachable: it names BOTH candidates
+    # instead of silently discarding the attribution.
+    assert unattributed[0].evidence["candidates"] == ["e1000_dbg", "kdetect_hooktest"]
+    assert "e1000_dbg" in unattributed[0].summary
+    assert "kdetect_hooktest" in unattributed[0].summary
+
+def test_single_candidate_still_attributes_and_carries_no_candidate_list():
+    sigs = [_mod("unexpected_hook", "solo", function="x"), _mod("taint", None, bits=[12])]
+    findings = score(sigs)
+    assert len(findings) == 1
+    assert findings[0].subject == "module solo"
+    assert "candidates" not in findings[0].evidence
+
