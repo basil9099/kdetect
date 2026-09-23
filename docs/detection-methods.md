@@ -562,6 +562,17 @@ set — some, not all, listed modules unbacked — becomes `over_listed` `Signal
 one per module, composing into an `over_listed_module` `Finding` — `LOW`
 confidence when `over_listed` is a suspect's only channel.
 
+**Currently visible only in JSON.** Unlike the saturated `taint` note above,
+neither renderer has a branch for `reason="uncorroborated"`: `cli.py`'s
+`cmd_analyze` (`:177`) and `report.py`'s `render_markdown` (`:137`) both
+match the literal string `"saturated"` only. An `uncorroborated` note
+therefore prints nothing under `analyze` and appears in a Markdown report
+only as an empty `## Channel coverage` heading with no body. It reaches a
+consumer today solely through `kdetect report --format json`, via
+`render_json`'s unconditional `channel_notes` key. So an operator reading
+`analyze` or a Markdown report on an affected host sees zero findings and no
+explanation — the note exists, but only a JSON consumer can currently see it.
+
 **Calibrated on two captures, one host, one kernel — provisional.** Measured
 on the committed fixtures: zero `over_listed` findings on
 `infected-hooktest.json` (kallsyms alone corroborates all 74 listed modules,
