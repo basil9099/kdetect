@@ -5,7 +5,9 @@ import shutil
 
 import pytest
 
+from kdetect.analysis.signals import channel_notes as _channel_notes
 from kdetect.cli import main
+from kdetect.models import Snapshot as _Snapshot
 
 FIX = Path(__file__).resolve().parent.parent / "fixtures" / "snapshots"
 
@@ -95,22 +97,31 @@ def test_redact_unwritable_out_dir_prints_error_not_traceback(tmp_path, capsys):
     assert not dst.exists()
 
 
-def test_saturated_channel_does_not_change_the_exit_code(tmp_path, capsys):
-    """A channel note is not a finding (spec section 4.4, criterion 5)."""
+def _saturated_snapshot_raw() -> dict:
+    """infected-hooktest.json, mutated so the only module evidence left is a
+    saturated taint channel: no findings, but the channel had something to
+    say. Shared by every "saturated but no findings" test below so they all
+    exercise the exact same fixture state.
+    """
     raw = copy.deepcopy(json.loads(
         (FIX / "infected-hooktest.json").read_text(encoding="utf-8")))
 
     # Saturate taint AND neutralise the other module channels, so the only
     # module evidence left is the saturated one -> no findings at all.
     mods = next(o for o in raw["observations"] if o["collector"] == "procfs.modules")
-    explaining_module = mods["entity_ids"][0]
-    mods["entities"][explaining_module]["taint"] = "OE"
+    mods["entities"][mods["entity_ids"][0]]["taint"] = "OE"
     ev = next(o for o in raw["observations"]
               if o["collector"] == "kernel.module_evidence")
     ev["stats"]["load_module_regions"] = len(mods["entity_ids"])
     ev["extra"]["ftrace_modules"] = []
     raw["observations"] = [o for o in raw["observations"]
                            if o["collector"] != "kernel.hooks"]
+    return raw
+
+
+def test_saturated_channel_does_not_change_the_exit_code(tmp_path, capsys):
+    """A channel note is not a finding (spec section 4.4, criterion 5)."""
+    raw = _saturated_snapshot_raw()
 
     # Not "saturated.json": the filename must not be able to contribute to
     # either assertion below (cmd_analyze prints the snapshot path verbatim).
@@ -123,7 +134,50 @@ def test_saturated_channel_does_not_change_the_exit_code(tmp_path, capsys):
     # "could not corroborate" appears nowhere else in cmd_analyze's output
     # (unlike "taint", which is also a stats key, or "saturated", which is
     # also in the snapshot's own path) -- only the note-printing block emits
-    # it. The explaining module's name pins the explained_by detail line too,
-    # not just the header.
+    # it.
     assert "could not corroborate" in out
-    assert explaining_module in out
+
+    # Pin the composed "bit N: owner" detail line itself, derived from the
+    # same pure channel_notes() the CLI calls -- not a bare substring of the
+    # owner's name, which can be short enough to collide with unrelated
+    # output (e.g. "ac" also matches inside "ftrace_available").
+    expected_notes = _channel_notes(_Snapshot.from_dict(raw))
+    assert len(expected_notes) == 1
+    rendered_lines = {ln.strip() for ln in out.splitlines()}
+    for bit, owners in expected_notes[0].detail["explained_by"].items():
+        assert f"bit {bit}: {', '.join(owners)}" in rendered_lines
+
+
+def test_analyze_note_output_escapes_hostile_module_name(tmp_path, capsys):
+    """A module name is attacker-chosen (P1); an ESC byte in it must not
+    reach the terminal via the note-printing path (cli.py's printable()
+    calls at the bit/owner lines)."""
+    raw = _saturated_snapshot_raw()
+    hostile = "evil`mod\x1b[31m"
+    mods = next(o for o in raw["observations"] if o["collector"] == "procfs.modules")
+    old_id = mods["entity_ids"][0]
+    entity = mods["entities"].pop(old_id)
+    entity["name"] = hostile
+    mods["entities"][hostile] = entity
+    mods["entity_ids"][0] = hostile
+
+    snap = tmp_path / "snap.json"
+    snap.write_text(json.dumps(raw), encoding="utf-8")
+
+    rc = main(["analyze", str(snap)])
+    out = capsys.readouterr().out
+    assert rc == 0, out
+    assert "\x1b" not in out
+    assert "\\x1b[31m" in out
+
+
+def test_report_shows_channel_coverage_for_saturated_taint(tmp_path, capsys):
+    """A report must show the same coverage the terminal does (brief step 4)."""
+    raw = _saturated_snapshot_raw()
+    snap = tmp_path / "snap.json"
+    snap.write_text(json.dumps(raw), encoding="utf-8")
+
+    rc = main(["report", str(snap)])
+    out = capsys.readouterr().out
+    assert rc == 0, out
+    assert "## Channel coverage" in out

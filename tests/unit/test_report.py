@@ -202,6 +202,21 @@ def test_markdown_renders_channel_coverage_and_escapes_module_names():
     assert "`vboxdrv`" in md
 
 
+def test_markdown_channel_coverage_neutralises_a_hostile_module_name():
+    # "vboxdrv" above is benign: `` f"`{o}`" `` would pass that assertion just
+    # as well as md_code(o) would. Use a name carrying both an ESC byte and a
+    # backtick, so this only passes if printable() and the fence-widening in
+    # md_code() actually ran.
+    owner = "evil`mod\x1b[31m"
+    note = ChannelNote("taint", "saturated", {"explained_by": {"12": [owner]}})
+    md = report.render_markdown(_snap(), [], [], notes=[note])
+    assert "\x1b" not in md
+    # A bare single-backtick span would end at the owner's own backtick,
+    # spilling "mod\x1b[31m``" as loose Markdown; the fence must widen to two
+    # backticks to stay closed around the whole escaped value.
+    assert "  - bit `12`: ``evil`mod\\x1b[31m``\n" in md
+
+
 def test_json_carries_notes_as_a_named_key():
     payload = json.loads(report.render_json(_snap(), [], [], notes=[_NOTE]))
     assert payload["channel_notes"] == [_NOTE.to_dict()]
