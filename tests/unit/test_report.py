@@ -1,7 +1,8 @@
 import json
 
-from kdetect.analysis.models import Finding, FindingKind, Confidence
+from kdetect.analysis.models import ChannelNote, Finding, FindingKind, Confidence
 from kdetect.reporting.iocs import extract
+from kdetect.reporting.iocs import extract as _extract
 from kdetect.reporting import report
 from kdetect.models import (
     Snapshot, HostFacts, CaptureMeta, SCHEMA_VERSION,
@@ -182,3 +183,38 @@ def test_json_report_is_deterministic_and_sorted_keys():
     # sort_keys=True: top-level keys must appear in sorted order in the text.
     payload = json.loads(a)
     assert list(json.loads(a).keys()) == sorted(payload.keys())
+
+
+_NOTE = ChannelNote("taint", "saturated",
+                    {"explained_by": {"12": ["vboxdrv"], "13": ["vboxdrv"]}})
+
+
+def test_markdown_omits_channel_coverage_when_there_are_no_notes():
+    md = report.render_markdown(_snap(), [], [])
+    assert "Channel coverage" not in md
+
+
+def test_markdown_renders_channel_coverage_and_escapes_module_names():
+    md = report.render_markdown(_snap(), [], [], notes=[_NOTE])
+    assert "## Channel coverage" in md
+    assert "taint" in md
+    # A module name is attacker-chosen, so it must be inline code, not bare text.
+    assert "`vboxdrv`" in md
+
+
+def test_json_carries_notes_as_a_named_key():
+    payload = json.loads(report.render_json(_snap(), [], [], notes=[_NOTE]))
+    assert payload["channel_notes"] == [_NOTE.to_dict()]
+
+
+def test_json_notes_key_is_present_and_empty_when_there_are_none():
+    payload = json.loads(report.render_json(_snap(), [], []))
+    assert payload["channel_notes"] == []
+
+
+def test_a_channel_note_never_becomes_an_ioc():
+    """Criterion 5: notes are not findings and carry no indicators."""
+    assert _extract([]) == []
+    md = report.render_markdown(_snap(), [], [], notes=[_NOTE])
+    ioc_section = md.split("## Indicators of Compromise", 1)[1]
+    assert "vboxdrv" not in ioc_section.split("## Channel coverage")[0]

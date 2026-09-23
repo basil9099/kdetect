@@ -1,3 +1,4 @@
+import copy
 import json
 from pathlib import Path
 import shutil
@@ -92,3 +93,29 @@ def test_redact_unwritable_out_dir_prints_error_not_traceback(tmp_path, capsys):
     assert rc == 1
     assert "error:" in captured.err
     assert not dst.exists()
+
+
+def test_saturated_channel_does_not_change_the_exit_code(tmp_path, capsys):
+    """A channel note is not a finding (spec section 4.4, criterion 5)."""
+    raw = copy.deepcopy(json.loads(
+        (FIX / "infected-hooktest.json").read_text(encoding="utf-8")))
+
+    # Saturate taint AND neutralise the other module channels, so the only
+    # module evidence left is the saturated one -> no findings at all.
+    mods = next(o for o in raw["observations"] if o["collector"] == "procfs.modules")
+    mods["entities"][mods["entity_ids"][0]]["taint"] = "OE"
+    ev = next(o for o in raw["observations"]
+              if o["collector"] == "kernel.module_evidence")
+    ev["stats"]["load_module_regions"] = len(mods["entity_ids"])
+    ev["extra"]["ftrace_modules"] = []
+    raw["observations"] = [o for o in raw["observations"]
+                           if o["collector"] != "kernel.hooks"]
+
+    snap = tmp_path / "saturated.json"
+    snap.write_text(json.dumps(raw), encoding="utf-8")
+
+    rc = main(["analyze", str(snap)])
+    out = capsys.readouterr().out
+    assert rc == 0, out
+    assert "saturated" in out
+    assert "taint" in out

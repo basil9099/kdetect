@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import json
 
-from kdetect.analysis.models import Confidence, Finding, FindingKind
+from kdetect.analysis.models import ChannelNote, Confidence, Finding, FindingKind
 from kdetect.models import Snapshot
 from kdetect.reporting.escape import md_block, md_code
 from kdetect.reporting.iocs import IOC
@@ -49,7 +49,8 @@ def _verdict(findings: list[Finding]) -> str:
 
 
 def render_json(snapshot: Snapshot, findings: list[Finding], iocs: list[IOC],
-                baseline_name: str | None = None) -> str:
+                baseline_name: str | None = None,
+                notes: list[ChannelNote] | None = None) -> str:
     h = snapshot.host
     payload = {
         "host": {"hostname": h.hostname, "kernel_release": h.kernel_release,
@@ -63,6 +64,7 @@ def render_json(snapshot: Snapshot, findings: list[Finding], iocs: list[IOC],
         "verdict": _verdict(findings),
         "findings": [f.to_dict() for f in _ranked(findings)],
         "iocs": [i.to_dict() for i in iocs],
+        "channel_notes": [n.to_dict() for n in (notes or [])],
     }
     return json.dumps(payload, indent=2, sort_keys=True)
 
@@ -87,7 +89,8 @@ def _render_evidence(f: Finding) -> list[str]:
 
 
 def render_markdown(snapshot: Snapshot, findings: list[Finding], iocs: list[IOC],
-                    baseline_name: str | None = None) -> str:
+                    baseline_name: str | None = None,
+                    notes: list[ChannelNote] | None = None) -> str:
     h = snapshot.host
     c = _counts(findings)
     baseline = md_code(baseline_name) if baseline_name else "none"
@@ -127,4 +130,18 @@ def render_markdown(snapshot: Snapshot, findings: list[Finding], iocs: list[IOC]
     for i in iocs:
         out.append(f"- {i.type}: {md_code(i.value)} ({i.confidence})")
     out.append("")
+    if notes:
+        out.append("## Channel coverage")
+        out.append("")
+        for n in notes:
+            if n.reason == "saturated":
+                out.append(
+                    f"- `{n.channel}` could not corroborate: every bit it reads is "
+                    f"already explained by a listed module, so it cannot speak to a "
+                    f"hidden one."
+                )
+                for bit, owners in sorted(n.detail.get("explained_by", {}).items()):
+                    named = ", ".join(md_code(o) for o in owners)
+                    out.append(f"  - bit {md_code(bit)}: {named}")
+        out.append("")
     return "\n".join(out)

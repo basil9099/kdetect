@@ -12,6 +12,7 @@ from pathlib import Path
 
 from kdetect import __version__, hostfacts
 from kdetect.analysis.scoring import analyze
+from kdetect.analysis.signals import channel_notes
 from kdetect.collectors.kernel_hooks import KernelHookCollector
 from kdetect.collectors.modules import ModuleEvidenceCollector, ProcfsModuleCollector
 from kdetect.collectors.procfs import ProcfsProcessCollector
@@ -165,12 +166,20 @@ def cmd_analyze(args) -> int:
         return EXIT_ERROR
 
     findings = analyze(snapshot, baseline)
+    notes = channel_notes(snapshot)
 
     if getattr(args, "json", False):
         print(json.dumps([f.to_dict() for f in findings], indent=2, sort_keys=True))
         return 3 if findings else EXIT_OK
 
     print()
+    for n in notes:
+        if n.reason == "saturated":
+            print(f"note:      {printable(n.channel)} could not corroborate "
+                  f"(saturated); every bit it reads is explained by a listed module")
+            for bit, owners in sorted(n.detail.get("explained_by", {}).items()):
+                print(f"{' ' * 11}bit {printable(bit)}: "
+                      f"{printable(', '.join(owners))}")
     if not findings:
         print("findings:  none")
         return EXIT_OK
@@ -263,10 +272,11 @@ def cmd_report(args) -> int:
 
     findings = analyze(snapshot, baseline)
     iocs = extract(findings)
+    notes = channel_notes(snapshot)
     if args.format == "json":
-        text = report_mod.render_json(snapshot, findings, iocs, baseline_name)
+        text = report_mod.render_json(snapshot, findings, iocs, baseline_name, notes=notes)
     else:
-        text = report_mod.render_markdown(snapshot, findings, iocs, baseline_name)
+        text = report_mod.render_markdown(snapshot, findings, iocs, baseline_name, notes=notes)
 
     # The two sinks must emit identical bytes, so settle the trailing newline
     # here rather than letting them disagree: render_markdown already ends in
