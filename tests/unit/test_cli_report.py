@@ -179,6 +179,12 @@ def test_report_shows_channel_coverage_for_saturated_taint(tmp_path, capsys):
     site with its own notes=notes argument -- see
     test_report_json_carries_channel_notes_for_saturated_taint below, which
     that arm being correct says nothing about.
+
+    Asserts a rendered detail line, not just the heading: the heading is
+    emitted by render_markdown's section gate, so disabling the whole saturated
+    rendering body left a heading-only assertion green. Its sibling
+    test_saturated_channel_does_not_change_the_exit_code pins the same line on
+    the terminal path.
     """
     raw = _saturated_snapshot_raw()
     snap = tmp_path / "snap.json"
@@ -188,6 +194,106 @@ def test_report_shows_channel_coverage_for_saturated_taint(tmp_path, capsys):
     out = capsys.readouterr().out
     assert rc == 0, out
     assert "## Channel coverage" in out
+
+    # The saturated branch specifically: a per-bit "bit `N`: `owner`" line,
+    # composed from the same pure channel_notes() the CLI calls. The generic
+    # unknown-reason fallback renders no such line, so this cannot be satisfied
+    # by the fallback standing in for a deleted saturated branch.
+    expected_notes = _channel_notes(_Snapshot.from_dict(raw))
+    assert len(expected_notes) == 1 and expected_notes[0].reason == "saturated"
+    explained = expected_notes[0].detail["explained_by"]
+    assert explained                                   # non-vacuous
+    for bit, owners in explained.items():
+        named = ", ".join(f"`{o}`" for o in owners)
+        assert f"  - bit `{bit}`: {named}" in out
+
+
+def _uncorroborated_snapshot_raw() -> dict:
+    """infected-hooktest.json, mutated into the attacker-reachable blinding
+    case: both corroborating channels readable but EMPTY, and every other
+    module channel silent, so analyze() produces no findings at all.
+
+    Returning empty content for /proc/kallsyms and ftrace's
+    available_filter_functions is strictly easier than forging their contents,
+    and it kills the ftrace_orphan channel at the same time. The one artifact
+    that says "two channels I asked returned nothing" is the ChannelNote, so on
+    this snapshot the note is the entire difference between a blinded host and
+    a clean one.
+    """
+    raw = copy.deepcopy(json.loads(
+        (FIX / "infected-hooktest.json").read_text(encoding="utf-8")))
+
+    def obs(collector):
+        return next(o for o in raw["observations"] if o["collector"] == collector)
+
+    mods = obs("procfs.modules")
+    ev = obs("kernel.module_evidence")
+    ev["stats"]["taint"] = 0                                   # no taint signal
+    ev["stats"]["load_module_regions"] = len(mods["entity_ids"])   # no region signal
+    ev["stats"]["ftrace_available"] = True
+    ev["extra"]["ftrace_modules"] = []                         # readable, empty
+    hooks = obs("kernel.hooks")
+    hooks["entity_ids"] = []
+    hooks["entities"] = {}                                     # no unexpected_hook
+    hooks["stats"]["kallsyms_available"] = True
+    hooks["extra"]["kallsyms_modules"] = []                    # readable, empty
+    return raw
+
+
+def test_analyze_renders_an_uncorroborated_note_instead_of_looking_clean(
+        tmp_path, capsys):
+    """A note whose reason a renderer does not know must not degrade to silence.
+
+    Both human sinks gated on the literal string "saturated", so on this
+    snapshot `analyze` printed "findings: none" and exited 0 -- byte-identical
+    to a clean box, with the only tell suppressed. Guards cli.py's _note_lines
+    "uncorroborated" branch; deleting that branch leaves only the generic
+    fallback, which names no listed count.
+    """
+    raw = _uncorroborated_snapshot_raw()
+    snap = tmp_path / "snap.json"
+    snap.write_text(json.dumps(raw), encoding="utf-8")
+
+    rc = main(["analyze", str(snap)])
+    out = capsys.readouterr().out
+
+    # The precondition that makes this test matter: zero findings, exit 0.
+    assert rc == 0, out
+    assert "findings:  none" in out
+
+    expected_notes = _channel_notes(_Snapshot.from_dict(raw))
+    assert len(expected_notes) == 1
+    note = expected_notes[0]
+    assert note.reason == "uncorroborated"                     # non-vacuous
+
+    assert "could not corroborate" in out
+    assert "uncorroborated" in out
+    # The channel is named, and so is what the note actually measured -- a bare
+    # "something went wrong" line would pass the two substrings above.
+    assert note.channel in out
+    assert f"listed modules: {note.detail['listed']}" in out
+    for consulted in note.detail["channels_consulted"]:
+        assert consulted in out
+
+
+def test_report_markdown_renders_an_uncorroborated_note(tmp_path, capsys):
+    """The markdown arm of the same defect: it emitted "## Channel coverage"
+    followed by nothing at all."""
+    raw = _uncorroborated_snapshot_raw()
+    snap = tmp_path / "snap.json"
+    snap.write_text(json.dumps(raw), encoding="utf-8")
+
+    rc = main(["report", str(snap)])
+    out = capsys.readouterr().out
+    assert rc == 0, out
+
+    note = _channel_notes(_Snapshot.from_dict(raw))[0]
+    assert note.reason == "uncorroborated"
+    assert "## Channel coverage" in out
+    body = out.split("## Channel coverage", 1)[1]
+    assert body.strip(), "the heading must never be emitted with an empty body"
+    assert "could not corroborate" in body
+    assert f"listed modules: `{note.detail['listed']}`" in body
 
 
 def test_report_json_carries_channel_notes_for_saturated_taint(tmp_path, capsys):
