@@ -6,12 +6,13 @@
 |----------------------------------------- | -------: | -------: | ------: | --------: |
 | src/kdetect/\_\_init\_\_.py              |        1 |        0 |    100% |           |
 | src/kdetect/analysis/\_\_init\_\_.py     |        0 |        0 |    100% |           |
-| src/kdetect/analysis/models.py           |       33 |        0 |    100% |           |
-| src/kdetect/analysis/scoring.py          |       42 |        0 |    100% |           |
-| src/kdetect/analysis/signals.py          |      103 |        2 |     98% |   90, 160 |
+| src/kdetect/analysis/models.py           |       42 |        0 |    100% |           |
+| src/kdetect/analysis/scoring.py          |       54 |        0 |    100% |           |
+| src/kdetect/analysis/signals.py          |      147 |        4 |     97% |39, 107, 191, 240 |
+| src/kdetect/analysis/taint.py            |       21 |        0 |    100% |           |
 | src/kdetect/baseline/\_\_init\_\_.py     |        0 |        0 |    100% |           |
 | src/kdetect/baseline/store.py            |       38 |        5 |     87% | 28-31, 37 |
-| src/kdetect/cli.py                       |      219 |       32 |     85% |99, 114-127, 202-206, 237-238, 244-246, 255, 260-261, 295, 354-355, 364, 372, 377 |
+| src/kdetect/cli.py                       |      240 |       32 |     87% |100, 115-128, 252-256, 287-288, 294-296, 305, 310-311, 346, 405-406, 415, 423, 428 |
 | src/kdetect/collectors/\_\_init\_\_.py   |        0 |        0 |    100% |           |
 | src/kdetect/collectors/base.py           |       29 |        0 |    100% |           |
 | src/kdetect/collectors/kernel\_hooks.py  |       29 |        1 |     97% |        46 |
@@ -31,8 +32,8 @@
 | src/kdetect/reporting/escape.py          |       37 |        1 |     97% |        35 |
 | src/kdetect/reporting/iocs.py            |       46 |        0 |    100% |           |
 | src/kdetect/reporting/redact.py          |        8 |        0 |    100% |           |
-| src/kdetect/reporting/report.py          |       58 |        1 |     98% |        81 |
-| **TOTAL**                                | **1412** |   **81** | **94%** |           |
+| src/kdetect/reporting/report.py          |       79 |        1 |     99% |        83 |
+| **TOTAL**                                | **1540** |   **83** | **95%** |           |
 
 
 ## Setup coverage badge
