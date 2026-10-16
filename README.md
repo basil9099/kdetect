@@ -31,6 +31,8 @@ a thing and the channel that denied it.
   from first capture to catching a live rootkit in a contradiction
 - [`docs/architecture.md`](docs/architecture.md): how it is put together
 - [`docs/detection-methods.md`](docs/detection-methods.md): what it detects and why
+- [`docs/validation.md`](docs/validation.md): what has been shown live, what
+  only synthetically, and how to reproduce it
 - [`docs/limitations.md`](docs/limitations.md): what it cannot detect
 - [`docs/threat-model.md`](docs/threat-model.md): who it is defending against
 
@@ -110,6 +112,10 @@ Three channels named the module and the listing denied it: 75 module regions in
 vmalloc against 74 listed, and taint bits 12 and 13 set with no listed module
 accounting for them.
 
+`infected-diamorphine.json` is the same check against a real rootkit,
+[Diamorphine](https://github.com/m0nad/Diamorphine), and gives a `HIGH`
+`hidden_module` seen by `ftrace_orphan`, `taint` and `vmalloc_region`.
+
 For a shareable artifact rather than terminal triage:
 
 ```bash
@@ -181,28 +187,60 @@ Confidence is corroboration count, scoped per suspect: one channel is LOW, two
 MEDIUM, three or more HIGH. Baselines are ordinary snapshots plus a detached
 ed25519 signature, verified before parsing.
 
-Validated against real rootkits on Debian 12 / kernel 6.1.0-52. Diamorphine's
-hidden module was caught three independent ways, and a purpose-built hiding module
-(`kmod/kdetect_hooktest.c`) is the committed ground truth for hook detection.
+How far each finding has been tested is in
+[What has been demonstrated](#what-has-been-demonstrated) below.
 
 ### MITRE ATT&CK
 
-Findings mapped to [ATT&CK v19.2](https://attack.mitre.org/) Enterprise, with how
-far each has been tested.
+Findings mapped to [ATT&CK v19.2](https://attack.mitre.org/) Enterprise.
 
-| Finding | Technique (tactic) | Tested against |
-|---|---|---|
-| `hidden_module` | [T1014 Rootkit](https://attack.mitre.org/techniques/T1014/) (Stealth); [T1547.006 Kernel Modules and Extensions](https://attack.mitre.org/techniques/T1547/006/) (Persistence, Privilege Escalation) | Live: Diamorphine and `kdetect_hooktest` on kernel 6.1.0-52 |
-| `suspected_hidden_module` | T1014 Rootkit (Stealth); T1547.006 Kernel Modules and Extensions (Persistence, Privilege Escalation) | Not yet tested live |
-| `hidden_process` | T1014 Rootkit (Stealth) | Hand-built snapshots only: Diamorphine's process hiding did not engage on 6.1 (L16, L24) |
-| `baseline_drift` | T1547.006 Kernel Modules and Extensions (Persistence, Privilege Escalation) | Not yet tested live |
-| `over_listed_module` | [T1014 Rootkit](https://attack.mitre.org/techniques/T1014/) (Stealth) | Not yet tested live |
+| Finding | Technique (tactic) |
+|---|---|
+| `hidden_module` | [T1014 Rootkit](https://attack.mitre.org/techniques/T1014/) (Stealth); [T1547.006 Kernel Modules and Extensions](https://attack.mitre.org/techniques/T1547/006/) (Persistence, Privilege Escalation) |
+| `suspected_hidden_module` | T1014 Rootkit (Stealth); T1547.006 Kernel Modules and Extensions (Persistence, Privilege Escalation) |
+| `hidden_process` | T1014 Rootkit (Stealth) |
+| `baseline_drift` | T1547.006 Kernel Modules and Extensions (Persistence, Privilege Escalation) |
+| `over_listed_module` | T1014 Rootkit (Stealth) |
 
 A module that stays listed produces no finding unless a signed baseline predates
 it, so kdetect sees T1547.006 only when the module hides or is new since the
 baseline. T1014 also covers user-mode rootkits, which kdetect has not been tested
 against, and hypervisor or firmware rootkits, which sit below anything kdetect can
 observe.
+
+## What has been demonstrated
+
+There are three levels of evidence. **Live** means it ran as root on the lab VM
+(Debian 12, kernel 6.1.0-52) with the rootkit actually loaded. **Replayed** means
+that live capture is committed and re-analysed on every CI run by
+[`tests/unit/test_ground_truth.py`](tests/unit/test_ground_truth.py).
+**Synthetic** means hand-built inputs only.
+
+| Claim | Evidence | Real capture |
+|---|---|---|
+| Clean host gives zero findings | Live, replayed | `clean-phase2.json`, `clean-phase3a.json` |
+| `hidden_module` catches Diamorphine at `HIGH` | Live, replayed | `infected-diamorphine.json` |
+| `hidden_module` catches a hidden ftrace-hook module at `HIGH` | Live, replayed | `infected-hooktest.json` |
+| `hidden_process` | Synthetic only: Diamorphine's process hiding did not engage on 6.1 (L16, L24) | none |
+| `suspected_hidden_module`, `baseline_drift` | Synthetic only | none |
+| `over_listed_module` | Synthetic: a phantom row injected into a real capture | `infected-hooktest.json`, modified |
+
+Each infected capture was taken in the same boot as its clean partner, so the
+loaded module is the only difference between them. Every live run used one kernel.
+[`docs/validation.md`](docs/validation.md) has the per-run record (dates, what was
+loaded, exact results, what did not engage) and the test behind each row.
+
+### Reproducing
+
+1. **Replay, any OS, no root:** `pytest tests/unit/test_ground_truth.py`
+2. **Inspect the captures:** run `kdetect analyze` on any file in
+   `tests/fixtures/snapshots/`, as in [Try it](#try-it). The clean captures exit 0
+   and the infected ones exit 3 with the finding above.
+3. **Re-run live:** build the VM from [`docs/lab-setup.md`](docs/lab-setup.md),
+   then run [`tools/demo.sh`](tools/demo.sh) for the test module. Diamorphine's
+   procedure is in
+   [`docs/step0-phase2/README.md`](docs/step0-phase2/README.md); its source is
+   not in this repository.
 
 ## What it cannot detect
 
@@ -234,6 +272,7 @@ v1.0. Built in phases, each with a design spec and an implementation plan under
 | 3b | detect → score split; per-suspect composition |
 | 4a | network sockets; proc↔socket correlation; HIGH `hidden_process` |
 | 4b | reporting, IOC extraction, redaction |
+| 4c | evidence discipline in analysis; `over_listed_module` |
 
 Deferred to phase 5: eBPF collectors, out-of-band memory forensics, and off-host
 baseline verification.
