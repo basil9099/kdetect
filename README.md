@@ -9,10 +9,12 @@
 
 Linux kernel rootkit detection via cross-view comparison.
 
-A rootkit hides by lying to whoever asks. kdetect asks the same question through
-several channels that a rootkit has to subvert separately, then treats their
-disagreement as the finding. It asks whether two views of the system agree,
-records both answers, and reports where they diverge.
+**TL;DR:** A rootkit is malware that hides itself by tampering with what the
+operating system reports, so tools like `ps` and `lsmod` stop showing it. kdetect
+asks the kernel the same question through several independent channels and flags
+any place where the answers disagree. On a lab VM it caught a real rootkit,
+[Diamorphine](https://github.com/m0nad/Diamorphine), and a hidden ftrace-hooking
+kernel module, both at HIGH confidence.
 
 <img src="docs/demo.gif" alt="Terminal recording on the lab VM. kdetect captures a clean host and reports no findings. The kdetect_hooktest module is then loaded, lsmod no longer lists it, and a second capture reports a HIGH hidden_module finding seen by taint, unexpected_hook and vmalloc_region.">
 
@@ -21,22 +23,49 @@ module, [`kmod/kdetect_hooktest.c`](kmod/kdetect_hooktest.c). Pauses are shorten
 each capture's syscall sweep takes about a minute. [`tools/demo.sh`](tools/demo.sh)
 reproduces the run.
 
-The architecture follows from that, via the principles in
-[`docs/architecture.md`](docs/architecture.md): snapshots hold evidence and never
-conclusions (P1), disagreement between collectors stays representable rather than
-resolved at capture time (P2), and every finding names both the channels that saw
-a thing and the channel that denied it.
+## Highlights
 
-- [Write-up](https://basil9099.github.io/projects/kdetect/): the build story,
-  from first capture to catching a live rootkit in a contradiction
-- [`docs/architecture.md`](docs/architecture.md): how it is put together
-- [`docs/detection-methods.md`](docs/detection-methods.md): what it detects and why
-- [`docs/validation.md`](docs/validation.md): what has been shown live, what
-  only synthetically, and how to reproduce it
-- [`docs/limitations.md`](docs/limitations.md): what it cannot detect
-- [`docs/threat-model.md`](docs/threat-model.md): who it is defending against
+- **Tested against a live rootkit.** It caught Diamorphine and a self-hiding test
+  module live as root on a VM. Those captures are committed and re-checked on
+  every CI run.
+- **Evidence you can check.** Each finding names the channels that saw something
+  and the channel that denied it. The README says which results were shown live
+  and which only with synthetic inputs.
+- **Mapped to MITRE ATT&CK.** Findings map to T1014 Rootkit and T1547.006 Kernel
+  Modules and Extensions.
+- **Tamper-evident baselines.** Snapshots of a clean host can be signed with
+  ed25519, and kdetect checks the signature before it reads the file.
+- **Limits written down.** 30 numbered limitations, each traced to captured
+  evidence.
+- **Tested in CI.** Unit, analysis and integration tests, with lint and coverage
+  checks on every push.
+
+<details>
+<summary><b>New to kernel security? A short glossary</b></summary>
+
+- **Rootkit**: malware built to hide its own presence (processes, files, kernel
+  modules) by tampering with what the system reports.
+- **Kernel module**: code loaded into the running Linux kernel, with full
+  privilege. Kernel rootkits are usually modules that then hide themselves.
+- **`/proc`**: a virtual filesystem through which the kernel exposes running
+  processes and loaded modules. `ps` and `lsmod` read it, which makes it the
+  thing a rootkit filters first.
+- **Cross-view detection**: asking the same question through two independent
+  routes and treating disagreement as the finding.
+- **ftrace**: the kernel's built-in function-tracing framework. Rootkits abuse it
+  to hook kernel functions, but it records which module owns each hook.
+- **Taint flags**: bits the kernel sets for good when, for example, an unsigned
+  or out-of-tree module loads. They stay set after the module hides.
+- **vmalloc**: the kernel memory area module code is loaded into. A hidden module
+  still occupies a region there.
+
+</details>
 
 ## How cross-view detection works
+
+A rootkit hides by lying to whoever asks. kdetect asks the same question through
+several channels that a rootkit has to subvert separately, records every answer,
+and reports where they diverge.
 
 A hidden process is the clearest case. `/proc` readdir is the listing everything
 uses, and it is exactly what a process-hiding rootkit filters. So kdetect does not
@@ -53,20 +82,6 @@ absent from the readdir listing, is hidden. One channel alone is LOW confidence;
 three independent channels agreeing is HIGH. The same shape applies to modules:
 `/proc/modules` is the listing, while kernel taint bits, unaccounted vmalloc
 regions, and ftrace hook ownership are channels a module must suppress separately.
-
-## Architecture
-
-<img src="docs/architecture-diagram.svg"
-     alt="kdetect architecture. Kernel surfaces feed a Source layer, the only part of kdetect that performs I/O and the seam where a live reader is swapped for a fixture reader. Below it, pure parsers and collectors assemble a JSON snapshot, which analysis reads alongside an optional signed baseline: detectors emit signals, scoring composes one finding per suspect, and a reporting layer renders findings and IOCs as Markdown or JSON.">
-
-Two pure pipelines sit above one impure layer. `Source` is the only code that
-touches the operating system, and a collector receives its source as an argument
-rather than constructing one, so a fixture-driven test exercises the identical
-code path as a live capture. Everything below that seam is pure: parse, collect,
-detect, score, render.
-
-The full reasoning, including the three principles the layout follows and the
-snapshot format, is in [`docs/architecture.md`](docs/architecture.md).
 
 ## Install
 
@@ -116,7 +131,8 @@ accounting for them.
 [Diamorphine](https://github.com/m0nad/Diamorphine), and gives a `HIGH`
 `hidden_module` seen by `ftrace_orphan`, `taint` and `vmalloc_region`.
 
-For a shareable artifact rather than terminal triage:
+<details>
+<summary>For a shareable artifact rather than terminal triage: <code>kdetect report</code></summary>
 
 ```bash
 kdetect report tests/fixtures/snapshots/infected-hooktest.json
@@ -151,23 +167,7 @@ indicators worth carrying to another host: a module name, a hooked syscall, a C2
 endpoint, a process name. Host-local artifacts like pids and inodes stay as
 context.
 
-## Commands
-
-- `kdetect capture [--out PATH] [--pretty]`: snapshot the live system to a
-  JSON file (default: a generated name under `captures/`).
-- `kdetect analyze <snapshot> [--json] [--baseline PATH --verify-key PATH]`:
-  summarise a snapshot's findings on the terminal; exits 3 if any are present.
-- `kdetect baseline <snapshot> --out PATH --sign-key PATH`: sign a clean
-  snapshot as a baseline for future drift detection.
-- `kdetect report <snapshot> [--format md|json] [--out PATH] [--baseline PATH --verify-key PATH]`:
-  render a shareable Markdown or JSON report of a snapshot's findings and
-  indicators of compromise; exits 3 if any findings are present.
-- `kdetect redact <in.json> <out.json>`: scrub a snapshot's process command
-  lines before sharing it.
-
-Exit codes are scriptable: 3 means findings were produced, 0 none, 1 an error
-(including a baseline whose signature fails), 2 a usage problem. A non-zero exit
-from `analyze` or `report` is a detection, not a crash.
+</details>
 
 ## What it detects
 
@@ -202,11 +202,16 @@ Findings mapped to [ATT&CK v19.2](https://attack.mitre.org/) Enterprise.
 | `baseline_drift` | T1547.006 Kernel Modules and Extensions (Persistence, Privilege Escalation) |
 | `over_listed_module` | T1014 Rootkit (Stealth) |
 
+<details>
+<summary>Coverage caveats</summary>
+
 A module that stays listed produces no finding unless a signed baseline predates
 it, so kdetect sees T1547.006 only when the module hides or is new since the
 baseline. T1014 also covers user-mode rootkits, which kdetect has not been tested
 against, and hypervisor or firmware rootkits, which sit below anything kdetect can
 observe.
+
+</details>
 
 ## What has been demonstrated
 
@@ -259,23 +264,23 @@ shape of them:
   process's `exe` and `cmdline` cannot be recovered, because the collector that
   records them is the readdir path the rootkit suppressed (L26).
 
-## Project status
+## Architecture
 
-v1.0. Built in phases, each with a design spec and an implementation plan under
-[`docs/superpowers/`](docs/superpowers/):
+<img src="docs/architecture-diagram.svg"
+     alt="kdetect architecture. Kernel surfaces feed a Source layer, the only part of kdetect that performs I/O and the seam where a live reader is swapped for a fixture reader. Below it, pure parsers and collectors assemble a JSON snapshot, which analysis reads alongside an optional signed baseline: detectors emit signals, scoring composes one finding per suspect, and a reporting layer renders findings and IOCs as Markdown or JSON.">
 
-| Phase | Delivered |
-|---|---|
-| 1 | capture → JSON → analyze round-trip; schema and evidence discipline |
-| 2 | cross-view process and module detection; syscall sweep |
-| 3a | hook-surface integrity; signed baselines |
-| 3b | detect → score split; per-suspect composition |
-| 4a | network sockets; proc↔socket correlation; HIGH `hidden_process` |
-| 4b | reporting, IOC extraction, redaction |
-| 4c | evidence discipline in analysis; `over_listed_module` |
+Two pure pipelines sit above one impure layer. `Source` is the only code that
+touches the operating system, and a collector receives its source as an argument
+rather than constructing one, so a fixture-driven test exercises the identical
+code path as a live capture. Everything below that seam is pure: parse, collect,
+detect, score, render.
 
-Deferred to phase 5: eBPF collectors, out-of-band memory forensics, and off-host
-baseline verification.
+The layout follows three principles from
+[`docs/architecture.md`](docs/architecture.md): snapshots hold evidence and never
+conclusions (P1), disagreement between collectors stays representable rather than
+resolved at capture time (P2), and every finding names both the channels that saw
+a thing and the channel that denied it. The full reasoning and the snapshot format
+are in that document.
 
 ## How this was built
 
@@ -314,7 +319,68 @@ Several problems only showed up on the real VM or in review:
   against a list of process ids. On a clean host, every thread of a socket-owning
   daemon would have been reported as a hidden process.
 
+## Documentation
+
+- [Write-up](https://basil9099.github.io/projects/kdetect/): the build story,
+  from first capture to catching a live rootkit in a contradiction
+- [`docs/architecture.md`](docs/architecture.md): how it is put together
+- [`docs/detection-methods.md`](docs/detection-methods.md): what it detects and why
+- [`docs/validation.md`](docs/validation.md): what has been shown live, what
+  only synthetically, and how to reproduce it
+- [`docs/limitations.md`](docs/limitations.md): what it cannot detect
+- [`docs/threat-model.md`](docs/threat-model.md): who it is defending against
+- [`docs/lab-setup.md`](docs/lab-setup.md): building the lab VM
+
+## Commands
+
+<details>
+<summary>Full command reference and exit codes</summary>
+
+- `kdetect capture [--out PATH] [--pretty]`: snapshot the live system to a
+  JSON file (default: a generated name under `captures/`).
+- `kdetect analyze <snapshot> [--json] [--baseline PATH --verify-key PATH]`:
+  summarise a snapshot's findings on the terminal; exits 3 if any are present.
+- `kdetect baseline <snapshot> --out PATH --sign-key PATH`: sign a clean
+  snapshot as a baseline for future drift detection.
+- `kdetect report <snapshot> [--format md|json] [--out PATH] [--baseline PATH --verify-key PATH]`:
+  render a shareable Markdown or JSON report of a snapshot's findings and
+  indicators of compromise; exits 3 if any findings are present.
+- `kdetect redact <in.json> <out.json>`: scrub a snapshot's process command
+  lines before sharing it.
+
+Exit codes are scriptable: 3 means findings were produced, 0 none, 1 an error
+(including a baseline whose signature fails), 2 a usage problem. A non-zero exit
+from `analyze` or `report` is a detection, not a crash.
+
+</details>
+
+## Project status
+
+<details>
+<summary>v1.0, built in seven phases</summary>
+
+Each phase has a design spec and an implementation plan under
+[`docs/superpowers/`](docs/superpowers/).
+
+| Phase | Delivered |
+|---|---|
+| 1 | capture → JSON → analyze round-trip; schema and evidence discipline |
+| 2 | cross-view process and module detection; syscall sweep |
+| 3a | hook-surface integrity; signed baselines |
+| 3b | detect → score split; per-suspect composition |
+| 4a | network sockets; proc↔socket correlation; HIGH `hidden_process` |
+| 4b | reporting, IOC extraction, redaction |
+| 4c | evidence discipline in analysis; `over_listed_module` |
+
+Deferred to phase 5: eBPF collectors, out-of-band memory forensics, and off-host
+baseline verification.
+
+</details>
+
 ## Development
+
+<details>
+<summary>Running the tests and contributing</summary>
 
 ```bash
 pytest tests
@@ -335,13 +401,15 @@ Two constraints worth knowing before contributing:
   Run `kdetect redact` first, and note that it scrubs `cmdline` only, not `exe`
   paths, hostnames, or socket addresses.
 
+</details>
+
 ## Lab safety
 
 Live rootkit work belongs on a disposable VM with a snapshot to revert to, never
 on a workstation. Rootkit source and binaries are deliberately excluded from this
 repository: `.gitignore` drops all of `lab/targets/**`, and only kdetect's own
 benign test module (`kmod/kdetect_hooktest.c`) is committed. Never push from a
-host while a rootkit is loaded.
+host while a rootkit is loaded. See also [`SECURITY.md`](SECURITY.md).
 
 ## Licence
 
